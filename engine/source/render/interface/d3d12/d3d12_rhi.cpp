@@ -5,17 +5,17 @@
 namespace engine {
 
 	void D3D12Instance::Init(const RHIInstanceInitInfo& info) {
-		uint32_t dxgiFactoryFlag{ 0 };
+		uint32_t factoryFlag{ 0 };
 
 #ifdef _DEBUG
 		if (FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugMessenger)))) {
 			throw std::runtime_error("Create debug messenger failed");
 		}
 		debugMessenger->EnableDebugLayer();
-		dxgiFactoryFlag |= DXGI_CREATE_FACTORY_DEBUG;
+		factoryFlag |= DXGI_CREATE_FACTORY_DEBUG;
 #endif // _DEBUG
 		
-		if (FAILED(CreateDXGIFactory2(dxgiFactoryFlag, IID_PPV_ARGS(&factory)))) {
+		if (FAILED(CreateDXGIFactory2(factoryFlag, IID_PPV_ARGS(&factory)))) {
 			throw std::runtime_error("Create DXGI factory failed");
 		}
 	}
@@ -39,13 +39,29 @@ namespace engine {
 			throw std::runtime_error("Create device failed");
 		}
 		
+		std::vector<RHIQueue*> queues;
+		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
+			auto queueWrapper = new RHIQueue();
+
+			D3D12_COMMAND_QUEUE_DESC queueDesc;
+			queueDesc.Type = D3D12EnumQueueType(info.pQueueCreateInfo[i].queueType).Get();
+
+			ComPtr<ID3D12CommandQueue> queue;
+			if (FAILED(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queue)))) {
+				throw std::runtime_error("Create command queue failed");
+			}
+			
+			static_cast<D3D12WrapperQueue*>(queueWrapper)->SetQueue(queue);
+			queues.push_back(queueWrapper);
+		}
+
 		auto deviceWrapper = new RHIDevice();
-		static_cast<D3D12WrapperDevice*>(deviceWrapper)->SetDevice(device);
+		static_cast<D3D12WrapperDevice*>(deviceWrapper)->SetDevice(device).SetQueues(queues);
 		return deviceWrapper;
 	}
 
-	RHISwapchain* D3D12Instance::CreateSwapchain(const RHIDevice* device, const RHISwapchainCreateInfo& info) const {
-		DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
+	RHISwapchain* D3D12Instance::CreateSwapchain(const RHIDevice* device, const RHIQueue* queue, const RHISwapchainCreateInfo& info) const {
+		DXGI_SWAP_CHAIN_DESC1 swapchainDesc;
 		swapchainDesc.BufferCount = info.frameCount;
 		swapchainDesc.Width = info.imageExtent.width;
 		swapchainDesc.Height = info.imageExtent.height;
@@ -57,7 +73,7 @@ namespace engine {
 		ComPtr<IDXGISwapChain1> swapchainOld;
 		ComPtr<IDXGISwapChain3> swapchain;
 
-		if (FAILED(factory->CreateSwapChainForHwnd(commandQueue, info.platformInfo.hWnd, &swapchainDesc, nullptr, nullptr, &swapchainOld))) {
+		if (FAILED(factory->CreateSwapChainForHwnd(static_cast<const D3D12WrapperQueue*>(queue)->GetQueue().Get(), info.platformInfo.hWnd, &swapchainDesc, nullptr, nullptr, &swapchainOld))) {
 			throw std::runtime_error("Create swapchain failed");
 		}
 
@@ -67,8 +83,20 @@ namespace engine {
 	}
 
 	void D3D12Instance::DestroyDevice(RHIDevice* device) const {
+		for (auto queue : static_cast<D3D12WrapperDevice*>(device)->GetQueues()) {
+			static_cast<D3D12WrapperQueue*>(queue)->GetQueue()->Release();
+			delete queue;
+		}
 		static_cast<D3D12WrapperDevice*>(device)->GetDevice()->Release();
 		delete device;
+	}
+
+	RHIQueue* D3D12Instance::GetQueue(const RHIDevice* device, uint32_t queueIndex) const {
+		auto queues = static_cast<const D3D12WrapperDevice*>(device)->GetQueues();
+		if (queueIndex >= queues.size()) {
+			throw std::runtime_error("Queue index out of range");
+		}
+		return queues[queueIndex];
 	}
 
 	std::vector<RHIPhysicalDeviceInfo> D3D12Instance::EnumeratePhysicalDevice() const {

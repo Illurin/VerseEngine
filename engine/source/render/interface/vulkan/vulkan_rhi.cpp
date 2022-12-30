@@ -36,11 +36,31 @@ namespace engine {
 
 		vk::DispatchLoaderDynamic dispatch(instance, GetInstanceProcAddr);
 		debugMessenger = instance.createDebugUtilsMessengerEXT(debugMessengerInfo, nullptr, dispatch);
-
+		
 		if (!debugMessenger) {
 			throw std::runtime_error("Create debug messenger failed");
 		}
 #endif // _DEBUG
+	}
+
+	void VulkanInstance::CreateInstance(const RHIInstanceInitInfo& info) {
+		auto applicationInfo = vk::ApplicationInfo()
+			.setApiVersion(VK_API_VERSION_1_3)
+			.setPEngineName("Verse Engine")
+			.setEngineVersion(1)
+			.setPApplicationName(info.applicationName)
+			.setApplicationVersion(info.applicationVersion);
+
+		auto instanceInfo = vk::InstanceCreateInfo()
+			.setPEnabledExtensionNames(extensions.device)
+			.setPApplicationInfo(&applicationInfo)
+			.setPEnabledLayerNames(validationLayers);
+
+		instance = vk::createInstance(instanceInfo);
+
+		if (!instance) {
+			throw std::runtime_error("Create instance failed");
+		}
 	}
 
 	void VulkanInstance::Destroy() {
@@ -59,36 +79,45 @@ namespace engine {
 		}
 
 		auto physicalDevice = gpus[info.physicalDeviceID];
-
 		auto queueProp = physicalDevice.getQueueFamilyProperties();
-		uint32_t graphicsQueueFamilyIndex = 0;
 
-		bool found = false;
-		for (size_t i = 0; i < queueProp.size(); i++) {
-			if (queueProp[i].queueFlags & vk::QueueFlagBits::eGraphics) {
-				graphicsQueueFamilyIndex = i;
-				found = true;
-				break;
+		std::vector<vk::DeviceQueueCreateInfo> deviceQueueInfos;
+
+		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
+			uint32_t queueIndex;
+			bool found = false;
+			for (uint32_t j = 0; j < queueProp.size(); j++) {
+				if (queueProp[i].queueFlags & VkEnumQueueType(info.pQueueCreateInfo[i].queueType).Get()) {
+					queueIndex = j;
+					found = true;
+					break;
+				}
 			}
-		}
-		if (!found) {
-			throw std::runtime_error("Cannot find queue family");
+
+			if (!found) {
+				throw std::runtime_error("Cannot find queue family");
+			}
+
+			std::array<float, 1> priorities = { 0.0f };
+			auto deviceQueueInfo = vk::DeviceQueueCreateInfo()
+				.setQueuePriorities(priorities)
+				.setQueueFamilyIndex(queueIndex);
+			deviceQueueInfos.push_back(deviceQueueInfo);
 		}
 
 		auto feature = vk::PhysicalDeviceFeatures()
-			.setGeometryShader(VK_TRUE);
+			.setGeometryShader(info.deviceFeature.geometryShader);
 
-		std::array<float, 1> priorities = { 0.0f };
-		auto queueInfo = vk::DeviceQueueCreateInfo()
-			.setQueueCount(1)
-			.setPQueuePriorities(priorities.data())
-			.setQueueFamilyIndex(graphicsQueueFamilyIndex);
+		auto deviceExtensions = extensions.device;
+
+		if (info.deviceFeature.hardwareVideoAcceleration) {
+			deviceExtensions.push_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
+			deviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
+		}
 
 		auto deviceInfo = vk::DeviceCreateInfo()
-			.setQueueCreateInfoCount(1)
-			.setPQueueCreateInfos(&queueInfo)
-			.setEnabledExtensionCount(extensions.device.size())
-			.setPpEnabledExtensionNames(extensions.device.data())
+			.setQueueCreateInfos(deviceQueueInfos)
+			.setPEnabledExtensionNames(extensions.device)
 			.setPEnabledFeatures(&feature);
 
 		auto device = physicalDevice.createDevice(deviceInfo);
@@ -97,11 +126,26 @@ namespace engine {
 			throw std::runtime_error("Create logical device failed");
 		}
 
+		std::vector<RHIQueue*> queues;
+		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
+			auto queue = new RHIQueue();
+			static_cast<VkWrapperQueue*>(queue)->SetQueue(device.getQueue(deviceQueueInfos[i].queueFamilyIndex, 0));
+			queues.push_back(queue);
+		}
+
 		auto deviceWrapper = new RHIDevice();
-		static_cast<VkWrapperDevice*>(deviceWrapper)->SetPhysicalDevice(physicalDevice).SetDevice(device).SetQueueFamilyIndex(graphicsQueueFamilyIndex);
+		static_cast<VkWrapperDevice*>(deviceWrapper)->SetPhysicalDevice(physicalDevice).SetDevice(device).SetQueues(queues);
 		return deviceWrapper;
 	}
 
+	RHIQueue* VulkanInstance::GetQueue(const RHIDevice* device, uint32_t queueIndex) const {
+		auto queues = static_cast<const VkWrapperDevice*>(device)->GetQueues();
+		if (queueIndex >= queues.size()) {
+			throw std::runtime_error("Queue index out of range");
+		}
+		return queues[queueIndex];
+	}
+	
 	RHISwapchain* VulkanInstance::CreateSwapchain(const RHIDevice* device, const RHISwapchainCreateInfo& info) const {
 		vk::SurfaceKHR surface;
 
@@ -131,12 +175,6 @@ namespace engine {
 
 		auto surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
 
-		auto queueFamilyIndex = static_cast<const VkWrapperDevice*>(device)->GetQueueFamilyIndex();
-
-		if (!physicalDevice.getSurfaceSupportKHR(queueFamilyIndex, surface)) {
-			throw std::runtime_error("The queue family do not support present");
-		}
-
 		auto swapchainInfo = vk::SwapchainCreateInfoKHR()
 			.setSurface(surface)
 			.setImageFormat(VkEnumFormat(info.format).Get())
@@ -164,6 +202,7 @@ namespace engine {
 	
 	void VulkanInstance::DestroyDevice(RHIDevice* device) const {
 		static_cast<VkWrapperDevice*>(device)->GetDevice().destroy();
+		for (auto queue : static_cast<VkWrapperDevice*>(device)->GetQueues()) delete queue;
 		delete device;
 	}
 
@@ -193,28 +232,6 @@ namespace engine {
 			infos.push_back(info);
 		}
 		return infos;
-	}
-
-	void VulkanInstance::CreateInstance(const RHIInstanceInitInfo& info) {
-		auto applicationInfo = vk::ApplicationInfo()
-			.setApiVersion(VK_API_VERSION_1_3)
-			.setPEngineName("Verse Engine")
-			.setEngineVersion(1)
-			.setPApplicationName(info.applicationName)
-			.setApplicationVersion(info.applicationVersion);
-
-		auto instanceInfo = vk::InstanceCreateInfo()
-			.setEnabledExtensionCount(extensions.instance.size())
-			.setPpEnabledExtensionNames(extensions.device.data())
-			.setPApplicationInfo(&applicationInfo)
-			.setEnabledLayerCount(validationLayers.size())
-			.setPpEnabledLayerNames(validationLayers.data());
-
-		instance = vk::createInstance(instanceInfo);
-
-		if (!instance) {
-			throw std::runtime_error("Create instance failed");
-		}
 	}
 
 }

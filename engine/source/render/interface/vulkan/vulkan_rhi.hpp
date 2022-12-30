@@ -27,10 +27,10 @@ namespace engine {
 		void DestroyImageView() override;
 
 		// get
-		std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const;
+		RHIQueue* GetQueue(const RHIDevice*, uint32_t queueIndex) const override;
+		std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const override;
 
 		// command
-		
 
 	private:
 		void CreateInstance(const RHIInstanceInitInfo&);
@@ -42,8 +42,9 @@ namespace engine {
 			std::vector<const char*> device;
 		}extensions;
 
-#ifdef _DEBUG
 		std::vector<const char*> validationLayers;
+
+#ifdef _DEBUG
 		vk::DebugUtilsMessengerEXT debugMessenger{ nullptr };
 #endif // _DEBUG
 	};

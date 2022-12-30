@@ -14,12 +14,13 @@ namespace engine {
 
 		// create
 		RHIDevice* CreateDevice(const RHIDeviceCreateInfo&) const override;
-		RHISwapchain* CreateSwapchain(const RHIDevice*, const RHISwapchainCreateInfo&) const override;
+		RHISwapchain* CreateSwapchain(const RHIDevice*, const RHIQueue*, const RHISwapchainCreateInfo&) const override;
 
 		// destroy
 		void DestroyDevice(RHIDevice*) const override;
 
 		// get
+		RHIQueue* GetQueue(const RHIDevice*, uint32_t queueIndex) const override;
 		std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const override;
 
 	private:

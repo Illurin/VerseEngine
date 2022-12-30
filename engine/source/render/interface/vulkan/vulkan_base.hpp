@@ -4,35 +4,6 @@
 
 namespace engine {
 
-	class VkWrapperDevice final : public RHIDevice {
-	public:
-		VkWrapperDevice& SetPhysicalDevice(vk::PhysicalDevice physicalDevice) { this->physicalDevice = physicalDevice; return *this; }
-		VkWrapperDevice& SetDevice(vk::Device device) { this->device = device; return *this; }
-		VkWrapperDevice& SetQueueFamilyIndex(uint32_t queueFamilyIndex) { this->queueFamilyIndex = queueFamilyIndex; return *this; }
-
-		vk::PhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
-		vk::Device GetDevice() const { return device; }
-		uint32_t GetQueueFamilyIndex() const { return queueFamilyIndex; }
-
-	private:
-		vk::PhysicalDevice physicalDevice;
-		vk::Device device;
-		uint32_t queueFamilyIndex;
-	};
-
-	class VkWrapperSwapchain final : public RHISwapchain {
-	public:
-		VkWrapperSwapchain& SetSurface(vk::SurfaceKHR surface) { this->surface = surface; return *this; }
-		VkWrapperSwapchain& SetSwapchain(vk::SwapchainKHR swapchain) { this->swapchain = swapchain; return *this; }
-
-		vk::SurfaceKHR GetSurface() const { return surface; }
-		vk::SwapchainKHR GetSwapchain() const { return swapchain; }
-
-	private:
-		vk::SurfaceKHR surface;
-		vk::SwapchainKHR swapchain;
-	};
-
 	class VkEnumFormat {
 	public:
 		VkEnumFormat(RHIFormat format) {
@@ -111,6 +82,62 @@ namespace engine {
 
 	private:
 		vk::Format format_{ vk::Format::eUndefined };
+	};
+
+	class VkEnumQueueType {
+	public:
+		VkEnumQueueType(RHIQueueType queueType) {
+			switch (queueType) {
+			case RHIQueueType::Graphics: queueType_ = vk::QueueFlagBits::eGraphics; break;
+			case RHIQueueType::Compute: queueType_ = vk::QueueFlagBits::eCompute; break;
+			case RHIQueueType::Transfer: queueType_ = vk::QueueFlagBits::eTransfer; break;
+			case RHIQueueType::VideoDecode: queueType_ = vk::QueueFlagBits::eVideoDecodeKHR; break;
+			case RHIQueueType::VideoEncode: queueType_ = vk::QueueFlagBits::eVideoEncodeKHR; break;
+			}
+		}
+
+		vk::QueueFlags Get() const { return queueType_; }
+
+	private:
+		vk::QueueFlags queueType_{ vk::QueueFlagBits::eGraphics };
+	};
+
+	class VkWrapperQueue final : public RHIQueue {
+	public:
+		VkWrapperQueue& SetQueue(vk::Queue queue) { this->queue = queue; return *this; }
+		vk::Queue GetQueue() const { return queue; }
+
+	private:
+		vk::Queue queue;
+	};
+
+	class VkWrapperDevice final : public RHIDevice {
+	public:
+		VkWrapperDevice& SetPhysicalDevice(vk::PhysicalDevice physicalDevice) { this->physicalDevice = physicalDevice; return *this; }
+		VkWrapperDevice& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperDevice& SetQueues(std::vector<RHIQueue*> queues) { this->queues = queues; return *this; }
+
+		vk::PhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
+		vk::Device GetDevice() const { return device; }
+		std::vector<RHIQueue*> GetQueues() const { return queues; }
+
+	private:
+		vk::PhysicalDevice physicalDevice;
+		vk::Device device;
+		std::vector<RHIQueue*> queues;
+	};
+
+	class VkWrapperSwapchain final : public RHISwapchain {
+	public:
+		VkWrapperSwapchain& SetSurface(vk::SurfaceKHR surface) { this->surface = surface; return *this; }
+		VkWrapperSwapchain& SetSwapchain(vk::SwapchainKHR swapchain) { this->swapchain = swapchain; return *this; }
+
+		vk::SurfaceKHR GetSurface() const { return surface; }
+		vk::SwapchainKHR GetSwapchain() const { return swapchain; }
+
+	private:
+		vk::SurfaceKHR surface;
+		vk::SwapchainKHR swapchain;
 	};
 
 }

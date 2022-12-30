@@ -11,8 +11,7 @@ namespace engine {
 
 		// create
 		virtual RHIDevice* CreateDevice(const RHIDeviceCreateInfo&) const = 0;
-		virtual RHIQueue* CreateQueue(const RHIDevice*) const = 0;
-		virtual RHISwapchain* CreateSwapchain(const RHIDevice*, const RHISwapchainCreateInfo&) const = 0;
+		virtual RHISwapchain* CreateSwapchain(const RHIDevice*, const RHIQueue*, const RHISwapchainCreateInfo&) const = 0;
 		virtual RHIBuffer* CreateBuffer() const = 0;
 		virtual RHIBufferView* CreateBufferView() const = 0;
 		virtual RHIImage* CreateImage() const = 0;
@@ -20,7 +19,6 @@ namespace engine {
 
 		// destroy
 		virtual void DestroyDevice(RHIDevice*) const = 0;
-		virtual void DestroyQueue(RHIQueue*) const = 0;
 		virtual void DestroySwapchain(const RHIDevice*, RHISwapchain*) const = 0;
 		virtual void DestroyBuffer(const RHIDevice*, RHIBuffer*) const = 0;
 		virtual void DestroyBufferView(const RHIDevice*, RHIBufferView*) const = 0;
@@ -28,6 +26,7 @@ namespace engine {
 		virtual void DestroyImageView(const RHIDevice*, RHIImageView*) const = 0;
 
 		// get
+		virtual RHIQueue* GetQueue(const RHIDevice*, uint32_t queueIndex) const = 0;
 		virtual std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const = 0;
 
 		// command

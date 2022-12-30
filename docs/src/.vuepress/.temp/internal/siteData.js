@@ -1,0 +1,1 @@
+export const siteData = JSON.parse("{\"base\":\"/\",\"lang\":\"en-US\",\"title\":\"\",\"description\":\"\",\"head\":[],\"locales\":{\"/\":{\"lang\":\"en-US\",\"title\":\"Verse Engine\",\"description\":\"Verse Engine official documents\"},\"/zh/\":{\"lang\":\"zh-CN\",\"title\":\"Verse Engine\",\"description\":\"Verse Engine 官方文档\"}}}")

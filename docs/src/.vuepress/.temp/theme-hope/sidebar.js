@@ -1,0 +1,1 @@
+export const sidebarData = {"/zh/docs/":["README.md",{"text":"RHI API 手册","prefix":"rhi/","collapsible":true,"children":["README.md"]}],"/docs/":["README.md",{"text":"RHI API Manual","prefix":"rhi/","collapsible":true,"children":["README.md"]}]};

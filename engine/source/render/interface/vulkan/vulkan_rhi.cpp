@@ -87,7 +87,7 @@ namespace engine {
 			uint32_t queueIndex;
 			bool found = false;
 			for (uint32_t j = 0; j < queueProp.size(); j++) {
-				if (queueProp[i].queueFlags & VkEnumQueueType(info.pQueueCreateInfo[i].queueType).Get()) {
+				if (queueProp[j].queueFlags & VkEnumQueueType(info.pQueueCreateInfo[i].queueType).Get()) {
 					queueIndex = j;
 					found = true;
 					break;
@@ -129,21 +129,13 @@ namespace engine {
 		std::vector<RHIQueue*> queues;
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
 			auto queue = new RHIQueue();
-			static_cast<VkWrapperQueue*>(queue)->SetQueue(device.getQueue(deviceQueueInfos[i].queueFamilyIndex, 0));
+			static_cast<VkWrapperQueue*>(queue)->SetQueueFamilyIndex(deviceQueueInfos[i].queueFamilyIndex).SetQueue(device.getQueue(deviceQueueInfos[i].queueFamilyIndex, 0));
 			queues.push_back(queue);
 		}
 
 		auto deviceWrapper = new RHIDevice();
 		static_cast<VkWrapperDevice*>(deviceWrapper)->SetPhysicalDevice(physicalDevice).SetDevice(device).SetQueues(queues);
 		return deviceWrapper;
-	}
-
-	RHIQueue* VulkanInstance::GetQueue(const RHIDevice* device, uint32_t queueIndex) const {
-		auto queues = static_cast<const VkWrapperDevice*>(device)->GetQueues();
-		if (queueIndex >= queues.size()) {
-			throw std::runtime_error("Queue index out of range");
-		}
-		return queues[queueIndex];
 	}
 	
 	RHISwapchain* VulkanInstance::CreateSwapchain(const RHIDevice* device, const RHISwapchainCreateInfo& info) const {
@@ -183,9 +175,9 @@ namespace engine {
 			.setPreTransform(surfaceCapabilities.currentTransform)
 			.setPresentMode(vk::PresentModeKHR::eFifo)
 			.setImageSharingMode(vk::SharingMode::eExclusive)
-			.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
+			.setCompositeAlpha(VkEnumAlphaMode(info.alphaMode).Get())
 			.setImageColorSpace(surfaceFormats[0].surfaceFormat.colorSpace)
-			.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
+			.setImageUsage(VkEnumImageUsage(info.imageUsage).Get())
 			.setImageArrayLayers(1)
 			.setClipped(true);
 
@@ -195,11 +187,47 @@ namespace engine {
 			throw std::runtime_error("Create swapchain failed");
 		}
 
+		auto swapchainImages = static_cast<const VkWrapperDevice*>(device)->GetDevice().getSwapchainImagesKHR(swapchain);
+		std::vector<vk::ImageView> swapchainImageViews(info.frameCount);
+
+		for (size_t i = 0; i < info.frameCount; i++) {
+			auto imageViewInfo = vk::ImageViewCreateInfo()
+				.setViewType(vk::ImageViewType::e2D)
+				.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1))
+				.setFormat(VkEnumFormat(info.format).Get())
+				.setImage(swapchainImages[i])
+				.setComponents(vk::ComponentMapping(vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity));
+
+			auto swapchainImageView = static_cast<const VkWrapperDevice*>(device)->GetDevice().createImageView(imageViewInfo);
+
+			if (!swapchainImageView) {
+				throw std::runtime_error("Create swapchain image view failed");
+			}
+
+			swapchainImageViews.push_back(swapchainImageView);
+		}
+
 		auto swapchainWrapper = new RHISwapchain();
-		static_cast<VkWrapperSwapchain*>(swapchainWrapper)->SetSurface(surface).SetSwapchain(swapchain);
+		static_cast<VkWrapperSwapchain*>(swapchainWrapper)->SetSurface(surface).SetSwapchain(swapchain).SetImageViews(swapchainImageViews);
 		return swapchainWrapper;
 	}
 	
+	RHICommandPool* VulkanInstance::CreateCommandPool(const RHIDevice* device, const RHICommandPoolCreateInfo& info) const {
+		auto cmdPoolInfo = vk::CommandPoolCreateInfo()
+			.setQueueFamilyIndex(static_cast<const VkWrapperQueue*>(info.queue)->GetQueueFamilyIndex())
+			.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+
+		auto cmdPool = static_cast<const VkWrapperDevice*>(device)->GetDevice().createCommandPool(cmdPoolInfo);
+
+		if (!cmdPool) {
+			throw std::runtime_error("Create command pool failed");
+		}
+
+		auto cmdPoolWrapper = new RHICommandPool();
+		static_cast<VkWrapperCommandPool*>(cmdPoolWrapper)->SetCommandPool(cmdPool);
+		return cmdPoolWrapper;
+	}
+
 	void VulkanInstance::DestroyDevice(RHIDevice* device) const {
 		static_cast<VkWrapperDevice*>(device)->GetDevice().destroy();
 		for (auto queue : static_cast<VkWrapperDevice*>(device)->GetQueues()) delete queue;
@@ -209,7 +237,54 @@ namespace engine {
 	void VulkanInstance::DestroySwapchain(const RHIDevice* device, RHISwapchain* swapchain) const {
 		instance.destroy(static_cast<VkWrapperSwapchain*>(swapchain)->GetSurface());
 		static_cast<const VkWrapperDevice*>(device)->GetDevice().destroy(static_cast<VkWrapperSwapchain*>(swapchain)->GetSwapchain());
+		
+		for (auto& imageView : static_cast<VkWrapperSwapchain*>(swapchain)->GetImageViews()) {
+			static_cast<const VkWrapperDevice*>(device)->GetDevice().destroy(imageView);
+		}
+		
 		delete swapchain;
+	}
+
+	void VulkanInstance::DestroyCommandPool(const RHIDevice* device, RHICommandPool* cmdPool) const {
+		static_cast<const VkWrapperDevice*>(device)->GetDevice().destroy(static_cast<VkWrapperCommandPool*>(cmdPool)->GetCommandPool());
+		for (auto& cmdBuffer : static_cast<VkWrapperCommandPool*>(cmdPool)->GetCommandBuffers()) {
+			delete cmdBuffer;
+		}
+		delete cmdPool;
+	}
+
+	RHIQueue* VulkanInstance::GetQueue(const RHIDevice* device, uint32_t queueIndex) const {
+		auto queues = static_cast<const VkWrapperDevice*>(device)->GetQueues();
+		if (queueIndex >= queues.size()) {
+			throw std::runtime_error("Queue index out of range");
+		}
+		return queues[queueIndex];
+	}
+
+	std::vector<RHICommandBuffer*> VulkanInstance::AllocateCommandBuffers(const RHIDevice* device, const RHICommandBufferAllocateInfo& info) const {
+		auto cmdAllocInfo = vk::CommandBufferAllocateInfo()
+			.setCommandPool(static_cast<const VkWrapperCommandPool*>(info.commandPool)->GetCommandPool())
+			.setLevel(vk::CommandBufferLevel::ePrimary)
+			.setCommandBufferCount(info.commandBufferCount);
+
+		auto cmdBuffer = static_cast<const VkWrapperDevice*>(device)->GetDevice().allocateCommandBuffers(cmdAllocInfo);
+
+		if (!cmdBuffer.size()) {
+			throw std::runtime_error("Allocate command buffers failed");
+		}
+
+		std::vector<RHICommandBuffer*> cmdWrappers;
+		for (uint32_t i = 0; i < info.commandBufferCount; i++) {
+			auto cmdWrapper = new RHICommandBuffer();
+			static_cast<VkWrapperCommandBuffer*>(cmdWrapper)->SetCommandBuffer(cmdBuffer[i]);
+			cmdWrappers.push_back(cmdWrapper);
+		}
+
+		auto poolCmdBuffers = static_cast<VkWrapperCommandPool*>(info.commandPool)->GetCommandBuffers();
+		poolCmdBuffers.insert(poolCmdBuffers.end(), cmdWrappers.begin(), cmdWrappers.end());
+		static_cast<VkWrapperCommandPool*>(info.commandPool)->SetCommandBuffers(poolCmdBuffers);
+
+		return cmdWrappers;
 	}
 
 	std::vector<RHIPhysicalDeviceInfo> VulkanInstance::EnumeratePhysicalDevice() const {

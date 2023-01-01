@@ -4,7 +4,7 @@
 
 namespace engine {
 
-	class VkEnumFormat {
+	class VkEnumFormat final {
 	public:
 		VkEnumFormat(RHIFormat format) {
 			switch (format) {
@@ -84,7 +84,7 @@ namespace engine {
 		vk::Format format_{ vk::Format::eUndefined };
 	};
 
-	class VkEnumQueueType {
+	class VkEnumQueueType final {
 	public:
 		VkEnumQueueType(RHIQueueType queueType) {
 			switch (queueType) {
@@ -96,19 +96,45 @@ namespace engine {
 			}
 		}
 
-		vk::QueueFlags Get() const { return queueType_; }
+		vk::QueueFlagBits Get() const { return queueType_; }
 
 	private:
-		vk::QueueFlags queueType_{ vk::QueueFlagBits::eGraphics };
+		vk::QueueFlagBits queueType_{ vk::QueueFlagBits::eGraphics };
 	};
 
-	class VkWrapperQueue final : public RHIQueue {
+	class VkEnumAlphaMode final {
 	public:
-		VkWrapperQueue& SetQueue(vk::Queue queue) { this->queue = queue; return *this; }
-		vk::Queue GetQueue() const { return queue; }
+		VkEnumAlphaMode(RHIAlphaMode alphaMode) {
+			switch (alphaMode) {
+			case RHIAlphaMode::Undefined: alphaMode_ = vk::CompositeAlphaFlagBitsKHR::eInherit; break;
+			case RHIAlphaMode::Opaque: alphaMode_ = vk::CompositeAlphaFlagBitsKHR::eOpaque; break;
+			case RHIAlphaMode::PreMultiplied: alphaMode_ = vk::CompositeAlphaFlagBitsKHR::ePreMultiplied; break;
+			case RHIAlphaMode::PostMultiplied: alphaMode_ = vk::CompositeAlphaFlagBitsKHR::ePostMultiplied; break;
+			}
+		}
+
+		vk::CompositeAlphaFlagBitsKHR Get() const { return alphaMode_; }
 
 	private:
-		vk::Queue queue;
+		vk::CompositeAlphaFlagBitsKHR alphaMode_{ vk::CompositeAlphaFlagBitsKHR::eInherit };
+	};
+
+	class VkEnumImageUsage final {
+	public:
+		VkEnumImageUsage(RHIImageUsage imageUsage) {
+			switch (imageUsage) {
+			case RHIImageUsage::ColorAttachment: imageUsage_ = vk::ImageUsageFlagBits::eColorAttachment; break;
+			case RHIImageUsage::DepthStencilAttachment: imageUsage_ = vk::ImageUsageFlagBits::eDepthStencilAttachment; break;
+			case RHIImageUsage::Sampled: imageUsage_ = vk::ImageUsageFlagBits::eSampled; break;
+			case RHIImageUsage::TransferSrc: imageUsage_ = vk::ImageUsageFlagBits::eTransferSrc; break;
+			case RHIImageUsage::TransferDst: imageUsage_ = vk::ImageUsageFlagBits::eTransferDst; break;
+			}
+		}
+
+		vk::ImageUsageFlagBits Get() const { return imageUsage_; }
+
+	private:
+		vk::ImageUsageFlagBits imageUsage_{ vk::ImageUsageFlagBits::eColorAttachment };
 	};
 
 	class VkWrapperDevice final : public RHIDevice {
@@ -127,17 +153,55 @@ namespace engine {
 		std::vector<RHIQueue*> queues;
 	};
 
+	class VkWrapperQueue final : public RHIQueue {
+	public:
+		VkWrapperQueue& SetQueueFamilyIndex(uint32_t queueFamilyIndex) { this->queueFamilyIndex = queueFamilyIndex; return *this; }
+		VkWrapperQueue& SetQueue(vk::Queue queue) { this->queue = queue; return *this; }
+
+		uint32_t GetQueueFamilyIndex() const { return queueFamilyIndex; }
+		vk::Queue GetQueue() const { return queue; }
+
+	private:
+		uint32_t queueFamilyIndex;
+		vk::Queue queue;
+	};
+
 	class VkWrapperSwapchain final : public RHISwapchain {
 	public:
 		VkWrapperSwapchain& SetSurface(vk::SurfaceKHR surface) { this->surface = surface; return *this; }
 		VkWrapperSwapchain& SetSwapchain(vk::SwapchainKHR swapchain) { this->swapchain = swapchain; return *this; }
+		VkWrapperSwapchain& SetImageViews(std::vector<vk::ImageView> imageViews) { this->imageViews = imageViews; return *this; }
 
 		vk::SurfaceKHR GetSurface() const { return surface; }
 		vk::SwapchainKHR GetSwapchain() const { return swapchain; }
+		std::vector<vk::ImageView> GetImageViews() const { return imageViews; }
 
 	private:
 		vk::SurfaceKHR surface;
 		vk::SwapchainKHR swapchain;
+		std::vector<vk::ImageView> imageViews;
+	};
+
+	class VkWrapperCommandPool final : public RHICommandPool {
+	public:
+		VkWrapperCommandPool& SetCommandPool(vk::CommandPool commandPool) { this->commandPool = commandPool; return *this; }
+		VkWrapperCommandPool& SetCommandBuffers(std::vector<RHICommandBuffer*> commandBuffers) { this->commandBuffers = commandBuffers; return *this; }
+		
+		vk::CommandPool GetCommandPool() const { return commandPool; }
+		std::vector<RHICommandBuffer*> GetCommandBuffers() const { return commandBuffers; }
+
+	private:
+		vk::CommandPool commandPool;
+		std::vector<RHICommandBuffer*> commandBuffers;
+	};
+
+	class VkWrapperCommandBuffer final : public RHICommandBuffer {
+	public:
+		VkWrapperCommandBuffer& SetCommandBuffer(vk::CommandBuffer commandBuffer) { this->commandBuffer = commandBuffer; return *this; }
+		vk::CommandBuffer GetCommandBuffer() const { return commandBuffer; }
+
+	private:
+		vk::CommandBuffer commandBuffer;
 	};
 
 }

@@ -41,8 +41,19 @@ namespace engine {
 		VideoEncode
 	};
 
-	enum class RHIImageUsage {
+	enum class RHIAlphaMode {
+		Undefined,
+		Opaque,
+		PreMultiplied,
+		PostMultiplied
+	};
 
+	enum class RHIImageUsage {
+		ColorAttachment,
+		DepthStencilAttachment,
+		Sampled,
+		TransferSrc,
+		TransferDst
 	};
 
 	/*--------------------handle--------------------*/ 
@@ -50,6 +61,8 @@ namespace engine {
 	class RHIDevice {};
 	class RHIQueue {};
 	class RHISwapchain{};
+	class RHICommandPool{};
+	class RHICommandBuffer{};
 	class RHIBuffer {};
 	class RHIBufferView {};
 	class RHIImage {};
@@ -132,12 +145,33 @@ namespace engine {
 	struct RHISwapchainCreateInfo {
 		RHISwapchainCreateInfo& SetFormat(RHIFormat format) { this->format = format; return *this; }
 		RHISwapchainCreateInfo& SetFrameCount(uint32_t frameCount) { this->frameCount = frameCount; return *this; }
-		RHISwapchainCreateInfo& SetPlatformInfo(RHIPlatformInfo platformIsnfo) { this->platformInfo = platformInfo; return *this; }
+		RHISwapchainCreateInfo& SetImageExtent(RHIExtent2D imageExtent) { this->imageExtent = imageExtent; return *this; }
+		RHISwapchainCreateInfo& SetAlphaMode(RHIAlphaMode alphaMode) { this->alphaMode = alphaMode; return *this; }
+		RHISwapchainCreateInfo& SetImageUsage(RHIImageUsage imageUsage) { this->imageUsage = imageUsage; return *this; }
+		RHISwapchainCreateInfo& SetPlatformInfo(RHIPlatformInfo platformInfo) { this->platformInfo = platformInfo; return *this; }
+		RHISwapchainCreateInfo& SetQueue(const RHIQueue* queue) { this->queue = queue; return *this; }
 
 		RHIFormat format;
 		uint32_t frameCount;
 		RHIExtent2D imageExtent;
+		RHIAlphaMode alphaMode;
+		RHIImageUsage imageUsage;
 		RHIPlatformInfo platformInfo;
+		const RHIQueue* queue;
+	};
+
+	struct RHICommandPoolCreateInfo {
+		RHICommandPoolCreateInfo& SetQueue(const RHIQueue* queue) { this->queue = queue; return *this; }
+
+		const RHIQueue* queue;
+	};
+
+	struct RHICommandBufferAllocateInfo {
+		RHICommandBufferAllocateInfo& SetCommandPool(RHICommandPool* commandPool) { this->commandPool = commandPool; return *this; }
+		RHICommandBufferAllocateInfo& SetCommandBufferCount(uint32_t commandBufferCount) { this->commandBufferCount = commandBufferCount; return *this; }
+
+		RHICommandPool* commandPool;
+		uint32_t commandBufferCount;
 	};
 
 	struct RHIBufferCreateInfo {

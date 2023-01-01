@@ -13,21 +13,16 @@ namespace engine {
 		// create
 		RHIDevice* CreateDevice(const RHIDeviceCreateInfo&) const override;
 		RHISwapchain* CreateSwapchain(const RHIDevice*, const RHISwapchainCreateInfo&) const override;
-		RHIBuffer* CreateBuffer() override;
-		RHIBufferView* CreateBufferView() override;
-		RHIImage* CreateImage() override;
-		RHIImageView* CreateImageView() override;
+		RHICommandPool* CreateCommandPool(const RHIDevice*, const RHICommandPoolCreateInfo&) const override;
 
 		// destroy
 		void DestroyDevice(RHIDevice*) const override;
 		void DestroySwapchain(const RHIDevice*, RHISwapchain*) const override;
-		void DestroyBuffer(RHIBuffer*) const override;
-		void DestroyBufferView() override;
-		void DestroyImage() override;
-		void DestroyImageView() override;
+		void DestroyCommandPool(const RHIDevice*, RHICommandPool*) const override;
 
 		// get
 		RHIQueue* GetQueue(const RHIDevice*, uint32_t queueIndex) const override;
+		std::vector<RHICommandBuffer*> AllocateCommandBuffers(const RHIDevice*, const RHICommandBufferAllocateInfo&) const override;
 		std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const override;
 
 		// command

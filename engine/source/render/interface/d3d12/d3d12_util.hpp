@@ -1,8 +1,12 @@
 #pragma once
 
 #ifdef _WIN32
+#define _DIRECT3D12
+#endif // _WIN32
 
-#include <d3d12.h>
+#ifdef _DIRECT3D12
+
+#include "d3dx12.hpp"
 #include <dxgi1_6.h>
 #include <wrl.h>
 
@@ -14,4 +18,4 @@
 
 using Microsoft::WRL::ComPtr;
 
-#endif // _WIN32
+#endif // _DIRECT3D12

@@ -1,9 +1,8 @@
-VkWrapperCommandPool& SetCommandBuffers(std::vector<RHICommandBuffer*> commandBuffers) { this->commandBuffers = commandBuffers; return *this; }
 #pragma once
 
-#ifdef _WIN32
-
 #include "d3d12_util.hpp"
+
+#ifdef _DIRECT3D12
 
 namespace engine {
 
@@ -122,9 +121,28 @@ namespace engine {
 		DXGI_ALPHA_MODE alphaMode_{ DXGI_ALPHA_MODE_UNSPECIFIED };
 	};
 
-	class D3D12EnumImageUsage final {
+	class D3D12EnumResourceState final {
 	public:
-		D3D12EnumImageUsage(RHIImageUsage imageUsage) {
+		D3D12EnumResourceState(RHIBufferUsage bufferUsage) {
+			switch (bufferUsage) {
+			case RHIBufferUsage::UniformBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case RHIBufferUsage::StorageBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case RHIBufferUsage::VertexBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case RHIBufferUsage::IndexBuffer: state = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
+			case RHIBufferUsage::TransferSrc: state = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
+			case RHIBufferUsage::TransferDst: state = D3D12_RESOURCE_STATE_COPY_DEST; break;
+			}
+		}
+
+		D3D12_RESOURCE_STATES Get() const { return state; }
+
+	private:
+		D3D12_RESOURCE_STATES state{ D3D12_RESOURCE_STATE_COMMON };
+	};
+
+	class D3D12EnumUsage final {
+	public:
+		D3D12EnumUsage(RHIImageUsage imageUsage) {
 			switch (imageUsage) {
 			case RHIImageUsage::ColorAttachment: imageUsage_ = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
 			case RHIImageUsage::DepthStencilAttachment: imageUsage_ = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
@@ -140,20 +158,20 @@ namespace engine {
 		DXGI_USAGE imageUsage_{ DXGI_USAGE_RENDER_TARGET_OUTPUT };
 	};
 
-	class D3D12WrapperDevice final : public RHIDevice {
+	class D3D12WrapperDevice final : public RHIDevice_T {
 	public:
 		D3D12WrapperDevice& SetDevice(ComPtr<ID3D12Device> device) { this->device = device; return *this; }
-		D3D12WrapperDevice& SetQueues(std::vector<RHIQueue*> queues) { this->queues = queues; return *this; }
+		D3D12WrapperDevice& SetQueues(std::vector<RHIQueue> queues) { this->queues = queues; return *this; }
 
 		ComPtr<ID3D12Device> GetDevice() const { return device; }
-		std::vector<RHIQueue*> GetQueues() const { return queues; }
+		std::vector<RHIQueue> GetQueues() const { return queues; }
 
 	private:
 		ComPtr<ID3D12Device> device;
-		std::vector<RHIQueue*> queues;
+		std::vector<RHIQueue> queues;
 	};
 
-	class D3D12WrapperQueue final : public RHIQueue {
+	class D3D12WrapperQueue final : public RHIQueue_T {
 	public:
 		D3D12WrapperQueue& SetQueueType(D3D12_COMMAND_LIST_TYPE queueType) { this->queueType = queueType; return *this; }
 		D3D12WrapperQueue& SetQueue(ComPtr<ID3D12CommandQueue> queue) { this->queue = queue; return *this; }
@@ -166,7 +184,7 @@ namespace engine {
 		ComPtr<ID3D12CommandQueue> queue;
 	};
 
-	class D3D12WrapperSwapchain final : public RHISwapchain {
+	class D3D12WrapperSwapchain final : public RHISwapchain_T {
 	public:
 		D3D12WrapperSwapchain& SetSwapchain(ComPtr<IDXGISwapChain3> res) { resource = res; return *this; }
 		ComPtr<IDXGISwapChain3> GetSwapchain() const { return resource; }
@@ -175,23 +193,23 @@ namespace engine {
 		ComPtr<IDXGISwapChain3> resource;
 	};
 
-	class D3D12WrapperCommandPool final : public RHICommandPool {
+	class D3D12WrapperCommandPool final : public RHICommandPool_T {
 	public:
 		D3D12WrapperCommandPool& SetQueueType(D3D12_COMMAND_LIST_TYPE queueType) { this->queueType = queueType; return *this; }
 		D3D12WrapperCommandPool& SetCommandAllocator(ComPtr<ID3D12CommandAllocator> commandAllocator) { this->commandAllocator = commandAllocator; return *this; }
-		D3D12WrapperCommandPool& SetCommandBuffers(std::vector<RHICommandBuffer*> commandBuffers) { this->commandBuffers = commandBuffers; return *this; }
+		D3D12WrapperCommandPool& SetCommandBuffers(std::vector<RHICommandBuffer> commandBuffers) { this->commandBuffers = commandBuffers; return *this; }
 
 		D3D12_COMMAND_LIST_TYPE GetQueueType() const { return queueType; }
 		ComPtr<ID3D12CommandAllocator> GetCommandAllocator() const { return commandAllocator; }
-		std::vector<RHICommandBuffer*> GetCommandBuffers() const { return commandBuffers; }
+		std::vector<RHICommandBuffer> GetCommandBuffers() const { return commandBuffers; }
 
 	private:
 		D3D12_COMMAND_LIST_TYPE queueType;
 		ComPtr<ID3D12CommandAllocator> commandAllocator;
-		std::vector<RHICommandBuffer*> commandBuffers;
+		std::vector<RHICommandBuffer> commandBuffers;
 	};
 
-	class D3D12WrapperCommandBuffer final : public RHICommandBuffer {
+	class D3D12WrapperCommandBuffer final : public RHICommandBuffer_T {
 	public:
 		D3D12WrapperCommandBuffer& SetGraphicsCommandList(ComPtr<ID3D12GraphicsCommandList> graphicsCommandList) { this->graphicsCommandList = graphicsCommandList; return *this; }
 		ComPtr<ID3D12GraphicsCommandList> GetGraphicsCommandList() const { return graphicsCommandList; }
@@ -200,6 +218,33 @@ namespace engine {
 		ComPtr<ID3D12GraphicsCommandList> graphicsCommandList;
 	};
 
+	class D3D12WrapperBuffer final : public RHIBuffer_T {
+	public:
+		D3D12WrapperBuffer& SetResource(ComPtr<ID3D12Resource> resource) { this->resource = resource; return *this; }
+		ComPtr<ID3D12Resource> GetResource() const { return resource; }
+
+	private:
+		ComPtr<ID3D12Resource> resource;
+	};
+
+	class D3D12WrapperBufferView final : public RHIBufferView_T {
+	public:
+		D3D12WrapperBufferView& SetBufferView(vk::BufferView bufferView) { this->bufferView = bufferView; return *this; }
+		vk::BufferView GetBufferView() const { return bufferView; }
+
+	private:
+		 bufferView;
+	};
+
+	class D3D12WrapperPipeline final : public RHIPipeline_T {
+	public:
+		D3D12WrapperPipeline& SetPipeline(ComPtr<ID3D12PipelineState> pipeline) { this->pipeline = pipeline; return *this; }
+		ComPtr<ID3D12PipelineState> GetPipeline() const { return pipeline; }
+
+	private:
+		ComPtr<ID3D12PipelineState> pipeline;
+	};
+
 }
 
-#endif // _WIN32
+#endif // _DIRECT3D12

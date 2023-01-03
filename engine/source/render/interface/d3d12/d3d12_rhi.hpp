@@ -1,9 +1,9 @@
 #pragma once
 
-#ifdef _WIN32
-
 #include "../rhi.hpp"
 #include "d3d12_base.hpp"
+
+#ifdef _DIRECT3D12
 
 namespace engine {
 
@@ -13,18 +13,22 @@ namespace engine {
 		void Destroy() override;
 
 		// create
-		RHIDevice* CreateDevice(const RHIDeviceCreateInfo&) const override;
-		RHISwapchain* CreateSwapchain(const RHIDevice*, const RHISwapchainCreateInfo&) const override;
-		RHICommandPool* CreateCommandPool(const RHIDevice*, const RHICommandPoolCreateInfo&) const override;
+		RHIDevice CreateDevice(const RHIDeviceCreateInfo&) const override;
+		RHISwapchain CreateSwapchain(RHIDevice&, const RHISwapchainCreateInfo&) const override;
+		RHICommandPool CreateCommandPool(RHIDevice&, const RHICommandPoolCreateInfo&) const override;
+		RHIBuffer CreateBuffer(RHIDevice&, const RHIBufferCreateInfo&) const override;
+		RHIBufferView CreateBufferView(RHIDevice&, const RHIBufferViewCreateInfo&) const override;
 
 		// destroy
-		void DestroyDevice(RHIDevice*) const override;
-		void DestroySwapchain(const RHIDevice*, RHISwapchain*) const override;
-		void DestroyCommandPool(const RHIDevice*, RHICommandPool*) const override;
+		void Destroy(RHIDevice&) const override;
+		void Destroy(RHISwapchain&) const override;
+		void Destroy(RHICommandPool&) const override;
+		void Destroy(RHIBuffer&) const override;
+		void Destroy(RHIBufferView&) const override;
 
 		// get
-		RHIQueue* GetQueue(const RHIDevice*, uint32_t queueIndex) const override;
-		std::vector<RHICommandBuffer*> AllocateCommandBuffers(const RHIDevice*, const RHICommandBufferAllocateInfo&) const override;
+		RHIQueue GetQueue(RHIDevice&, uint32_t queueIndex) const override;
+		std::vector<RHICommandBuffer> AllocateCommandBuffers(RHIDevice&, const RHICommandBufferAllocateInfo&) const override;
 		std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const override;
 
 	private:
@@ -38,4 +42,4 @@ namespace engine {
 
 };
 
-#endif // _WIN32
+#endif // _DIRECT3D12

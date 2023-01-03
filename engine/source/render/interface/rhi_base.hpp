@@ -9,6 +9,8 @@
 #include <vector>
 #include <cstdint>
 
+#define RHI_DEFINE_HANDLE(object) class object##_T {}; typedef object##_T* object;
+
 namespace engine {
 
 	/*--------------------enum--------------------*/
@@ -48,6 +50,25 @@ namespace engine {
 		PostMultiplied
 	};
 
+	enum class RHISampleCount {
+		Count1,
+		Count2,
+		Count4,
+		Count8,
+		Count16,
+		Count32,
+		Count64
+	};
+
+	enum class RHIBufferUsage {
+		UniformBuffer,
+		StorageBuffer,
+		VertexBuffer,
+		IndexBuffer,
+		TransferSrc,
+		TransferDst
+	};
+
 	enum class RHIImageUsage {
 		ColorAttachment,
 		DepthStencilAttachment,
@@ -56,18 +77,24 @@ namespace engine {
 		TransferDst
 	};
 
+	enum class RHIImageType {
+		Image1D,
+		Image2D,
+		Image3D
+	};
+
 	/*--------------------handle--------------------*/ 
 
-	class RHIDevice {};
-	class RHIQueue {};
-	class RHISwapchain{};
-	class RHICommandPool{};
-	class RHICommandBuffer{};
-	class RHIBuffer {};
-	class RHIBufferView {};
-	class RHIImage {};
-	class RHIImageView {};
-	class RHIGraphicsPipeline {};
+	RHI_DEFINE_HANDLE(RHIDevice)
+	RHI_DEFINE_HANDLE(RHIQueue)
+	RHI_DEFINE_HANDLE(RHISwapchain)
+	RHI_DEFINE_HANDLE(RHICommandPool)
+	RHI_DEFINE_HANDLE(RHICommandBuffer)
+	RHI_DEFINE_HANDLE(RHIBuffer)
+	RHI_DEFINE_HANDLE(RHIBufferView)
+	RHI_DEFINE_HANDLE(RHIImage)
+	RHI_DEFINE_HANDLE(RHIImageView)
+	RHI_DEFINE_HANDLE(RHIPipeline)
 
 	/*--------------------info--------------------*/
 
@@ -126,6 +153,8 @@ namespace engine {
 	};
 	
 	struct RHIQueueCreateInfo {
+		RHIQueueCreateInfo& SetQueueType(RHIQueueType queueType) { this->queueType = queueType; return *this; }
+
 		RHIQueueType queueType;
 	};
 
@@ -149,7 +178,7 @@ namespace engine {
 		RHISwapchainCreateInfo& SetAlphaMode(RHIAlphaMode alphaMode) { this->alphaMode = alphaMode; return *this; }
 		RHISwapchainCreateInfo& SetImageUsage(RHIImageUsage imageUsage) { this->imageUsage = imageUsage; return *this; }
 		RHISwapchainCreateInfo& SetPlatformInfo(RHIPlatformInfo platformInfo) { this->platformInfo = platformInfo; return *this; }
-		RHISwapchainCreateInfo& SetQueue(const RHIQueue* queue) { this->queue = queue; return *this; }
+		RHISwapchainCreateInfo& SetQueue(RHIQueue queue) { this->queue = queue; return *this; }
 
 		RHIFormat format;
 		uint32_t frameCount;
@@ -157,37 +186,60 @@ namespace engine {
 		RHIAlphaMode alphaMode;
 		RHIImageUsage imageUsage;
 		RHIPlatformInfo platformInfo;
-		const RHIQueue* queue;
+		RHIQueue queue;
 	};
 
 	struct RHICommandPoolCreateInfo {
-		RHICommandPoolCreateInfo& SetQueue(const RHIQueue* queue) { this->queue = queue; return *this; }
+		RHICommandPoolCreateInfo& SetQueue(RHIQueue queue) { this->queue = queue; return *this; }
 
-		const RHIQueue* queue;
+		RHIQueue queue;
 	};
 
 	struct RHICommandBufferAllocateInfo {
-		RHICommandBufferAllocateInfo& SetCommandPool(RHICommandPool* commandPool) { this->commandPool = commandPool; return *this; }
+		RHICommandBufferAllocateInfo& SetCommandPool(RHICommandPool commandPool) { this->commandPool = commandPool; return *this; }
 		RHICommandBufferAllocateInfo& SetCommandBufferCount(uint32_t commandBufferCount) { this->commandBufferCount = commandBufferCount; return *this; }
 
-		RHICommandPool* commandPool;
+		RHICommandPool commandPool;
 		uint32_t commandBufferCount;
 	};
 
 	struct RHIBufferCreateInfo {
-		
+		RHIBufferCreateInfo& SetSize(uint32_t size) { this->size = size; return *this; }
+		RHIBufferCreateInfo& SetUsage(RHIBufferUsage usage) { this->usage = usage; return *this; }
+
+		uint32_t size;
+		RHIBufferUsage usage;
 	};
 
 	struct RHIBufferViewCreateInfo {
-
+		RHIBufferViewCreateInfo& SetBuffer(RHIBuffer buffer) { this->buffer = buffer; return *this; }
+		RHIBufferViewCreateInfo& SetFormat(RHIFormat format) { this->format = format; return *this; }
+		RHIBufferViewCreateInfo& SetRange(uint32_t range) { this->range = range; return *this; }
+		RHIBufferViewCreateInfo& SetOffset(uint32_t offset) { this->offset = offset; return *this; }
+		
+		RHIBuffer buffer;
+		RHIFormat format;
+		uint32_t range;
+		uint32_t offset;
 	};
 
 	struct RHIImageCreateInfo {
 		
+
+		RHIFormat format;
+		RHIImageType imageType;
+		RHIExtent3D extent;
+		RHIImageUsage usage;
+		uint32_t arrayLayers;
+		uint32_t mipLevels;
 	};
 	
 	struct RHIImageViewCreateInfo {
 		
+	};
+
+	struct RHIGraphicsPipelineCreateInfo {
+
 	};
 
 }

@@ -119,6 +119,25 @@ namespace engine {
 		vk::CompositeAlphaFlagBitsKHR alphaMode_{ vk::CompositeAlphaFlagBitsKHR::eInherit };
 	};
 
+	class VkEnumBufferUsage final {
+	public:
+		VkEnumBufferUsage(RHIBufferUsage bufferUsage) {
+			switch (bufferUsage) {
+			case RHIBufferUsage::UniformBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer; break;
+			case RHIBufferUsage::StorageBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eStorageBuffer; break;
+			case RHIBufferUsage::VertexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eVertexBuffer; break;
+			case RHIBufferUsage::IndexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer; break;
+			case RHIBufferUsage::TransferSrc: bufferUsage_ = vk::BufferUsageFlagBits::eTransferSrc; break;
+			case RHIBufferUsage::TransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eTransferDst; break;
+			}
+		}
+
+		vk::BufferUsageFlagBits Get() const { return bufferUsage_; }
+
+	private:
+		vk::BufferUsageFlagBits bufferUsage_{ vk::BufferUsageFlagBits::eUniformBuffer };
+	};
+
 	class VkEnumImageUsage final {
 	public:
 		VkEnumImageUsage(RHIImageUsage imageUsage) {
@@ -137,71 +156,151 @@ namespace engine {
 		vk::ImageUsageFlagBits imageUsage_{ vk::ImageUsageFlagBits::eColorAttachment };
 	};
 
-	class VkWrapperDevice final : public RHIDevice {
+	class VkWrapperDevice final : public RHIDevice_T {
 	public:
 		VkWrapperDevice& SetPhysicalDevice(vk::PhysicalDevice physicalDevice) { this->physicalDevice = physicalDevice; return *this; }
 		VkWrapperDevice& SetDevice(vk::Device device) { this->device = device; return *this; }
-		VkWrapperDevice& SetQueues(std::vector<RHIQueue*> queues) { this->queues = queues; return *this; }
+		VkWrapperDevice& SetQueues(std::vector<RHIQueue> queues) { this->queues = queues; return *this; }
 
 		vk::PhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
 		vk::Device GetDevice() const { return device; }
-		std::vector<RHIQueue*> GetQueues() const { return queues; }
+		std::vector<RHIQueue> GetQueues() const { return queues; }
 
 	private:
 		vk::PhysicalDevice physicalDevice;
 		vk::Device device;
-		std::vector<RHIQueue*> queues;
+		std::vector<RHIQueue> queues;
 	};
 
-	class VkWrapperQueue final : public RHIQueue {
+	class VkWrapperQueue final : public RHIQueue_T {
 	public:
+		VkWrapperQueue& SetDevice(vk::Device device) { this->device = device; return *this; }
 		VkWrapperQueue& SetQueueFamilyIndex(uint32_t queueFamilyIndex) { this->queueFamilyIndex = queueFamilyIndex; return *this; }
 		VkWrapperQueue& SetQueue(vk::Queue queue) { this->queue = queue; return *this; }
 
+		vk::Device GetDevice() const { return device; }
 		uint32_t GetQueueFamilyIndex() const { return queueFamilyIndex; }
 		vk::Queue GetQueue() const { return queue; }
 
 	private:
+		vk::Device device;
 		uint32_t queueFamilyIndex;
 		vk::Queue queue;
 	};
 
-	class VkWrapperSwapchain final : public RHISwapchain {
+	class VkWrapperSwapchain final : public RHISwapchain_T {
 	public:
+		VkWrapperSwapchain& SetDevice(vk::Device device) { this->device = device; return *this; }
 		VkWrapperSwapchain& SetSurface(vk::SurfaceKHR surface) { this->surface = surface; return *this; }
 		VkWrapperSwapchain& SetSwapchain(vk::SwapchainKHR swapchain) { this->swapchain = swapchain; return *this; }
 		VkWrapperSwapchain& SetImageViews(std::vector<vk::ImageView> imageViews) { this->imageViews = imageViews; return *this; }
 
+		vk::Device GetDevice() const { return device; }
 		vk::SurfaceKHR GetSurface() const { return surface; }
 		vk::SwapchainKHR GetSwapchain() const { return swapchain; }
 		std::vector<vk::ImageView> GetImageViews() const { return imageViews; }
 
 	private:
+		vk::Device device;
 		vk::SurfaceKHR surface;
 		vk::SwapchainKHR swapchain;
 		std::vector<vk::ImageView> imageViews;
 	};
 
-	class VkWrapperCommandPool final : public RHICommandPool {
+	class VkWrapperCommandPool final : public RHICommandPool_T {
 	public:
+		VkWrapperCommandPool& SetDevice(vk::Device device) { this->device = device; return *this; }
 		VkWrapperCommandPool& SetCommandPool(vk::CommandPool commandPool) { this->commandPool = commandPool; return *this; }
-		VkWrapperCommandPool& SetCommandBuffers(std::vector<RHICommandBuffer*> commandBuffers) { this->commandBuffers = commandBuffers; return *this; }
+		VkWrapperCommandPool& SetCommandBuffers(std::vector<RHICommandBuffer> commandBuffers) { this->commandBuffers = commandBuffers; return *this; }
 		
+		vk::Device GetDevice() const { return device; }
 		vk::CommandPool GetCommandPool() const { return commandPool; }
-		std::vector<RHICommandBuffer*> GetCommandBuffers() const { return commandBuffers; }
+		std::vector<RHICommandBuffer> GetCommandBuffers() const { return commandBuffers; }
 
 	private:
+		vk::Device device;
 		vk::CommandPool commandPool;
-		std::vector<RHICommandBuffer*> commandBuffers;
+		std::vector<RHICommandBuffer> commandBuffers;
 	};
 
-	class VkWrapperCommandBuffer final : public RHICommandBuffer {
+	class VkWrapperCommandBuffer final : public RHICommandBuffer_T {
 	public:
 		VkWrapperCommandBuffer& SetCommandBuffer(vk::CommandBuffer commandBuffer) { this->commandBuffer = commandBuffer; return *this; }
 		vk::CommandBuffer GetCommandBuffer() const { return commandBuffer; }
 
 	private:
 		vk::CommandBuffer commandBuffer;
+	};
+
+	class VkWrapperBuffer final : public RHIBuffer_T {
+	public:
+		VkWrapperBuffer& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperBuffer& SetBuffer(vk::Buffer buffer) { this->buffer = buffer; return *this; }
+		VkWrapperBuffer& SetMemory(vk::DeviceMemory memory) { this->memory = memory; return *this; }
+
+		vk::Device GetDevice() const { return device; }
+		vk::Buffer GetBuffer() const { return buffer; }
+		vk::DeviceMemory GetMemory() const { return memory; }
+
+	private:
+		vk::Device device;
+		vk::Buffer buffer;
+		vk::DeviceMemory memory;
+	};
+
+	class VkWrapperBufferView final : public RHIBufferView_T {
+	public:
+		VkWrapperBufferView& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperBufferView& SetBufferView(vk::BufferView bufferView) { this->bufferView = bufferView; return *this; }
+
+		vk::Device GetDevice() const { return device; }
+		vk::BufferView GetBufferView() const { return bufferView; }
+
+	private:
+		vk::Device device;
+		vk::BufferView bufferView;
+	};
+
+	class VkWrapperImage final : public RHIImage_T {
+	public:
+		VkWrapperImage& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperImage& SetImage(vk::Image image) { this->image = image; return *this; }
+		VkWrapperImage& SetMemory(vk::DeviceMemory memory) { this->memory = memory; return *this; }
+
+		vk::Device GetDevice() const { return device; }
+		vk::Image GetImage() const { return image; }
+		vk::DeviceMemory GetMemory() const { return memory; }
+
+	private:
+		vk::Device device;
+		vk::Image image;
+		vk::DeviceMemory memory;
+	};
+
+	class VkWrapperImageView final : public RHIImageView_T {
+	public:
+		VkWrapperImageView& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperImageView& SetImageView(vk::ImageView imageView) { this->imageView = imageView; return *this; }
+
+		vk::Device GetDevice() const { return device; }
+		vk::ImageView GetImageView() const { return imageView; }
+
+	private:
+		vk::Device device;
+		vk::ImageView imageView;
+	};
+
+	class VkWrapperPipeline final : public RHIPipeline_T {
+	public:
+		VkWrapperPipeline& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperPipeline& SetPipeline(vk::Pipeline pipeline) { this->pipeline = pipeline; return *this; }
+
+		vk::Device GetDevice() const { return device; }
+		vk::Pipeline GetPipeline() const { return pipeline; }
+
+	private:
+		vk::Device device;
+		vk::Pipeline pipeline;
 	};
 
 }

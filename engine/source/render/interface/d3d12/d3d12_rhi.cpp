@@ -1,6 +1,6 @@
-#ifdef _WIN32
-
 #include "d3d12_rhi.hpp"
+
+#ifdef _DIRECT3D12
 
 namespace engine {
 
@@ -28,7 +28,7 @@ namespace engine {
 		factory.Reset();
 	}
 
-	RHIDevice* D3D12Instance::CreateDevice(const RHIDeviceCreateInfo& info) const {
+	RHIDevice D3D12Instance::CreateDevice(const RHIDeviceCreateInfo& info) const {
 		ComPtr<IDXGIAdapter1> adapter;
 		if (FAILED(factory->EnumAdapters1(info.physicalDeviceID, &adapter))) {
 			throw std::runtime_error("Cannot find chosen physical device");
@@ -39,9 +39,9 @@ namespace engine {
 			throw std::runtime_error("Create device failed");
 		}
 		
-		std::vector<RHIQueue*> queues;
+		std::vector<RHIQueue> queues;
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
-			auto queueWrapper = new RHIQueue();
+			auto queueWrapper = new D3D12WrapperQueue();
 
 			D3D12_COMMAND_QUEUE_DESC queueDesc;
 			queueDesc.Type = D3D12EnumQueueType(info.pQueueCreateInfo[i].queueType).Get();
@@ -51,23 +51,23 @@ namespace engine {
 				throw std::runtime_error("Create command queue failed");
 			}
 			
-			static_cast<D3D12WrapperQueue*>(queueWrapper)->SetQueue(queue).SetQueueType(D3D12EnumQueueType(info.pQueueCreateInfo[i].queueType).Get());
+			queueWrapper->SetQueue(queue).SetQueueType(D3D12EnumQueueType(info.pQueueCreateInfo[i].queueType).Get());
 			queues.push_back(queueWrapper);
 		}
 
-		auto deviceWrapper = new RHIDevice();
-		static_cast<D3D12WrapperDevice*>(deviceWrapper)->SetDevice(device).SetQueues(queues);
+		auto deviceWrapper = new D3D12WrapperDevice();
+		deviceWrapper->SetDevice(device).SetQueues(queues);
 		return deviceWrapper;
 	}
 
-	RHISwapchain* D3D12Instance::CreateSwapchain(const RHIDevice* device, const RHISwapchainCreateInfo& info) const {
+	RHISwapchain D3D12Instance::CreateSwapchain(RHIDevice& device, const RHISwapchainCreateInfo& info) const {
 		DXGI_SWAP_CHAIN_DESC1 swapchainDesc;
 		swapchainDesc.BufferCount = info.frameCount;
 		swapchainDesc.Width = info.imageExtent.width;
 		swapchainDesc.Height = info.imageExtent.height;
 		swapchainDesc.Format = D3D12EnumFormat(info.format).Get();
 		swapchainDesc.AlphaMode = D3D12EnumAlphaMode(info.alphaMode).Get();
-		swapchainDesc.BufferUsage = D3D12EnumImageUsage(info.imageUsage).Get();
+		swapchainDesc.BufferUsage = D3D12EnumUsage(info.imageUsage).Get();
 		swapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapchainDesc.SampleDesc.Count = 1;
 
@@ -82,23 +82,40 @@ namespace engine {
 			throw std::runtime_error("Update swapchain failed");
 		}
 
-		auto swapchainWrapper = new RHISwapchain();
-		static_cast<D3D12WrapperSwapchain*>(swapchainWrapper)->SetSwapchain(swapchain);
+		auto swapchainWrapper = new D3D12WrapperSwapchain();
+		swapchainWrapper->SetSwapchain(swapchain);
 		return swapchainWrapper;
 	}
 
-	RHICommandPool* D3D12Instance::CreateCommandPool(const RHIDevice* device, const RHICommandPoolCreateInfo& info) const {
+	RHICommandPool D3D12Instance::CreateCommandPool(RHIDevice& device, const RHICommandPoolCreateInfo& info) const {
 		ComPtr<ID3D12CommandAllocator> cmdAllocator;
 		if (FAILED(static_cast<const D3D12WrapperDevice*>(device)->GetDevice()->CreateCommandAllocator(static_cast<const D3D12WrapperQueue*>(info.queue)->GetQueueType(), IID_PPV_ARGS(&cmdAllocator)))) {
 			throw std::runtime_error("Create command allocator failed");
 		}
-
-		auto cmdPoolWrapper = new RHICommandPool();
-		static_cast<D3D12WrapperCommandPool*>(cmdPoolWrapper)->SetQueueType(static_cast<const D3D12WrapperQueue*>(info.queue)->GetQueueType()).SetCommandAllocator(cmdAllocator);
+		
+		auto cmdPoolWrapper = new D3D12WrapperCommandPool();
+		cmdPoolWrapper->SetQueueType(static_cast<const D3D12WrapperQueue*>(info.queue)->GetQueueType()).SetCommandAllocator(cmdAllocator);
 		return cmdPoolWrapper;
 	}
 
-	void D3D12Instance::DestroyDevice(RHIDevice* device) const {
+	RHIBuffer D3D12Instance::CreateBuffer(RHIDevice& device, const RHIBufferCreateInfo& info) const {
+		ComPtr<ID3D12Resource> buffer;
+		if (FAILED(static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(info.size),
+			D3D12EnumResourceState(info.usage).Get(),
+			nullptr,
+			IID_PPV_ARGS(&buffer)))) {
+			throw std::runtime_error("Create buffer failed");
+		}
+		
+		auto bufferWrapper = new D3D12WrapperBuffer();
+		bufferWrapper->SetResource(buffer);
+		return bufferWrapper;
+	}
+
+	void D3D12Instance::Destroy(RHIDevice& device) const {
 		for (auto queue : static_cast<D3D12WrapperDevice*>(device)->GetQueues()) {
 			static_cast<D3D12WrapperQueue*>(queue)->GetQueue().Reset();
 			delete queue;
@@ -107,12 +124,12 @@ namespace engine {
 		delete device;
 	}
 
-	void D3D12Instance::DestroySwapchain(const RHIDevice*, RHISwapchain* swapchain) const {
+	void D3D12Instance::Destroy(RHISwapchain& swapchain) const {
 		static_cast<D3D12WrapperSwapchain*>(swapchain)->GetSwapchain().Reset();
 		delete swapchain;
 	}
 
-	void D3D12Instance::DestroyCommandPool(const RHIDevice* device, RHICommandPool* cmdPool) const {
+	void D3D12Instance::Destroy(RHICommandPool& cmdPool) const {
 		static_cast<D3D12WrapperCommandPool*>(cmdPool)->GetCommandAllocator().Reset();
 		for (auto& cmdBuffer : static_cast<D3D12WrapperCommandPool*>(cmdPool)->GetCommandBuffers()) {
 			static_cast<D3D12WrapperCommandBuffer*>(cmdBuffer)->GetGraphicsCommandList().Reset();
@@ -121,7 +138,12 @@ namespace engine {
 		delete cmdPool;
 	}
 
-	RHIQueue* D3D12Instance::GetQueue(const RHIDevice* device, uint32_t queueIndex) const {
+	void D3D12Instance::Destroy(RHIBuffer& buffer) const {
+		static_cast<D3D12WrapperBuffer*>(buffer)->GetResource().Reset();
+		delete buffer;
+	}
+
+	RHIQueue D3D12Instance::GetQueue(RHIDevice& device, uint32_t queueIndex) const {
 		auto queues = static_cast<const D3D12WrapperDevice*>(device)->GetQueues();
 		if (queueIndex >= queues.size()) {
 			throw std::runtime_error("Queue index out of range");
@@ -129,16 +151,16 @@ namespace engine {
 		return queues[queueIndex];
 	}
 
-	std::vector<RHICommandBuffer*> D3D12Instance::AllocateCommandBuffers(const RHIDevice* device, const RHICommandBufferAllocateInfo& info) const {
-		std::vector<RHICommandBuffer*> cmdWrappers;
+	std::vector<RHICommandBuffer> D3D12Instance::AllocateCommandBuffers(RHIDevice& device, const RHICommandBufferAllocateInfo& info) const {
+		std::vector<RHICommandBuffer> cmdWrappers;
 		for (uint32_t i = 0; i < info.commandBufferCount; i++) {
 			ComPtr<ID3D12GraphicsCommandList> graphicsCommandList;
-			if (FAILED(static_cast<const D3D12WrapperDevice*>(device)->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, static_cast<D3D12WrapperCommandPool*>(info.commandPool)->GetCommandAllocator().Get(), nullptr, IID_PPV_ARGS(&graphicsCommandList)))) {
+			if (FAILED(static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, static_cast<D3D12WrapperCommandPool*>(info.commandPool)->GetCommandAllocator().Get(), nullptr, IID_PPV_ARGS(&graphicsCommandList)))) {
 				throw std::runtime_error("Create command lists failed");
 			}
 
-			auto cmdWrapper = new RHICommandBuffer();
-			static_cast<D3D12WrapperCommandBuffer*>(cmdWrapper)->SetGraphicsCommandList(graphicsCommandList);
+			auto cmdWrapper = new D3D12WrapperCommandBuffer();
+			cmdWrapper->SetGraphicsCommandList(graphicsCommandList);
 			cmdWrappers.push_back(cmdWrapper);
 		}
 
@@ -172,4 +194,4 @@ namespace engine {
 
 }
 
-#endif // _WIN32
+#endif // _DIRECT3D12

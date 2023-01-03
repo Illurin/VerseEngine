@@ -11,18 +11,26 @@ namespace engine {
 		void Destroy() override;
 		
 		// create
-		RHIDevice* CreateDevice(const RHIDeviceCreateInfo&) const override;
-		RHISwapchain* CreateSwapchain(const RHIDevice*, const RHISwapchainCreateInfo&) const override;
-		RHICommandPool* CreateCommandPool(const RHIDevice*, const RHICommandPoolCreateInfo&) const override;
+		RHIDevice CreateDevice(const RHIDeviceCreateInfo&) const override;
+		RHISwapchain CreateSwapchain(RHIDevice&, const RHISwapchainCreateInfo&) const override;
+		RHICommandPool CreateCommandPool(RHIDevice&, const RHICommandPoolCreateInfo&) const override;
+		RHIBuffer CreateBuffer(RHIDevice&, const RHIBufferCreateInfo&) const override;
+		RHIBufferView CreateBufferView(RHIDevice&, const RHIBufferViewCreateInfo&) const override;
+		RHIImage CreateImage(RHIDevice&, const RHIImageCreateInfo&) const override;
+		RHIPipeline CreateGraphicsPipeline(RHIDevice&, const RHIGraphicsPipelineCreateInfo&) const override;
 
 		// destroy
-		void DestroyDevice(RHIDevice*) const override;
-		void DestroySwapchain(const RHIDevice*, RHISwapchain*) const override;
-		void DestroyCommandPool(const RHIDevice*, RHICommandPool*) const override;
+		void Destroy(RHIDevice&) const override;
+		void Destroy(RHISwapchain&) const override;
+		void Destroy(RHICommandPool&) const override;
+		void Destroy(RHIBuffer&) const override;
+		void Destroy(RHIBufferView&) const override;
+		void Destroy(RHIImage&) const override;
+		void Destroy(RHIPipeline&) const override;
 
 		// get
-		RHIQueue* GetQueue(const RHIDevice*, uint32_t queueIndex) const override;
-		std::vector<RHICommandBuffer*> AllocateCommandBuffers(const RHIDevice*, const RHICommandBufferAllocateInfo&) const override;
+		RHIQueue GetQueue(RHIDevice&, uint32_t queueIndex) const override;
+		std::vector<RHICommandBuffer> AllocateCommandBuffers(RHIDevice&, const RHICommandBufferAllocateInfo&) const override;
 		std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const override;
 
 		// command

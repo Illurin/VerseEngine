@@ -18,6 +18,7 @@ namespace engine {
 		RHICommandPool CreateCommandPool(RHIDevice&, const RHICommandPoolCreateInfo&) const override;
 		RHIBuffer CreateBuffer(RHIDevice&, const RHIBufferCreateInfo&) const override;
 		RHIBufferView CreateBufferView(RHIDevice&, const RHIBufferViewCreateInfo&) const override;
+		RHIImage CreateImage(RHIDevice&, const RHIImageCreateInfo&) const override;
 
 		// destroy
 		void Destroy(RHIDevice&) const override;
@@ -25,6 +26,7 @@ namespace engine {
 		void Destroy(RHICommandPool&) const override;
 		void Destroy(RHIBuffer&) const override;
 		void Destroy(RHIBufferView&) const override;
+		void Destroy(RHIImage&) const override;
 
 		// get
 		RHIQueue GetQueue(RHIDevice&, uint32_t queueIndex) const override;

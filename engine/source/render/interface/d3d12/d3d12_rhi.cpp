@@ -115,6 +115,35 @@ namespace engine {
 		return bufferWrapper;
 	}
 
+	RHIImage D3D12Instance::CreateImage(RHIDevice& device, const RHIImageCreateInfo& info) const {
+		D3D12_RESOURCE_DESC resourceDesc;
+		resourceDesc.Format = D3D12EnumFormat(info.format).Get();
+		resourceDesc.Dimension = D3D12EnumImageType(info.imageType).Get();
+		resourceDesc.Width = info.extent.width;
+		resourceDesc.Height = info.extent.height;
+		resourceDesc.DepthOrArraySize = info.extent.depth;
+		resourceDesc.Alignment = 0;
+		resourceDesc.MipLevels = info.mipLevels;
+		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		resourceDesc.SampleDesc.Count = D3D12EnumSampleCount(info.sampleCount).Get();
+		static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &resourceDesc.SampleDesc.Quality, sizeof(UINT));
+
+		ComPtr<ID3D12Resource> image;
+		if (FAILED(static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12EnumResourceState(info.usage).Get(),
+			nullptr,
+			IID_PPV_ARGS(&image)))) {
+			throw std::runtime_error("Create image failed");
+		}
+
+		auto imageWrapper = new D3D12WrapperImage();
+		imageWrapper->SetResource(image);
+		return imageWrapper;
+	}
+
 	void D3D12Instance::Destroy(RHIDevice& device) const {
 		for (auto queue : static_cast<D3D12WrapperDevice*>(device)->GetQueues()) {
 			static_cast<D3D12WrapperQueue*>(queue)->GetQueue().Reset();
@@ -141,6 +170,11 @@ namespace engine {
 	void D3D12Instance::Destroy(RHIBuffer& buffer) const {
 		static_cast<D3D12WrapperBuffer*>(buffer)->GetResource().Reset();
 		delete buffer;
+	}
+
+	void D3D12Instance::Destroy(RHIImage& image) const {
+		static_cast<D3D12WrapperImage*>(image)->GetResource().Reset();
+		delete image;
 	}
 
 	RHIQueue D3D12Instance::GetQueue(RHIDevice& device, uint32_t queueIndex) const {

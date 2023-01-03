@@ -16,7 +16,7 @@ namespace engine {
 		virtual RHIBuffer CreateBuffer(RHIDevice&, const RHIBufferCreateInfo&) const = 0;
 		virtual RHIBufferView CreateBufferView(RHIDevice&, const RHIBufferViewCreateInfo&) const = 0;
 		virtual RHIImage CreateImage(RHIDevice&, const RHIImageCreateInfo&) const = 0;
-		virtual RHIImageView CreateImageView() const = 0;
+		virtual RHIImageView CreateImageView(RHIDevice&, const RHIImageViewCreateInfo&) const = 0;
 		virtual RHIPipeline CreateGraphicsPipeline(RHIDevice&, const RHIGraphicsPipelineCreateInfo&) const = 0;
 
 		// destroy

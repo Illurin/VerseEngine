@@ -119,6 +119,26 @@ namespace engine {
 		vk::CompositeAlphaFlagBitsKHR alphaMode_{ vk::CompositeAlphaFlagBitsKHR::eInherit };
 	};
 
+	class VkEnumSampleCount final {
+	public:
+		VkEnumSampleCount(RHISampleCount sampleCount) {
+			switch (sampleCount) {
+			case RHISampleCount::Count1: sampleCount_ = vk::SampleCountFlagBits::e1; break;
+			case RHISampleCount::Count2: sampleCount_ = vk::SampleCountFlagBits::e2; break;
+			case RHISampleCount::Count4: sampleCount_ = vk::SampleCountFlagBits::e4; break;
+			case RHISampleCount::Count8: sampleCount_ = vk::SampleCountFlagBits::e8; break;
+			case RHISampleCount::Count16: sampleCount_ = vk::SampleCountFlagBits::e16; break;
+			case RHISampleCount::Count32: sampleCount_ = vk::SampleCountFlagBits::e32; break;
+			case RHISampleCount::Count64: sampleCount_ = vk::SampleCountFlagBits::e64; break;
+			}
+		}
+
+		vk::SampleCountFlagBits Get() const { return sampleCount_; }
+
+	private:
+		vk::SampleCountFlagBits sampleCount_{ vk::SampleCountFlagBits::e1 };
+	};
+
 	class VkEnumBufferUsage final {
 	public:
 		VkEnumBufferUsage(RHIBufferUsage bufferUsage) {
@@ -154,6 +174,42 @@ namespace engine {
 
 	private:
 		vk::ImageUsageFlagBits imageUsage_{ vk::ImageUsageFlagBits::eColorAttachment };
+	};
+
+	class VkEnumImageType final {
+	public:
+		VkEnumImageType(RHIImageType imageType) {
+			switch (imageType) {
+			case RHIImageType::Image1D: imageType_ = vk::ImageType::e1D; break;
+			case RHIImageType::Image2D: imageType_ = vk::ImageType::e2D; break;
+			case RHIImageType::Image3D: imageType_ = vk::ImageType::e3D; break;
+			}
+		}
+
+		vk::ImageType Get() const { return imageType_; }
+
+	private:
+		vk::ImageType imageType_{ vk::ImageType::e1D };
+	};
+
+	class VkEnumImageViewType final {
+	public:
+		VkEnumImageViewType(RHIImageViewType imageViewType) {
+			switch (imageViewType) {
+			case RHIImageViewType::Image1D: imageViewType_ = vk::ImageViewType::e1D; break;
+			case RHIImageViewType::Image2D: imageViewType_ = vk::ImageViewType::e2D; break;
+			case RHIImageViewType::Image3D: imageViewType_ = vk::ImageViewType::e3D; break;
+			case RHIImageViewType::ImageCube: imageViewType_ = vk::ImageViewType::eCube; break;
+			case RHIImageViewType::ImageArray1D: imageViewType_ = vk::ImageViewType::e1DArray; break;
+			case RHIImageViewType::ImageArray2D: imageViewType_ = vk::ImageViewType::e2DArray; break;
+			case RHIImageViewType::ImageArrayCube: imageViewType_ = vk::ImageViewType::eCubeArray; break;
+			}
+		}
+
+		vk::ImageViewType Get() const { return imageViewType_; }
+
+	private:
+		vk::ImageViewType imageViewType_{ vk::ImageViewType::e1D };
 	};
 
 	class VkWrapperDevice final : public RHIDevice_T {

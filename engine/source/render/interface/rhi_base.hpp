@@ -83,6 +83,16 @@ namespace engine {
 		Image3D
 	};
 
+	enum class RHIImageViewType {
+		Image1D,
+		Image2D,
+		Image3D,
+		ImageCube,
+		ImageArray1D,
+		ImageArray2D,
+		ImageArrayCube
+	};
+
 	/*--------------------handle--------------------*/ 
 
 	RHI_DEFINE_HANDLE(RHIDevice)
@@ -224,18 +234,32 @@ namespace engine {
 	};
 
 	struct RHIImageCreateInfo {
+		RHIImageCreateInfo& SetFormat(RHIFormat format) { this->format = format; return *this; }
+		RHIImageCreateInfo& SetImageType(RHIImageType imageType) { this->imageType = imageType; return *this; }
+		RHIImageCreateInfo& SetExtent(RHIExtent3D extent) { this->extent = extent; return *this; }
+		RHIImageCreateInfo& SetMipLevels(uint32_t mipLevels) { this->mipLevels = mipLevels; return *this; }
+		RHIImageCreateInfo& SetSampleCount(RHISampleCount sampleCount) { this->sampleCount = sampleCount; return *this; }
 		
-
 		RHIFormat format;
 		RHIImageType imageType;
 		RHIExtent3D extent;
 		RHIImageUsage usage;
-		uint32_t arrayLayers;
 		uint32_t mipLevels;
+		RHISampleCount sampleCount;
 	};
 	
 	struct RHIImageViewCreateInfo {
-		
+		RHIImageViewCreateInfo& SetImage(RHIImage image) { this->image = image; return *this; }
+		RHIImageViewCreateInfo& SetFormat(RHIFormat format) { this->format = format; return *this; }
+		RHIImageViewCreateInfo& SetImageViewType(RHIImageViewType imageViewType) { this->imageViewType = imageViewType; return *this; }
+		RHIImageViewCreateInfo& SetBaseMipLevel(uint32_t baseMipLevel) { this->baseMipLevel = baseMipLevel; return *this; }
+		RHIImageViewCreateInfo& SetMipLevelCount(uint32_t mipLevelCount) { this->mipLevelCount = mipLevelCount; return *this; }
+
+		RHIImage image;
+		RHIFormat format;
+		RHIImageViewType imageViewType;
+		uint32_t baseMipLevel;
+		uint32_t mipLevelCount;
 	};
 
 	struct RHIGraphicsPipelineCreateInfo {

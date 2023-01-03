@@ -121,6 +121,26 @@ namespace engine {
 		DXGI_ALPHA_MODE alphaMode_{ DXGI_ALPHA_MODE_UNSPECIFIED };
 	};
 
+	class D3D12EnumSampleCount final {
+	public:
+		D3D12EnumSampleCount(RHISampleCount sampleCount) {
+			switch (sampleCount) {
+			case RHISampleCount::Count1: sampleCount_ = 1; break;
+			case RHISampleCount::Count2: sampleCount_ = 2; break;
+			case RHISampleCount::Count4: sampleCount_ = 4; break;
+			case RHISampleCount::Count8: sampleCount_ = 8; break;
+			case RHISampleCount::Count16: sampleCount_ = 16; break;
+			case RHISampleCount::Count32: sampleCount_ = 32; break;
+			case RHISampleCount::Count64: sampleCount_ = 64; break;
+			}
+		}
+
+		UINT Get() const { return sampleCount_; }
+		
+	private:
+		UINT sampleCount_{ 1 };
+	};
+
 	class D3D12EnumResourceState final {
 	public:
 		D3D12EnumResourceState(RHIBufferUsage bufferUsage) {
@@ -131,6 +151,16 @@ namespace engine {
 			case RHIBufferUsage::IndexBuffer: state = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
 			case RHIBufferUsage::TransferSrc: state = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
 			case RHIBufferUsage::TransferDst: state = D3D12_RESOURCE_STATE_COPY_DEST; break;
+			}
+		}
+
+		D3D12EnumResourceState(RHIImageUsage bufferUsage) {
+			switch (bufferUsage) {
+			case RHIImageUsage::ColorAttachment: state = D3D12_RESOURCE_STATE_RENDER_TARGET; break;
+			case RHIImageUsage::DepthStencilAttachment: state = D3D12_RESOURCE_STATE_DEPTH_WRITE; break;
+			case RHIImageUsage::Sampled: state = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
+			case RHIImageUsage::TransferSrc: state = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
+			case RHIImageUsage::TransferDst: state = D3D12_RESOURCE_STATE_COPY_DEST; break;
 			}
 		}
 
@@ -156,6 +186,22 @@ namespace engine {
 
 	private:
 		DXGI_USAGE imageUsage_{ DXGI_USAGE_RENDER_TARGET_OUTPUT };
+	};
+
+	class D3D12EnumImageType final {
+	public:
+		D3D12EnumImageType(RHIImageType imageType) {
+			switch (imageType) {
+			case RHIImageType::Image1D: imageType_ = D3D12_RESOURCE_DIMENSION_TEXTURE1D; break;
+			case RHIImageType::Image2D: imageType_ = D3D12_RESOURCE_DIMENSION_TEXTURE2D; break;
+			case RHIImageType::Image3D: imageType_ = D3D12_RESOURCE_DIMENSION_TEXTURE3D; break;
+			}
+		}
+
+		D3D12_RESOURCE_DIMENSION Get() const { return imageType_; }
+
+	private:
+		D3D12_RESOURCE_DIMENSION imageType_{ D3D12_RESOURCE_DIMENSION_TEXTURE1D };
 	};
 
 	class D3D12WrapperDevice final : public RHIDevice_T {
@@ -234,6 +280,15 @@ namespace engine {
 
 	private:
 		 bufferView;
+	};
+
+	class D3D12WrapperImage final : public RHIImage_T {
+	public:
+		D3D12WrapperImage& SetResource(ComPtr<ID3D12Resource> resource) { this->resource = resource; return *this; }
+		ComPtr<ID3D12Resource> GetResource() const { return resource; }
+
+	private:
+		ComPtr<ID3D12Resource> resource;
 	};
 
 	class D3D12WrapperPipeline final : public RHIPipeline_T {

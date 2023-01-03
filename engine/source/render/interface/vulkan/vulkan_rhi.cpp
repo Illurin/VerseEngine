@@ -278,16 +278,56 @@ namespace engine {
 	RHIImage VulkanInstance::CreateImage(RHIDevice& device, const RHIImageCreateInfo& info) const {
 		auto imageInfo = vk::ImageCreateInfo()
 			.setFormat(VkEnumFormat(info.format).Get())
-			.setImageType()
-			.setExtent()
-			.setUsage()
+			.setImageType(VkEnumImageType(info.imageType).Get())
+			.setExtent(vk::Extent3D(info.extent.width, info.extent.height, info.extent.depth))
+			.setUsage(VkEnumImageUsage(info.usage).Get())
 			.setTiling(vk::ImageTiling::eOptimal)
-			.setArrayLayers()
-			.setMipLevels()
+			.setArrayLayers(1)
+			.setMipLevels(info.mipLevels)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
-			.setSamples();
+			.setSamples(VkEnumSampleCount(info.sampleCount).Get());
 		
-		
+		auto image = static_cast<VkWrapperDevice*>(device)->GetDevice().createImage(imageInfo);
+
+		if (!image) {
+			throw std::runtime_error("Create image failed");
+		}
+
+		auto memReqs = static_cast<VkWrapperDevice*>(device)->GetDevice().getImageMemoryRequirements(image);
+		auto memoryInfo = vk::MemoryAllocateInfo()
+			.setAllocationSize(memReqs.size);
+		VulkanUtil::MemoryTypeFromProperties(static_cast<VkWrapperDevice*>(device)->GetPhysicalDevice().getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal, memoryInfo.memoryTypeIndex);
+
+		auto memory = static_cast<VkWrapperDevice*>(device)->GetDevice().allocateMemory(memoryInfo);
+
+		if (!memory) {
+			throw std::runtime_error("Allocate memory failed");
+		}
+
+		static_cast<VkWrapperDevice*>(device)->GetDevice().bindImageMemory(image, memory, 0);
+
+		auto imageWrapper = new VkWrapperImage();
+		imageWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetImage(image).SetMemory(memory);
+		return imageWrapper;
+	}
+
+	RHIImageView VulkanInstance::CreateImageView(RHIDevice& device, const RHIImageViewCreateInfo& info) const {
+		auto imageViewInfo = vk::ImageViewCreateInfo()
+			.setComponents(vk::ComponentMapping(vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA))
+			.setImage(static_cast<VkWrapperImage*>(info.image)->GetImage())
+			.setFormat(VkEnumFormat(info.format).Get())
+			.setViewType(VkEnumImageViewType(info.imageViewType).Get())
+			.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, info.baseMipLevel, info.mipLevelCount, 0, 1));
+
+		auto imageView = static_cast<VkWrapperDevice*>(device)->GetDevice().createImageView(imageViewInfo);
+
+		if (!imageView) {
+			throw std::runtime_error("Create image view failed");
+		}
+
+		auto imageViewWrapper = new VkWrapperImageView();
+		imageViewWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetImageView(imageView);
+		return imageViewWrapper;
 	}
 
 	RHIPipeline VulkanInstance::CreateGraphicsPipeline(RHIDevice& device, const RHIGraphicsPipelineCreateInfo& info) const {
@@ -328,6 +368,17 @@ namespace engine {
 	void VulkanInstance::Destroy(RHIBufferView& bufferView) const {
 		static_cast<VkWrapperBufferView*>(bufferView)->GetDevice().destroy(static_cast<VkWrapperBufferView*>(bufferView)->GetBufferView());
 		delete bufferView;
+	}
+
+	void VulkanInstance::Destroy(RHIImage& image) const {
+		static_cast<VkWrapperImage*>(image)->GetDevice().destroy(static_cast<VkWrapperImage*>(image)->GetImage());
+		static_cast<VkWrapperImage*>(image)->GetDevice().free(static_cast<VkWrapperImage*>(image)->GetMemory());
+		delete image;
+	}
+
+	void VulkanInstance::Destroy(RHIImageView& imageView) const {
+		static_cast<VkWrapperImageView*>(imageView)->GetDevice().destroy(static_cast<VkWrapperImageView*>(imageView)->GetImageView());
+		delete imageView;
 	}
 
 	RHIQueue VulkanInstance::GetQueue(RHIDevice& device, uint32_t queueIndex) const {

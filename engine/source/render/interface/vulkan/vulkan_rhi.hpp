@@ -17,6 +17,7 @@ namespace engine {
 		RHIBuffer CreateBuffer(RHIDevice&, const RHIBufferCreateInfo&) const override;
 		RHIBufferView CreateBufferView(RHIDevice&, const RHIBufferViewCreateInfo&) const override;
 		RHIImage CreateImage(RHIDevice&, const RHIImageCreateInfo&) const override;
+		RHIImageView CreateImageView(RHIDevice&, const RHIImageViewCreateInfo&) const override;
 		RHIPipeline CreateGraphicsPipeline(RHIDevice&, const RHIGraphicsPipelineCreateInfo&) const override;
 
 		// destroy
@@ -26,6 +27,7 @@ namespace engine {
 		void Destroy(RHIBuffer&) const override;
 		void Destroy(RHIBufferView&) const override;
 		void Destroy(RHIImage&) const override;
+		void Destroy(RHIImageView&) const override;
 		void Destroy(RHIPipeline&) const override;
 
 		// get

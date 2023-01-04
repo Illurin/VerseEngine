@@ -144,6 +144,23 @@ namespace engine {
 		return imageWrapper;
 	}
 
+	RHIImageView D3D12Instance::CreateImageView(RHIDevice&, const RHIImageViewCreateInfo&) const {
+		
+	}
+
+	RHIDescriptorPool D3D12Instance::CreateDescriptorPool(RHIDevice& device, const RHIDescriptorPoolCreateInfo& info) const {
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+		heapDesc.NumDescriptors = info.descriptorCount;
+		heapDesc.Type = D3D12EnumHeapType(info.descriptorType).Get();
+
+		ComPtr<ID3D12Heap> heap;
+		static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap));
+
+		auto descriptorPoolWrapper = new D3D12WrapperDescriptorPool();
+		descriptorPoolWrapper->SetHeap(heap);
+		return descriptorPoolWrapper;
+	}
+
 	void D3D12Instance::Destroy(RHIDevice& device) const {
 		for (auto queue : static_cast<D3D12WrapperDevice*>(device)->GetQueues()) {
 			static_cast<D3D12WrapperQueue*>(queue)->GetQueue().Reset();
@@ -175,6 +192,11 @@ namespace engine {
 	void D3D12Instance::Destroy(RHIImage& image) const {
 		static_cast<D3D12WrapperImage*>(image)->GetResource().Reset();
 		delete image;
+	}
+
+	void D3D12Instance::Destroy(RHIDescriptorPool& descriptorPool) const {
+		static_cast<D3D12WrapperDescriptorPool*>(descriptorPool)->GetHeap().Reset();
+		delete descriptorPool;
 	}
 
 	RHIQueue D3D12Instance::GetQueue(RHIDevice& device, uint32_t queueIndex) const {

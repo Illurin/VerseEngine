@@ -17,6 +17,7 @@ namespace engine {
 		virtual RHIBufferView CreateBufferView(RHIDevice&, const RHIBufferViewCreateInfo&) const = 0;
 		virtual RHIImage CreateImage(RHIDevice&, const RHIImageCreateInfo&) const = 0;
 		virtual RHIImageView CreateImageView(RHIDevice&, const RHIImageViewCreateInfo&) const = 0;
+		virtual RHIDescriptorPool CreateDescriptorPool(RHIDevice&, const RHIDescriptorPoolCreateInfo&) const = 0;
 		virtual RHIPipeline CreateGraphicsPipeline(RHIDevice&, const RHIGraphicsPipelineCreateInfo&) const = 0;
 
 		// destroy
@@ -27,6 +28,7 @@ namespace engine {
 		virtual void Destroy(RHIBufferView&) const = 0;
 		virtual void Destroy(RHIImage&) const = 0;
 		virtual void Destroy(RHIImageView&) const = 0;
+		virtual void Destroy(RHIDescriptorPool&) const = 0;
 		virtual void Destroy(RHIPipeline&) const = 0;
 
 		// get
@@ -35,7 +37,7 @@ namespace engine {
 		virtual std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const = 0;
 
 		// command
-
+		
 	};
 
 }

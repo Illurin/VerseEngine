@@ -63,6 +63,8 @@ namespace engine {
 	enum class RHIBufferUsage {
 		UniformBuffer,
 		StorageBuffer,
+		UniformTexelBuffer,
+		StorageTexelBuffer,
 		VertexBuffer,
 		IndexBuffer,
 		TransferSrc,
@@ -93,8 +95,18 @@ namespace engine {
 		ImageArrayCube
 	};
 
-	/*--------------------handle--------------------*/ 
+	enum class RHIDescriptorType {
+		Sampler,
+		SampledImage,
+		StorageImage,
+		UniformBuffer,
+		StorageBuffer,
+		UniformTexelBuffer,
+		StorageTexelBuffer
+	};
 
+	/*--------------------handle--------------------*/ 
+	
 	RHI_DEFINE_HANDLE(RHIDevice)
 	RHI_DEFINE_HANDLE(RHIQueue)
 	RHI_DEFINE_HANDLE(RHISwapchain)
@@ -104,8 +116,11 @@ namespace engine {
 	RHI_DEFINE_HANDLE(RHIBufferView)
 	RHI_DEFINE_HANDLE(RHIImage)
 	RHI_DEFINE_HANDLE(RHIImageView)
+	RHI_DEFINE_HANDLE(RHIDescriptorPool)
+	RHI_DEFINE_HANDLE(RHIDescriptorSet)
+	RHI_DEFINE_HANDLE(RHIShaderModule)
 	RHI_DEFINE_HANDLE(RHIPipeline)
-
+	
 	/*--------------------info--------------------*/
 
 	struct RHIExtent2D {
@@ -260,6 +275,14 @@ namespace engine {
 		RHIImageViewType imageViewType;
 		uint32_t baseMipLevel;
 		uint32_t mipLevelCount;
+	};
+
+	struct RHIDescriptorPoolCreateInfo {
+		RHIDescriptorPoolCreateInfo& SetDescriptorType(RHIDescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
+		RHIDescriptorPoolCreateInfo& SetDescriptorCount(uint32_t descriptorCount) { this->descriptorCount = descriptorCount; return *this; }
+
+		RHIDescriptorType descriptorType;
+		uint32_t descriptorCount;
 	};
 
 	struct RHIGraphicsPipelineCreateInfo {

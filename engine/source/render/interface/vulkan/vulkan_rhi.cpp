@@ -330,8 +330,29 @@ namespace engine {
 		return imageViewWrapper;
 	}
 
-	RHIPipeline VulkanInstance::CreateGraphicsPipeline(RHIDevice& device, const RHIGraphicsPipelineCreateInfo& info) const {
+	RHIDescriptorPool VulkanInstance::CreateDescriptorPool(RHIDevice& device, const RHIDescriptorPoolCreateInfo& info) const {
+		auto poolSize = vk::DescriptorPoolSize()
+			.setType(VkEnumDescriptorType(info.descriptorType).Get())
+			.setDescriptorCount(info.descriptorCount);
+		
+		auto poolInfo = vk::DescriptorPoolCreateInfo()
+			.setMaxSets(info.descriptorCount)
+			.setPoolSizeCount(1)
+			.setPPoolSizes(&poolSize);
 
+		auto descriptorPool = static_cast<VkWrapperDevice*>(device)->GetDevice().createDescriptorPool(poolInfo);
+
+		if (!descriptorPool) {
+			throw std::runtime_error("Create descriptor pool failed");
+		}
+
+		auto descriptorPoolWrapper = new VkWrapperDescriptorPool();
+		descriptorPoolWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetDescriptorPool(descriptorPool);
+		return descriptorPoolWrapper;
+	}
+
+	RHIPipeline VulkanInstance::CreateGraphicsPipeline(RHIDevice& device, const RHIGraphicsPipelineCreateInfo& info) const {
+		
 	}
 
 	void VulkanInstance::Destroy(RHIDevice& device) const {
@@ -379,6 +400,11 @@ namespace engine {
 	void VulkanInstance::Destroy(RHIImageView& imageView) const {
 		static_cast<VkWrapperImageView*>(imageView)->GetDevice().destroy(static_cast<VkWrapperImageView*>(imageView)->GetImageView());
 		delete imageView;
+	}
+
+	void VulkanInstance::Destroy(RHIDescriptorPool& descriptorPool) const {
+		static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDevice().destroy(static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDescriptorPool());
+		delete descriptorPool;
 	}
 
 	RHIQueue VulkanInstance::GetQueue(RHIDevice& device, uint32_t queueIndex) const {

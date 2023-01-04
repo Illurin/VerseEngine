@@ -147,6 +147,8 @@ namespace engine {
 			switch (bufferUsage) {
 			case RHIBufferUsage::UniformBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
 			case RHIBufferUsage::StorageBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case RHIBufferUsage::UniformTexelBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case RHIBufferUsage::StorageTexelBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
 			case RHIBufferUsage::VertexBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
 			case RHIBufferUsage::IndexBuffer: state = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
 			case RHIBufferUsage::TransferSrc: state = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
@@ -202,6 +204,64 @@ namespace engine {
 
 	private:
 		D3D12_RESOURCE_DIMENSION imageType_{ D3D12_RESOURCE_DIMENSION_TEXTURE1D };
+	};
+
+	class D3D12EnumRTVType final {
+	public:
+		D3D12EnumRTVType(RHIImageViewType imageViewType) {
+			switch (imageViewType) {
+			case RHIImageViewType::Image1D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE1D; break;
+			case RHIImageViewType::Image2D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE2D; break;
+			case RHIImageViewType::Image3D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE3D; break;
+			case RHIImageViewType::ImageArray1D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE1DARRAY; break;
+			case RHIImageViewType::ImageArray2D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE2DARRAY; break;
+			}
+		}
+
+		D3D12_RTV_DIMENSION Get() const { return imageViewType_; }
+
+	private:
+		D3D12_RTV_DIMENSION imageViewType_{ D3D12_RTV_DIMENSION_UNKNOWN };
+	};
+
+	class D3D12EnumSRVType final {
+	public:
+		D3D12EnumSRVType(RHIImageViewType imageViewType) {
+			switch (imageViewType) {
+			case RHIImageViewType::Image1D: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURE1D; break;
+			case RHIImageViewType::Image2D: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURE2D; break;
+			case RHIImageViewType::Image3D: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURE3D; break;
+			case RHIImageViewType::ImageCube: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURECUBE; break;
+			case RHIImageViewType::ImageArray1D: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURE1DARRAY; break;
+			case RHIImageViewType::ImageArray2D: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURE2DARRAY; break;
+			case RHIImageViewType::ImageArrayCube: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY; break;
+			}
+		}
+
+		D3D12_SRV_DIMENSION Get() const { return imageViewType_; }
+
+	private:
+		D3D12_SRV_DIMENSION imageViewType_{ D3D12_SRV_DIMENSION_UNKNOWN };
+	};
+
+	class D3D12EnumHeapType final {
+	public:
+		D3D12EnumHeapType(RHIDescriptorType descriptorType) {
+			switch (descriptorType) {
+			case RHIDescriptorType::Sampler: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER; break;
+			case RHIDescriptorType::SampledImage: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+			case RHIDescriptorType::StorageImage: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+			case RHIDescriptorType::UniformBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+			case RHIDescriptorType::StorageBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+			case RHIDescriptorType::UniformTexelBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+			case RHIDescriptorType::StorageTexelBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+			}
+		}
+
+		D3D12_DESCRIPTOR_HEAP_TYPE Get() const { return heapType_; }
+
+	private:
+		D3D12_DESCRIPTOR_HEAP_TYPE heapType_{ D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER };
 	};
 
 	class D3D12WrapperDevice final : public RHIDevice_T {
@@ -291,6 +351,24 @@ namespace engine {
 		ComPtr<ID3D12Resource> resource;
 	};
 
+	class D3D12WrapperImageView final : public RHIImageView_T {
+	public:
+		D3D12WrapperImageView& SetDecriptor(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) { this->descriptor = descriptor; return *this; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetDecriptor() const { return descriptor; }
+
+	private:
+		D3D12_CPU_DESCRIPTOR_HANDLE descriptor;
+	};
+
+	class D3D12WrapperDescriptorPool final : public RHIDescriptorPool_T {
+	public:
+		D3D12WrapperDescriptorPool& SetHeap(ComPtr<ID3D12Heap> heap) { this->heap = heap; return *this; }
+		ComPtr<ID3D12Heap> GetHeap() const { return heap; }
+
+	private:
+		ComPtr<ID3D12Heap> heap;
+	};
+
 	class D3D12WrapperPipeline final : public RHIPipeline_T {
 	public:
 		D3D12WrapperPipeline& SetPipeline(ComPtr<ID3D12PipelineState> pipeline) { this->pipeline = pipeline; return *this; }
@@ -300,6 +378,6 @@ namespace engine {
 		ComPtr<ID3D12PipelineState> pipeline;
 	};
 
-}
+
 
 #endif // _DIRECT3D12

@@ -145,6 +145,8 @@ namespace engine {
 			switch (bufferUsage) {
 			case RHIBufferUsage::UniformBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer; break;
 			case RHIBufferUsage::StorageBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eStorageBuffer; break;
+			case RHIBufferUsage::UniformTexelBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformTexelBuffer; break;
+			case RHIBufferUsage::StorageTexelBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eStorageTexelBuffer; break;
 			case RHIBufferUsage::VertexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eVertexBuffer; break;
 			case RHIBufferUsage::IndexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer; break;
 			case RHIBufferUsage::TransferSrc: bufferUsage_ = vk::BufferUsageFlagBits::eTransferSrc; break;
@@ -205,11 +207,31 @@ namespace engine {
 			case RHIImageViewType::ImageArrayCube: imageViewType_ = vk::ImageViewType::eCubeArray; break;
 			}
 		}
-
+		
 		vk::ImageViewType Get() const { return imageViewType_; }
 
 	private:
 		vk::ImageViewType imageViewType_{ vk::ImageViewType::e1D };
+	};
+
+	class VkEnumDescriptorType final {
+	public:
+		VkEnumDescriptorType(RHIDescriptorType descriptorType) {
+			switch (descriptorType) {
+			case RHIDescriptorType::Sampler: descriptorType_ = vk::DescriptorType::eSampler; break;
+			case RHIDescriptorType::SampledImage: descriptorType_ = vk::DescriptorType::eSampledImage; break;
+			case RHIDescriptorType::StorageImage: descriptorType_ = vk::DescriptorType::eStorageImage; break;
+			case RHIDescriptorType::UniformBuffer: descriptorType_ = vk::DescriptorType::eUniformBuffer; break;
+			case RHIDescriptorType::StorageBuffer: descriptorType_ = vk::DescriptorType::eStorageBuffer; break;
+			case RHIDescriptorType::UniformTexelBuffer: descriptorType_ = vk::DescriptorType::eUniformTexelBuffer; break;
+			case RHIDescriptorType::StorageTexelBuffer: descriptorType_ = vk::DescriptorType::eStorageTexelBuffer; break;
+			}
+		}
+
+		vk::DescriptorType Get() const { return descriptorType_; }
+
+	private:
+		vk::DescriptorType descriptorType_{ vk::DescriptorType::eSampler };
 	};
 
 	class VkWrapperDevice final : public RHIDevice_T {
@@ -221,7 +243,7 @@ namespace engine {
 		vk::PhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
 		vk::Device GetDevice() const { return device; }
 		std::vector<RHIQueue> GetQueues() const { return queues; }
-
+		
 	private:
 		vk::PhysicalDevice physicalDevice;
 		vk::Device device;
@@ -344,6 +366,32 @@ namespace engine {
 	private:
 		vk::Device device;
 		vk::ImageView imageView;
+	};
+
+	class VkWrapperDescriptorPool final : public RHIDescriptorPool_T {
+	public:
+		VkWrapperDescriptorPool& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperDescriptorPool& SetDescriptorPool(vk::DescriptorPool descriptorPool) { this->descriptorPool = descriptorPool; return *this; }
+
+		vk::Device GetDevice() const { return device; }
+		vk::DescriptorPool GetDescriptorPool() const { return descriptorPool; }
+
+	private:
+		vk::Device device;
+		vk::DescriptorPool descriptorPool;
+	};
+
+	class VkWrapperShaderModule final : public RHIShaderModule_T {
+	public:
+		VkWrapperShaderModule& SetDevice(vk::Device device) { this->device = device; return *this; }
+		VkWrapperShaderModule& SetShaderModule(vk::ShaderModule shaderModule) { this->shaderModule = shaderModule; return *this; }
+
+		vk::Device GetDevice() const { return device; }
+		vk::ShaderModule GetShaderModule() const { return shaderModule; }
+
+	private:
+		vk::Device device;
+		vk::ShaderModule shaderModule;
 	};
 
 	class VkWrapperPipeline final : public RHIPipeline_T {

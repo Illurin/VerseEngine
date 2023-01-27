@@ -4,8 +4,8 @@
 
 namespace engine {
 
-	void D3D12Instance::Init(const RHIInstanceInitInfo& info) {
-		uint32_t factoryFlag{ 0 };
+	void D3D12WrapperInstance::Init(const RHIInstanceInitInfo& info) {
+		uint32_t factoryFlag = 0;
 
 #ifdef _DEBUG
 		if (FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugMessenger)))) {
@@ -18,26 +18,54 @@ namespace engine {
 		if (FAILED(CreateDXGIFactory2(factoryFlag, IID_PPV_ARGS(&factory)))) {
 			throw std::runtime_error("Create DXGI factory failed");
 		}
+
+		apiName = info.apiName;
+		applicationName = info.applicationName;
+		applicationVersion = info.applicationVersion;
 	}
 
-	void D3D12Instance::Destroy() {
+	void D3D12WrapperInstance::Destroy() {
 #ifdef _DEBUG
-		debugMessenger.Reset();
+		debugMessenger->Release();
 #endif // _DEBUG
 
-		factory.Reset();
+		factory->Release();
 	}
 
-	RHIDevice D3D12Instance::CreateDevice(const RHIDeviceCreateInfo& info) const {
-		ComPtr<IDXGIAdapter1> adapter;
-		if (FAILED(factory->EnumAdapters1(info.physicalDeviceID, &adapter))) {
+	std::vector<RHIPhysicalDeviceInfo> D3D12WrapperInstance::GetPhysicalDeviceInfo() const {
+		std::vector<RHIPhysicalDeviceInfo> infos;
+		IDXGIAdapter1* adapter;
+
+		for (size_t i = 1; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(i, &adapter); i++) {
+			DXGI_ADAPTER_DESC desc;
+			adapter->GetDesc(&desc);
+			adapter->Release();
+
+			std::array<char, 128> description;
+			sprintf_s(description.data(), description.size(), "%ws", desc.Description);
+
+			auto info = RHIPhysicalDeviceInfo()
+				.SetId(i)
+				.SetVendorId(desc.VendorId)
+				.SetDeviceId(desc.DeviceId)
+				.SetDeviceDescription(std::string(description).c_str());
+
+			infos.push_back(info);
+		}
+		return infos;
+	}
+
+	RHIDevice D3D12WrapperInstance::CreateDevice(const RHIDeviceCreateInfo& info) const {
+		IDXGIAdapter1* adapter;
+		if (FAILED(factory->EnumAdapters1(info.physicalDeviceInfo.id, &adapter))) {
 			throw std::runtime_error("Cannot find chosen physical device");
 		}
 
-		ComPtr<ID3D12Device> device;
-		if (FAILED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device)))) {
+		ID3D12Device* device;
+		if (FAILED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device)))) {
 			throw std::runtime_error("Create device failed");
 		}
+		adapter->Release();
 		
 		std::vector<RHIQueue> queues;
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
@@ -46,7 +74,7 @@ namespace engine {
 			D3D12_COMMAND_QUEUE_DESC queueDesc;
 			queueDesc.Type = D3D12EnumQueueType(info.pQueueCreateInfo[i].queueType).Get();
 
-			ComPtr<ID3D12CommandQueue> queue;
+			ID3D12CommandQueue* queue;
 			if (FAILED(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queue)))) {
 				throw std::runtime_error("Create command queue failed");
 			}
@@ -225,27 +253,6 @@ namespace engine {
 		static_cast<D3D12WrapperCommandPool*>(info.commandPool)->SetCommandBuffers(poolCmdBuffers);
 
 		return cmdWrappers;
-	}
-
-	std::vector<RHIPhysicalDeviceInfo> D3D12Instance::EnumeratePhysicalDevice() const {
-		std::vector<RHIPhysicalDeviceInfo> infos;
-		ComPtr<IDXGIAdapter1> adapter;
-
-		for (size_t i = 1; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(i, &adapter); i++) {
-			DXGI_ADAPTER_DESC1 desc;
-			adapter->GetDesc1(&desc);
-
-			char description[128];
-			sprintf_s(description, "%ws", desc.Description);
-
-			auto info = RHIPhysicalDeviceInfo()
-				.SetDeviceID(desc.DeviceId)
-				.SetDeviceName(std::string(description).c_str())
-				.SetApiVersion(12);
-
-			infos.push_back(info);
-		}
-		return infos;
 	}
 
 }

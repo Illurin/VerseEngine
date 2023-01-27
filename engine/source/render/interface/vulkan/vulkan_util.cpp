@@ -99,7 +99,7 @@ vk::ShaderModule VulkanUtil::CreateShaderModule(vk::Device device, const char* p
 
 	auto info = vk::ShaderModuleCreateInfo()
 		.setCodeSize(buffer.size())
-		.setPCode((const uint32_t*)(buffer.data()));
+		.setPCode(reinterpret_cast<const uint32_t*>(buffer.data()));
 
 	auto shaderModule = device.createShaderModule(info);
 

@@ -2,7 +2,7 @@
 
 namespace engine {
 
-	void VulkanInstance::Init(const RHIInstanceInitInfo& info) {
+	void VkWrapperInstance::Init(const rhi::InstanceInitInfo& info) {
 #ifdef _DEBUG
 		validationLayers = {
 			"VK_LAYER_KHRONOS_validation",
@@ -11,7 +11,7 @@ namespace engine {
 		if (!VulkanUtil::CheckValidationLayerSupport(validationLayers)) {
 			throw std::runtime_error("Do not support validation layers");
 		}
-
+		
 		extensions.instance.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif // _DEBUG
 
@@ -29,8 +29,12 @@ namespace engine {
 		PFN_vkGetInstanceProcAddr GetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
 
 		auto debugMessengerInfo = vk::DebugUtilsMessengerCreateInfoEXT()
-			.setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
-			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
+			.setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose 
+				| vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning 
+				| vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral 
+				| vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation 
+				| vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
 			.setPfnUserCallback(reinterpret_cast<PFN_vkDebugUtilsMessengerCallbackEXT>(VulkanUtil::DebugCallback))
 			.setPUserData(nullptr);
 
@@ -41,44 +45,63 @@ namespace engine {
 			throw std::runtime_error("Create debug messenger failed");
 		}
 #endif // _DEBUG
+
+		this->info.apiName = info.pApiName;
+		this->info.applicationName = info.pApplicationName;
+		this->info.applicationVersion = info.applicationVersion;
 	}
 
-	void VulkanInstance::CreateInstance(const RHIInstanceInitInfo& info) {
+	void VkWrapperInstance::CreateInstance(const rhi::InstanceInitInfo& info) {
 		auto applicationInfo = vk::ApplicationInfo()
 			.setApiVersion(VK_API_VERSION_1_3)
 			.setPEngineName("Verse Engine")
 			.setEngineVersion(1)
-			.setPApplicationName(info.applicationName)
+			.setPApplicationName(info.pApplicationName)
 			.setApplicationVersion(info.applicationVersion);
 
 		auto instanceInfo = vk::InstanceCreateInfo()
-			.setPEnabledExtensionNames(extensions.device)
+			.setPEnabledExtensionNames(extensions.instance)
 			.setPApplicationInfo(&applicationInfo)
 			.setPEnabledLayerNames(validationLayers);
 
 		instance = vk::createInstance(instanceInfo);
-
+		
 		if (!instance) {
 			throw std::runtime_error("Create instance failed");
 		}
 	}
 
-	void VulkanInstance::Destroy() {
-#ifdef _DEBUG
-		instance.destroy(debugMessenger);
-#endif // _DEBUG
-
-		instance.destroy();
-	}
-
-	RHIDevice VulkanInstance::CreateDevice(const RHIDeviceCreateInfo& info) const {
+	std::vector<rhi::PhysicalDeviceInfo> VkWrapperInstance::GetPhysicalDeviceInfo() const {
 		auto gpus = instance.enumeratePhysicalDevices();
 
-		if (info.physicalDeviceID >= gpus.size()) {
+		if (gpus.empty()) {
+			throw std::runtime_error("Enumerate physical devices failed");
+		}
+
+		std::vector<rhi::PhysicalDeviceInfo> infos;
+
+		for (uint32_t i = 0; i < gpus.size(); i++) {
+			auto properties = gpus[i].getProperties();
+
+			auto info = rhi::PhysicalDeviceInfo()
+				.SetId(i)
+				.SetVendorId(properties.vendorID)
+				.SetDeviceId(properties.deviceID)
+				.SetPDeviceDescription(properties.deviceName);
+
+			infos.push_back(info);
+		}
+		return infos;
+	}
+
+	rhi::Device VkWrapperInstance::CreateDevice(const rhi::DeviceCreateInfo& info) const {
+		auto gpus = instance.enumeratePhysicalDevices();
+
+		if (info.physicalDeviceId >= gpus.size()) {
 			throw std::runtime_error("Cannot find chosen physical device");
 		}
 
-		auto physicalDevice = gpus[info.physicalDeviceID];
+		auto physicalDevice = gpus[info.physicalDeviceId];
 		auto queueProp = physicalDevice.getQueueFamilyProperties();
 
 		std::vector<vk::DeviceQueueCreateInfo> deviceQueueInfos;
@@ -87,7 +110,7 @@ namespace engine {
 			uint32_t queueIndex;
 			bool found = false;
 			for (uint32_t j = 0; j < queueProp.size(); j++) {
-				if (queueProp[j].queueFlags & VkEnumQueueType(info.pQueueCreateInfo[i].queueType).Get()) {
+				if (queueProp[j].queueFlags & VkEnumQueueType(info.pQueueCreateInfos[i].queueType).Get()) {
 					queueIndex = j;
 					found = true;
 					break;
@@ -97,7 +120,7 @@ namespace engine {
 			if (!found) {
 				throw std::runtime_error("Cannot find queue family");
 			}
-
+			
 			std::array<float, 1> priorities = { 0.0f };
 			auto deviceQueueInfo = vk::DeviceQueueCreateInfo()
 				.setQueuePriorities(priorities)
@@ -106,18 +129,21 @@ namespace engine {
 		}
 
 		auto feature = vk::PhysicalDeviceFeatures()
-			.setGeometryShader(info.deviceFeature.geometryShader);
+			.setGeometryShader(VK_TRUE);
+
+		auto feature13 = vk::PhysicalDeviceVulkan13Features()
+			.setDynamicRendering(VK_TRUE);
 
 		auto deviceExtensions = extensions.device;
 
-		if (info.deviceFeature.hardwareVideoAcceleration) {
-			deviceExtensions.push_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
-			deviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
-		}
+		//deviceExtensions.push_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
+		//deviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
+		deviceExtensions.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
 
 		auto deviceInfo = vk::DeviceCreateInfo()
+			.setPNext(&feature13)
 			.setQueueCreateInfos(deviceQueueInfos)
-			.setPEnabledExtensionNames(extensions.device)
+			.setPEnabledExtensionNames(deviceExtensions)
 			.setPEnabledFeatures(&feature);
 
 		auto device = physicalDevice.createDevice(deviceInfo);
@@ -126,42 +152,62 @@ namespace engine {
 			throw std::runtime_error("Create logical device failed");
 		}
 
-		std::vector<RHIQueue> queues;
+		auto deviceWrapper = new VkWrapperDevice();
+		deviceWrapper->instance = instance;
+		deviceWrapper->device = device;
+		deviceWrapper->physicalDevice = physicalDevice;
+
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
 			auto queue = new VkWrapperQueue();
-			queue->SetQueueFamilyIndex(deviceQueueInfos[i].queueFamilyIndex).SetQueue(device.getQueue(deviceQueueInfos[i].queueFamilyIndex, 0));
-			queues.push_back(queue);
+			queue->device = device;
+			queue->queue = device.getQueue(deviceQueueInfos[i].queueFamilyIndex, 0);
+			queue->queueFamilyIndex = deviceQueueInfos[i].queueFamilyIndex;
+			deviceWrapper->queues.push_back(queue);
 		}
 
-		auto deviceWrapper = new VkWrapperDevice();
-		deviceWrapper->SetPhysicalDevice(physicalDevice).SetDevice(device).SetQueues(queues);
 		return deviceWrapper;
 	}
-	
-	RHISwapchain VulkanInstance::CreateSwapchain(RHIDevice& device, const RHISwapchainCreateInfo& info) const {
-		vk::SurfaceKHR surface;
 
+	ShaderCompiler VkWrapperInstance::CreateShaderCompiler() const {
+		ShaderCompiler shaderCompiler;
+		shaderCompiler.AddArgument(ShaderCompileArgument::spirv);
+		shaderCompiler.AddArgument(ShaderCompileArgument::vs_profile, ShaderCompileArgument::spirv_invert_y);
+		shaderCompiler.AddArgument(ShaderCompileArgument::matrix_column_major);
+		shaderCompiler.AddArgument(ShaderCompileArgument::spirv_debug);
+		shaderCompiler.AddArgument(ShaderCompileArgument::treat_warnings_as_errors);
+		shaderCompiler.AddIncludePath(StringToWString(GlobalConfig::configPath).c_str());
+		return shaderCompiler;
+	}
+
+	
+
+	rhi::Queue VkWrapperDevice::GetQueue(uint32_t queueIndex) const {
+		if (queueIndex >= queues.size()) {
+			throw std::runtime_error("Get queue out of range");
+		}
+		return queues[queueIndex];
+	}
+
+	rhi::Swapchain VkWrapperDevice::CreateSwapchain(const rhi::SwapchainCreateInfo& info) const {
 #ifdef _WIN32
 		auto surfaceInfo = vk::Win32SurfaceCreateInfoKHR()
 			.setHwnd(info.platformInfo.hWnd)
 			.setHinstance(info.platformInfo.hInstance);
 
-		surface = instance.createWin32SurfaceKHR(surfaceInfo);
+		auto surface = instance.createWin32SurfaceKHR(surfaceInfo);
 #endif // _WIN32
 
 		if (!surface) {
 			throw std::runtime_error("Create surface failed");
 		}
 
-		auto physicalDevice = static_cast<VkWrapperDevice*>(device)->GetPhysicalDevice();
-
-		auto surfaceFormats = physicalDevice.getSurfaceFormats2KHR(surface);
-		if (!surfaceFormats.size()) {
+		auto surfaceFormats = physicalDevice.getSurfaceFormatsKHR(surface);
+		if (surfaceFormats.empty()) {
 			throw std::runtime_error("Do not support any surface format");
 		}
 
 		auto surfacePresentModes = physicalDevice.getSurfacePresentModesKHR(surface);
-		if (!surfacePresentModes.size()) {
+		if (surfacePresentModes.empty()) {
 			throw std::runtime_error("Do not support any surface present mode");
 		}
 
@@ -171,93 +217,87 @@ namespace engine {
 			.setSurface(surface)
 			.setImageFormat(VkEnumFormat(info.format).Get())
 			.setMinImageCount(info.frameCount)
-			.setImageExtent(vk::Extent2D(info.imageExtent.width, info.imageExtent.height))
+			.setImageExtent(surfaceCapabilities.currentExtent)
 			.setPreTransform(surfaceCapabilities.currentTransform)
 			.setPresentMode(vk::PresentModeKHR::eFifo)
 			.setImageSharingMode(vk::SharingMode::eExclusive)
 			.setCompositeAlpha(VkEnumAlphaMode(info.alphaMode).Get())
-			.setImageColorSpace(surfaceFormats[0].surfaceFormat.colorSpace)
+			.setImageColorSpace(surfaceFormats[0].colorSpace)
 			.setImageUsage(VkEnumImageUsage(info.imageUsage).Get())
 			.setImageArrayLayers(1)
 			.setClipped(true);
 
-		auto swapchain = static_cast<VkWrapperDevice*>(device)->GetDevice().createSwapchainKHR(swapchainInfo);
-
+		auto swapchain = device.createSwapchainKHR(swapchainInfo);
+		
 		if (!swapchain) {
 			throw std::runtime_error("Create swapchain failed");
 		}
-		
-		auto swapchainImages = static_cast<VkWrapperDevice*>(device)->GetDevice().getSwapchainImagesKHR(swapchain);
-		std::vector<vk::ImageView> swapchainImageViews(info.frameCount);
 
-		for (size_t i = 0; i < info.frameCount; i++) {
-			auto imageViewInfo = vk::ImageViewCreateInfo()
-				.setViewType(vk::ImageViewType::e2D)
-				.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1))
-				.setFormat(VkEnumFormat(info.format).Get())
-				.setImage(swapchainImages[i])
-				.setComponents(vk::ComponentMapping(vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity));
-
-			auto swapchainImageView = static_cast<VkWrapperDevice*>(device)->GetDevice().createImageView(imageViewInfo);
-
-			if (!swapchainImageView) {
-				throw std::runtime_error("Create swapchain image view failed");
-			}
-
-			swapchainImageViews.push_back(swapchainImageView);
+		std::vector<rhi::Image> swapchainImages;
+		auto images = device.getSwapchainImagesKHR(swapchain);
+		for (auto& image : images) {
+			auto imageWrapper = new VkWrapperImage();
+			imageWrapper->image = image;
+			swapchainImages.push_back(imageWrapper);
 		}
-
+		
 		auto swapchainWrapper = new VkWrapperSwapchain();
-		swapchainWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetSurface(surface).SetSwapchain(swapchain).SetImageViews(swapchainImageViews);
+		swapchainWrapper->device = device;
+		swapchainWrapper->surface = surface;
+		swapchainWrapper->swapchain = swapchain;
+		swapchainWrapper->images = swapchainImages;
 		return swapchainWrapper;
 	}
 	
-	RHICommandPool VulkanInstance::CreateCommandPool(RHIDevice& device, const RHICommandPoolCreateInfo& info) const {
+	rhi::CommandPool VkWrapperDevice::CreateCommandPool(const rhi::CommandPoolCreateInfo& info) const {
 		auto cmdPoolInfo = vk::CommandPoolCreateInfo()
-			.setQueueFamilyIndex(static_cast<VkWrapperQueue*>(info.queue)->GetQueueFamilyIndex())
+			.setQueueFamilyIndex(static_cast<VkWrapperQueue*>(info.queue)->queueFamilyIndex)
 			.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 
-		auto cmdPool = static_cast<const VkWrapperDevice*>(device)->GetDevice().createCommandPool(cmdPoolInfo);
-
+		auto cmdPool = device.createCommandPool(cmdPoolInfo);
+		
 		if (!cmdPool) {
 			throw std::runtime_error("Create command pool failed");
 		}
 
 		auto cmdPoolWrapper = new VkWrapperCommandPool();
-		cmdPoolWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetCommandPool(cmdPool);
+		cmdPoolWrapper->device = device;
+		cmdPoolWrapper->commandPool = cmdPool;
 		return cmdPoolWrapper;
 	}
 
-	RHIBuffer VulkanInstance::CreateBuffer(RHIDevice& device, const RHIBufferCreateInfo& info) const {
+	rhi::Buffer VkWrapperDevice::CreateBuffer(const rhi::BufferCreateInfo& info) const {
 		auto bufferInfo = vk::BufferCreateInfo()
 			.setSize(info.size)
 			.setUsage(VkEnumBufferUsage(info.usage).Get());
 
-		auto buffer = static_cast<VkWrapperDevice*>(device)->GetDevice().createBuffer(bufferInfo);
+		auto buffer = device.createBuffer(bufferInfo);
 
 		if (!buffer) {
 			throw std::runtime_error("Create buffer failed");
 		}
 
-		auto memReqs = static_cast<VkWrapperDevice*>(device)->GetDevice().getBufferMemoryRequirements(buffer);
+		auto memReqs = device.getBufferMemoryRequirements(buffer);
 		auto memoryInfo = vk::MemoryAllocateInfo()
 			.setAllocationSize(memReqs.size);
-		VulkanUtil::MemoryTypeFromProperties(static_cast<VkWrapperDevice*>(device)->GetPhysicalDevice().getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible, memoryInfo.memoryTypeIndex);
+		VulkanUtil::MemoryTypeFromProperties(physicalDevice.getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible, memoryInfo.memoryTypeIndex);
 
-		auto memory = static_cast<VkWrapperDevice*>(device)->GetDevice().allocateMemory(memoryInfo);
+		auto memory = device.allocateMemory(memoryInfo);
 
 		if (!memory) {
 			throw std::runtime_error("Allocate memory failed");
 		}
 
-		static_cast<VkWrapperDevice*>(device)->GetDevice().bindBufferMemory(buffer, memory, 0);
+		device.bindBufferMemory(buffer, memory, 0);
 
 		auto bufferWrapper = new VkWrapperBuffer();
-		bufferWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetBuffer(buffer).SetMemory(memory);
+		bufferWrapper->device = device;
+		bufferWrapper->buffer = buffer;
+		bufferWrapper->memory = memory;
 		return bufferWrapper;
 	}
 
-	RHIBufferView VulkanInstance::CreateBufferView(RHIDevice& device, const RHIBufferViewCreateInfo& info) const {
+	/*rhi::BufferView VulkanInstance::CreateBufferView(rhi::Device& device, const rhi::BufferViewCreateInfo& info) const {
 		auto bufferViewInfo = vk::BufferViewCreateInfo()
 			.setBuffer(static_cast<const VkWrapperBuffer*>(info.buffer)->GetBuffer())
 			.setFormat(VkEnumFormat(info.format).Get())
@@ -273,45 +313,47 @@ namespace engine {
 		auto bufferViewWrapper = new VkWrapperBufferView();
 		bufferViewWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetBufferView(bufferView);
 		return bufferViewWrapper;
-	}
+	}*/
 
-	RHIImage VulkanInstance::CreateImage(RHIDevice& device, const RHIImageCreateInfo& info) const {
+	rhi::Image VkWrapperDevice::CreateImage(const rhi::ImageCreateInfo& info) const {
 		auto imageInfo = vk::ImageCreateInfo()
 			.setFormat(VkEnumFormat(info.format).Get())
 			.setImageType(VkEnumImageType(info.imageType).Get())
 			.setExtent(vk::Extent3D(info.extent.width, info.extent.height, info.extent.depth))
 			.setUsage(VkEnumImageUsage(info.usage).Get())
 			.setTiling(vk::ImageTiling::eOptimal)
-			.setArrayLayers(1)
+			.setArrayLayers(info.arrayLayers)
 			.setMipLevels(info.mipLevels)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setSamples(VkEnumSampleCount(info.sampleCount).Get());
 		
-		auto image = static_cast<VkWrapperDevice*>(device)->GetDevice().createImage(imageInfo);
+		auto image = device.createImage(imageInfo);
 
 		if (!image) {
 			throw std::runtime_error("Create image failed");
 		}
 
-		auto memReqs = static_cast<VkWrapperDevice*>(device)->GetDevice().getImageMemoryRequirements(image);
+		auto memReqs = device.getImageMemoryRequirements(image);
 		auto memoryInfo = vk::MemoryAllocateInfo()
 			.setAllocationSize(memReqs.size);
-		VulkanUtil::MemoryTypeFromProperties(static_cast<VkWrapperDevice*>(device)->GetPhysicalDevice().getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal, memoryInfo.memoryTypeIndex);
+		VulkanUtil::MemoryTypeFromProperties(physicalDevice.getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal, memoryInfo.memoryTypeIndex);
 
-		auto memory = static_cast<VkWrapperDevice*>(device)->GetDevice().allocateMemory(memoryInfo);
+		auto memory = device.allocateMemory(memoryInfo);
 
 		if (!memory) {
 			throw std::runtime_error("Allocate memory failed");
 		}
 
-		static_cast<VkWrapperDevice*>(device)->GetDevice().bindImageMemory(image, memory, 0);
+		device.bindImageMemory(image, memory, 0);
 
 		auto imageWrapper = new VkWrapperImage();
-		imageWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetImage(image).SetMemory(memory);
+		imageWrapper->device = device;
+		imageWrapper->image = image;
+		imageWrapper->memory = memory;
 		return imageWrapper;
 	}
 
-	RHIImageView VulkanInstance::CreateImageView(RHIDevice& device, const RHIImageViewCreateInfo& info) const {
+	/*rhi::ImageView VulkanInstance::CreateImageView(rhi::Device& device, const rhi::ImageViewCreateInfo& info) const {
 		auto imageViewInfo = vk::ImageViewCreateInfo()
 			.setComponents(vk::ComponentMapping(vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA))
 			.setImage(static_cast<VkWrapperImage*>(info.image)->GetImage())
@@ -328,9 +370,9 @@ namespace engine {
 		auto imageViewWrapper = new VkWrapperImageView();
 		imageViewWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetImageView(imageView);
 		return imageViewWrapper;
-	}
+	}*/
 
-	RHIDescriptorPool VulkanInstance::CreateDescriptorPool(RHIDevice& device, const RHIDescriptorPoolCreateInfo& info) const {
+	/*rhi::DescriptorPool VulkanInstance::CreateDescriptorPool(rhi::Device& device, const rhi::DescriptorPoolCreateInfo& info) const {
 		auto poolSize = vk::DescriptorPoolSize()
 			.setType(VkEnumDescriptorType(info.descriptorType).Get())
 			.setDescriptorCount(info.descriptorCount);
@@ -349,118 +391,440 @@ namespace engine {
 		auto descriptorPoolWrapper = new VkWrapperDescriptorPool();
 		descriptorPoolWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetDescriptorPool(descriptorPool);
 		return descriptorPoolWrapper;
+	}*/
+
+	rhi::ShaderModule VkWrapperDevice::CreateShaderModule(const rhi::ShaderModuleCreateInfo& info) const {
+		auto shaderModuleInfo = vk::ShaderModuleCreateInfo()
+			.setPCode(reinterpret_cast<const uint32_t*>(info.pSourceCode))
+			.setCodeSize(static_cast<uint32_t>(info.sourceCodeSize));
+
+		auto shaderModule = device.createShaderModule(shaderModuleInfo);
+
+		auto shaderModuleWrapper = new VkWrapperShaderModule();
+		shaderModuleWrapper->device = device;
+		shaderModuleWrapper->entryPoint = info.pEntryPoint;
+		shaderModuleWrapper->shaderStage = info.shaderStage;
+		shaderModuleWrapper->shaderModule = shaderModule;
+		return shaderModuleWrapper;
 	}
 
-	RHIPipeline VulkanInstance::CreateGraphicsPipeline(RHIDevice& device, const RHIGraphicsPipelineCreateInfo& info) const {
-		
-	}
+	rhi::Pipeline VkWrapperDevice::CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo& info) const {
+		std::vector<vk::PipelineShaderStageCreateInfo> shaderStageInfos;
+		for (uint32_t i = 0; i < info.shaderStageInfo.shaderModuleCount; i++) {
+			auto shaderModule = static_cast<VkWrapperShaderModule*>(info.shaderStageInfo.pShaderModules[i]);
+			shaderStageInfos.push_back(vk::PipelineShaderStageCreateInfo()
+				.setModule(shaderModule->shaderModule)
+				.setPName(shaderModule->entryPoint)
+				.setStage(VkEnumShaderStage(shaderModule->shaderStage).Get()));
+		}
 
-	void VulkanInstance::Destroy(RHIDevice& device) const {
-		static_cast<VkWrapperDevice*>(device)->GetDevice().destroy();
-		for (auto queue : static_cast<VkWrapperDevice*>(device)->GetQueues()) delete queue;
-		delete device;
-	}
+		std::vector<vk::VertexInputBindingDescription> vertexBindingInfos;
+		for (uint32_t i = 0; i < info.vertexInputInfo.bindingCount; i++) {
+			auto& binding = info.vertexInputInfo.pBindings[i];
+			vertexBindingInfos.push_back(vk::VertexInputBindingDescription()
+				.setBinding(binding.bindingSlot)
+				.setStride(binding.stride)
+				.setInputRate(VkEnumVertexInputRate(binding.inputRate).Get()));
+		}
 
-	void VulkanInstance::Destroy(RHISwapchain& swapchain) const {
-		instance.destroy(static_cast<VkWrapperSwapchain*>(swapchain)->GetSurface());
-		static_cast<VkWrapperSwapchain*>(swapchain)->GetDevice().destroy(static_cast<VkWrapperSwapchain*>(swapchain)->GetSwapchain());
-		
-		for (auto& imageView : static_cast<VkWrapperSwapchain*>(swapchain)->GetImageViews()) {
-			static_cast<VkWrapperSwapchain*>(swapchain)->GetDevice().destroy(imageView);
+		std::vector<vk::VertexInputAttributeDescription> vertexAttributeInfos;
+		for (uint32_t i = 0; i < info.vertexInputInfo.attributeCount; i++) {
+			auto& attribute = info.vertexInputInfo.pAttributes[i];
+			vertexAttributeInfos.push_back(vk::VertexInputAttributeDescription()
+				.setBinding(attribute.bindingSlot)
+				.setLocation(attribute.location)
+				.setFormat(VkEnumFormat(attribute.format).Get())
+				.setOffset(attribute.offset));
 		}
 		
-		delete swapchain;
-	}
+		auto vertexInputInfo = vk::PipelineVertexInputStateCreateInfo()
+			.setVertexBindingDescriptions(vertexBindingInfos)
+			.setVertexAttributeDescriptions(vertexAttributeInfos);
 
-	void VulkanInstance::Destroy(RHICommandPool& cmdPool) const {
-		static_cast<VkWrapperCommandPool*>(cmdPool)->GetDevice().destroy(static_cast<VkWrapperCommandPool*>(cmdPool)->GetCommandPool());
-		for (auto& cmdBuffer : static_cast<VkWrapperCommandPool*>(cmdPool)->GetCommandBuffers()) {
-			delete cmdBuffer;
+		auto inputAssemblyInfo = vk::PipelineInputAssemblyStateCreateInfo()
+			.setTopology(VkEnumPrimitiveTopology(info.inputAssemblyInfo.topology).Get())
+			.setPrimitiveRestartEnable(info.inputAssemblyInfo.primitivieRestart);
+
+		auto tessellatonInfo = vk::PipelineTessellationStateCreateInfo()
+			.setPatchControlPoints(info.tessellationInfo.patchControlPoints);
+		
+		auto rasterizationInfo = vk::PipelineRasterizationStateCreateInfo()
+			.setCullMode(VkEnumCullMode(info.rasterizationInfo.cullMode).Get())
+			.setPolygonMode(VkEnumPolygonMode(info.rasterizationInfo.polygonMode).Get())
+			.setFrontFace(VkEnumFrontFace(info.rasterizationInfo.frontFace).Get())
+			.setLineWidth(info.rasterizationInfo.lineWidth)
+			.setDepthBiasEnable(VK_TRUE)
+			.setDepthBiasConstantFactor(info.rasterizationInfo.depthBias)
+			.setDepthBiasSlopeFactor(info.rasterizationInfo.slopeScaledDepthBias)
+			.setDepthBiasClamp(info.rasterizationInfo.depthClamp)
+			.setRasterizerDiscardEnable(VK_FALSE);
+
+		std::vector<vk::Rect2D> scissors;
+		for (uint32_t i = 0; i < info.viewportInfo.scissorCount; i++) {
+			auto& scissorInfo = info.viewportInfo.pScissors[i];
+			scissors.push_back(vk::Rect2D()
+				.setExtent(vk::Extent2D(scissorInfo.extent.width, scissorInfo.extent.height))
+				.setOffset(vk::Offset2D(scissorInfo.offset.x, scissorInfo.offset.y)));
 		}
-		delete cmdPool;
+
+		std::vector<vk::Viewport> viewports;
+		for (uint32_t i = 0; i < info.viewportInfo.viewportCount; i++) {
+			auto& viewportInfo = info.viewportInfo.pViewports[i];
+			viewports.push_back(vk::Viewport()
+				.setWidth(viewportInfo.width).setHeight(viewportInfo.height)
+				.setX(viewportInfo.x).setY(viewportInfo.y)
+				.setMinDepth(viewportInfo.minDepth).setMaxDepth(viewportInfo.maxDepth));
+		}
+
+		auto viewportInfo = vk::PipelineViewportStateCreateInfo()
+			.setScissors(scissors)
+			.setViewports(viewports);
+
+		auto frontOp = vk::StencilOpState()
+			.setPassOp(VkEnumStencilOp(info.depthStencilInfo.frontOp.passOp).Get())
+			.setFailOp(VkEnumStencilOp(info.depthStencilInfo.frontOp.failOp).Get())
+			.setDepthFailOp(VkEnumStencilOp(info.depthStencilInfo.frontOp.depthFailOp).Get())
+			.setCompareOp(VkEnumCompareOp(info.depthStencilInfo.frontOp.compareOp).Get())
+			.setReference(1)
+			.setCompareMask(static_cast<uint32_t>(info.depthStencilInfo.stencilCompareMask))
+			.setCompareMask(static_cast<uint32_t>(info.depthStencilInfo.stencilWriteMask));
+
+		auto backOp = vk::StencilOpState()
+			.setPassOp(VkEnumStencilOp(info.depthStencilInfo.backOp.passOp).Get())
+			.setFailOp(VkEnumStencilOp(info.depthStencilInfo.backOp.failOp).Get())
+			.setDepthFailOp(VkEnumStencilOp(info.depthStencilInfo.backOp.depthFailOp).Get())
+			.setCompareOp(VkEnumCompareOp(info.depthStencilInfo.backOp.compareOp).Get())
+			.setReference(1)
+			.setCompareMask(static_cast<uint32_t>(info.depthStencilInfo.stencilCompareMask))
+			.setCompareMask(static_cast<uint32_t>(info.depthStencilInfo.stencilWriteMask));
+
+		auto depthStencilInfo = vk::PipelineDepthStencilStateCreateInfo()
+			.setDepthTestEnable(info.depthStencilInfo.depthTestEnable)
+			.setDepthWriteEnable(info.depthStencilInfo.depthWriteEnable)
+			.setDepthBoundsTestEnable(info.depthStencilInfo.depthBoundsTestEnable)
+			.setMinDepthBounds(info.depthStencilInfo.minDepthBounds)
+			.setMaxDepthBounds(info.depthStencilInfo.maxDepthBounds)
+			.setDepthCompareOp(VkEnumCompareOp(info.depthStencilInfo.compareOp).Get())
+			.setStencilTestEnable(info.depthStencilInfo.stencilTestEnable)
+			.setFront(frontOp)
+			.setBack(backOp);
+
+		std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
+		for (uint32_t i = 0; i < info.colorBlendInfo.attachmentCount; i++) {
+			auto& attachmentInfo = info.colorBlendInfo.pAttachments[i];
+			colorBlendAttachments.push_back(vk::PipelineColorBlendAttachmentState()
+				.setBlendEnable(attachmentInfo.blendEnable)
+				.setColorWriteMask(VkEnumColorComponent(attachmentInfo.colorWriteMask).Get())
+				.setColorBlendOp(VkEnumBlendOp(attachmentInfo.colorBlendOp).Get())
+				.setAlphaBlendOp(VkEnumBlendOp(attachmentInfo.alphaBlendOp).Get())
+				.setSrcColorBlendFactor(VkEnumBlendFactor(attachmentInfo.srcColorBlendFactor).Get())
+				.setDstColorBlendFactor(VkEnumBlendFactor(attachmentInfo.dstColorBlendFactor).Get())
+				.setSrcAlphaBlendFactor(VkEnumBlendFactor(attachmentInfo.srcAlphaBlendFactor).Get())
+				.setDstAlphaBlendFactor(VkEnumBlendFactor(attachmentInfo.dstAlphaBlendFactor).Get()));
+		}
+
+		auto colorBlendInfo = vk::PipelineColorBlendStateCreateInfo()
+			.setAttachments(colorBlendAttachments)
+			.setLogicOpEnable(VK_FALSE);
+
+		auto multisampleInfo = vk::PipelineMultisampleStateCreateInfo()
+			.setAlphaToOneEnable(VK_FALSE)
+			.setAlphaToCoverageEnable(info.multisampleInfo.alphaToCoverageEnable)
+			.setSampleShadingEnable(info.multisampleInfo.sampleShadingEnable)
+			.setMinSampleShading(info.multisampleInfo.minSampleShading)
+			.setRasterizationSamples(VkEnumSampleCount(info.multisampleInfo.rasterizationSamples).Get());
+
+		auto pipelineLayout = device.createPipelineLayout(vk::PipelineLayoutCreateInfo());
+
+		auto pipelineInfo = vk::GraphicsPipelineCreateInfo()
+			.setStages(shaderStageInfos)
+			.setPVertexInputState(&vertexInputInfo)
+			.setPInputAssemblyState(&inputAssemblyInfo)
+			.setPTessellationState(&tessellatonInfo)
+			.setPRasterizationState(&rasterizationInfo)
+			.setPViewportState(&viewportInfo)
+			.setPDepthStencilState(&depthStencilInfo)
+			.setPColorBlendState(&colorBlendInfo)
+			.setPMultisampleState(&multisampleInfo)
+			.setLayout(pipelineLayout);
+		
+		auto pipeline = device.createGraphicsPipeline(nullptr, pipelineInfo).value;
+		
+		if (!pipeline) {
+			throw std::runtime_error("Create graphics pipeline failed");
+		}
+
+		device.destroy(pipelineLayout);
+		
+		auto pipelineWrapper = new VkWrapperPipeline();
+		pipelineWrapper->device = device;
+		pipelineWrapper->pipeline = pipeline;
+		return pipelineWrapper;
 	}
 
-	void VulkanInstance::Destroy(RHIBuffer& buffer) const {
-		static_cast<VkWrapperBuffer*>(buffer)->GetDevice().destroy(static_cast<VkWrapperBuffer*>(buffer)->GetBuffer());
-		static_cast<VkWrapperBuffer*>(buffer)->GetDevice().free(static_cast<VkWrapperBuffer*>(buffer)->GetMemory());
-		delete buffer;
+	rhi::Framebuffer VkWrapperDevice::CreateFramebuffer(const rhi::FramebufferCreateInfo& info) const {
+		std::vector<vk::ImageView> colorAttachments;
+		for (uint32_t i = 0; i < info.colorAttachmentCount; i++) {
+			auto& colorAttachment = info.pColorAttachments[i];
+			
+			auto imageViewInfo = vk::ImageViewCreateInfo()
+				.setImage(static_cast<VkWrapperImage*>(colorAttachment.image)->image)
+				.setFormat(VkEnumFormat(colorAttachment.format).Get())
+				.setViewType(VkEnumImageViewType(colorAttachment.viewType).Get())
+				.setComponents(vk::ComponentMapping(
+					VkEnumComponentSwizzle(colorAttachment.componentMapping.r).Get(),
+					VkEnumComponentSwizzle(colorAttachment.componentMapping.g).Get(),
+					VkEnumComponentSwizzle(colorAttachment.componentMapping.b).Get(),
+					VkEnumComponentSwizzle(colorAttachment.componentMapping.a).Get()))
+				.setSubresourceRange(vk::ImageSubresourceRange(
+					vk::ImageAspectFlagBits::eColor,
+					colorAttachment.baseMipLevel,
+					colorAttachment.mipLevelCount,
+					colorAttachment.baseArrayLayer,
+					colorAttachment.arrayLayerCount));
+
+			auto imageView = device.createImageView(imageViewInfo);
+
+			if (!imageView) {
+				throw std::runtime_error("Create image view failed");
+			}
+
+			colorAttachments.push_back(imageView);
+		}
+
+		auto imageViewInfo = vk::ImageViewCreateInfo()
+			.setImage(static_cast<VkWrapperImage*>(info.depthAttachment.image)->image)
+			.setFormat(VkEnumFormat(info.depthAttachment.format).Get())
+			.setViewType(VkEnumImageViewType(info.depthAttachment.viewType).Get())
+			.setComponents(vk::ComponentMapping(
+				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.r).Get(),
+				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.g).Get(),
+				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.b).Get(),
+				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.a).Get()))
+			.setSubresourceRange(vk::ImageSubresourceRange(
+				vk::ImageAspectFlagBits::eDepth,
+				info.depthAttachment.baseMipLevel,
+				info.depthAttachment.mipLevelCount,
+				info.depthAttachment.baseArrayLayer,
+				info.depthAttachment.arrayLayerCount));
+
+		auto depthAttachment = device.createImageView(imageViewInfo);
+
+		if (!depthAttachment) {
+			throw std::runtime_error("Create image view failed");
+		}
+
+		imageViewInfo = vk::ImageViewCreateInfo()
+			.setImage(static_cast<VkWrapperImage*>(info.stencilAttachment.image)->image)
+			.setFormat(VkEnumFormat(info.stencilAttachment.format).Get())
+			.setViewType(VkEnumImageViewType(info.stencilAttachment.viewType).Get())
+			.setComponents(vk::ComponentMapping(
+				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.r).Get(),
+				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.g).Get(),
+				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.b).Get(),
+				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.a).Get()))
+			.setSubresourceRange(vk::ImageSubresourceRange(
+				vk::ImageAspectFlagBits::eDepth,
+				info.stencilAttachment.baseMipLevel,
+				info.stencilAttachment.mipLevelCount,
+				info.stencilAttachment.baseArrayLayer,
+				info.stencilAttachment.arrayLayerCount));
+
+		auto stencilAttachment = device.createImageView(imageViewInfo);
+		
+		if (!stencilAttachment) {
+			throw std::runtime_error("Create image view failed");
+		}
+		
+		auto framebufferWrapper = new VkWrapperFramebuffer();
+		framebufferWrapper->colorAttachments = colorAttachments;
+		framebufferWrapper->depthAttachment = depthAttachment;
+		framebufferWrapper->stencilAttachment = stencilAttachment;
+		return framebufferWrapper;
 	}
 
-	void VulkanInstance::Destroy(RHIBufferView& bufferView) const {
-		static_cast<VkWrapperBufferView*>(bufferView)->GetDevice().destroy(static_cast<VkWrapperBufferView*>(bufferView)->GetBufferView());
-		delete bufferView;
+	rhi::Fence VkWrapperDevice::CreateFence(const rhi::FenceCreateInfo&) const {
+		
+
+		return new VkWrapperFence();
 	}
 
-	void VulkanInstance::Destroy(RHIImage& image) const {
-		static_cast<VkWrapperImage*>(image)->GetDevice().destroy(static_cast<VkWrapperImage*>(image)->GetImage());
-		static_cast<VkWrapperImage*>(image)->GetDevice().free(static_cast<VkWrapperImage*>(image)->GetMemory());
-		delete image;
+	
+
+	std::vector<rhi::Image> VkWrapperSwapchain::GetImages() const {
+		return images;
 	}
 
-	void VulkanInstance::Destroy(RHIImageView& imageView) const {
+	uint32_t VkWrapperSwapchain::AcquireNextImage() {
+
+
+		return 0;
+	}
+
+
+
+	void VkWrapperCommandPool::Reset() {
+
+	}
+
+	std::vector<rhi::CommandBuffer> VkWrapperCommandPool::AllocateCommandBuffers(uint32_t bufferCount) {
+		auto cmdAllocInfo = vk::CommandBufferAllocateInfo()
+			.setCommandPool(commandPool)
+			.setLevel(vk::CommandBufferLevel::ePrimary)
+			.setCommandBufferCount(bufferCount);
+
+		auto cmdBuffer = device.allocateCommandBuffers(cmdAllocInfo);
+
+		if (cmdBuffer.empty()) {
+			throw std::runtime_error("Allocate command buffers failed");
+		}
+
+		std::vector<rhi::CommandBuffer> cmdWrappers;
+		for (uint32_t i = 0; i < bufferCount; i++) {
+			auto cmdWrapper = new VkWrapperCommandBuffer();
+			cmdWrapper->commandPool = commandPool;
+			cmdWrapper->commandBuffer = cmdBuffer[i];
+			cmdWrappers.push_back(cmdWrapper);
+		}
+
+		commandBuffers.insert(commandBuffers.end(), cmdWrappers.begin(), cmdWrappers.end());
+		
+		return cmdWrappers;
+	}
+
+
+
+	void VkWrapperCommandBuffer::Reset() {
+
+	}
+
+	void VkWrapperCommandBuffer::Begin(const rhi::CommandBufferBeginInfo&) {
+
+	}
+
+	void VkWrapperCommandBuffer::End() {
+
+	}
+
+	void VkWrapperCommandBuffer::BeginRenderPass(const rhi::RenderPassBeginInfo&) {
+
+	}
+
+	void VkWrapperCommandBuffer::EndRenderPass() {
+
+	}
+
+	void VkWrapperCommandBuffer::BindPipeline(const rhi::Pipeline&) {
+
+	}
+
+	void VkWrapperCommandBuffer::BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) {
+
+	}
+
+	void VkWrapperCommandBuffer::BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) {
+
+	}
+
+	void VkWrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstCount, uint32_t firstInstance) const {
+
+	}
+
+	void VkWrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstCount, int32_t vertexOffset, uint32_t firstInstance) const {
+
+	}
+
+
+
+	void VkWrapperFence::Reset() {
+
+	}
+
+	void VkWrapperFence::Wait() {
+
+	}
+
+	uint32_t VkWrapperFence::GetCurrentStatus() const {
+
+
+		return 0;
+	}
+
+
+
+	void VkWrapperInstance::Destroy() {
+#ifdef _DEBUG
+		vk::DynamicLoader dl;
+		PFN_vkGetInstanceProcAddr GetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+		vk::DispatchLoaderDynamic dispatch(instance, GetInstanceProcAddr);
+
+		instance.destroy(debugMessenger, nullptr, dispatch);
+#endif // _DEBUG
+
+		instance.destroy();
+		
+		delete this;
+	}
+
+	void VkWrapperDevice::Destroy() {
+		device.destroy();
+		for (auto& queue : queues) delete queue;
+		delete this;
+	}
+
+	void VkWrapperSwapchain::Destroy() {
+		device.destroy(swapchain);
+		for (auto& image : images) delete image;
+		delete this;
+	}
+
+	void VkWrapperCommandPool::Destroy() {
+		device.destroy(commandPool);
+		for (auto& cmdBuffer : commandBuffers) delete cmdBuffer;
+		delete this;
+	}
+
+	void VkWrapperBuffer::Destroy() {
+		device.destroy(buffer);
+		device.free(memory);
+		delete this;
+	}
+
+	void VkWrapperImage::Destroy() {
+		device.destroy(image);
+		device.free(memory);
+		delete this;
+	}
+
+	/*void VulkanInstance::Destroy(rhi::ImageView& imageView) const {
 		static_cast<VkWrapperImageView*>(imageView)->GetDevice().destroy(static_cast<VkWrapperImageView*>(imageView)->GetImageView());
 		delete imageView;
 	}
 
-	void VulkanInstance::Destroy(RHIDescriptorPool& descriptorPool) const {
+	void VulkanInstance::Destroy(rhi::DescriptorPool& descriptorPool) const {
 		static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDevice().destroy(static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDescriptorPool());
 		delete descriptorPool;
+	}*/
+
+	void VkWrapperShaderModule::Destroy() {
+		device.destroy(shaderModule);
+		delete this;
 	}
 
-	RHIQueue VulkanInstance::GetQueue(RHIDevice& device, uint32_t queueIndex) const {
-		auto queues = static_cast<VkWrapperDevice*>(device)->GetQueues();
-		if (queueIndex >= queues.size()) {
-			throw std::runtime_error("Queue index out of range");
-		}
-		return queues[queueIndex];
+	void VkWrapperPipeline::Destroy() {
+		device.destroy(pipeline);
+		delete this;
 	}
 
-	std::vector<RHICommandBuffer> VulkanInstance::AllocateCommandBuffers(RHIDevice& device, const RHICommandBufferAllocateInfo& info) const {
-		auto cmdAllocInfo = vk::CommandBufferAllocateInfo()
-			.setCommandPool(static_cast<VkWrapperCommandPool*>(info.commandPool)->GetCommandPool())
-			.setLevel(vk::CommandBufferLevel::ePrimary)
-			.setCommandBufferCount(info.commandBufferCount);
-
-		auto cmdBuffer = static_cast<VkWrapperDevice*>(device)->GetDevice().allocateCommandBuffers(cmdAllocInfo);
-
-		if (!cmdBuffer.size()) {
-			throw std::runtime_error("Allocate command buffers failed");
-		}
-
-		std::vector<RHICommandBuffer> cmdWrappers;
-		for (uint32_t i = 0; i < info.commandBufferCount; i++) {
-			auto cmdWrapper = new VkWrapperCommandBuffer();
-			cmdWrapper->SetCommandBuffer(cmdBuffer[i]);
-			cmdWrappers.push_back(cmdWrapper);
-		}
-
-		auto poolCmdBuffers = static_cast<VkWrapperCommandPool*>(info.commandPool)->GetCommandBuffers();
-		poolCmdBuffers.insert(poolCmdBuffers.end(), cmdWrappers.begin(), cmdWrappers.end());
-		static_cast<VkWrapperCommandPool*>(info.commandPool)->SetCommandBuffers(poolCmdBuffers);
-
-		return cmdWrappers;
+	void VkWrapperFramebuffer::Destroy() {
+		for (auto& colorAttachment : colorAttachments) device.destroy(colorAttachment);
+		device.destroy(depthAttachment);
+		device.destroy(stencilAttachment);
+		delete this;
 	}
 
-	std::vector<RHIPhysicalDeviceInfo> VulkanInstance::EnumeratePhysicalDevice() const {
-		auto gpus = instance.enumeratePhysicalDevices();
+	void VkWrapperFence::Destroy() {
 
-		if (!gpus.size()) {
-			throw std::runtime_error("Enumerate physical devices failed");
-		}
-
-		std::vector<RHIPhysicalDeviceInfo> infos;
-
-		for (auto& gpu : gpus) {
-			auto properties = gpu.getProperties();
-
-			auto info = RHIPhysicalDeviceInfo()
-				.SetDeviceID(properties.deviceID)
-				.SetDeviceName(properties.deviceName)
-				.SetApiVersion(properties.apiVersion);
-
-			infos.push_back(info);
-		}
-		return infos;
 	}
 
 }

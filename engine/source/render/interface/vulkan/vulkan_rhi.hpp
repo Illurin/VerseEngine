@@ -1,53 +1,35 @@
 #pragma once
 
-#include "../rhi.hpp"
-#include "vulkan_base.hpp"
+#include "vulkan_enum.hpp"
 
 namespace engine {
 
-	class VulkanInstance final : public RHIInstance {
+	class VkWrapperInstance final : public rhi::Instance_T {
 	public:
-		void Init(const RHIInstanceInitInfo&) override;
+		void Init(const rhi::InstanceInitInfo&) override;
 		void Destroy() override;
-		
-		// create
-		RHIDevice CreateDevice(const RHIDeviceCreateInfo&) const override;
-		RHISwapchain CreateSwapchain(RHIDevice&, const RHISwapchainCreateInfo&) const override;
-		RHICommandPool CreateCommandPool(RHIDevice&, const RHICommandPoolCreateInfo&) const override;
-		RHIBuffer CreateBuffer(RHIDevice&, const RHIBufferCreateInfo&) const override;
-		RHIBufferView CreateBufferView(RHIDevice&, const RHIBufferViewCreateInfo&) const override;
-		RHIImage CreateImage(RHIDevice&, const RHIImageCreateInfo&) const override;
-		RHIImageView CreateImageView(RHIDevice&, const RHIImageViewCreateInfo&) const override;
-		RHIDescriptorPool CreateDescriptorPool(RHIDevice&, const RHIDescriptorPoolCreateInfo&) const override;
-		RHIPipeline CreateGraphicsPipeline(RHIDevice&, const RHIGraphicsPipelineCreateInfo&) const override;
 
-		// destroy
-		void Destroy(RHIDevice&) const override;
-		void Destroy(RHISwapchain&) const override;
-		void Destroy(RHICommandPool&) const override;
-		void Destroy(RHIBuffer&) const override;
-		void Destroy(RHIBufferView&) const override;
-		void Destroy(RHIImage&) const override;
-		void Destroy(RHIImageView&) const override;
-		void Destroy(RHIDescriptorPool&) const override;
-		void Destroy(RHIPipeline&) const override;
+		std::vector<rhi::PhysicalDeviceInfo> GetPhysicalDeviceInfo() const override;
 
-		// get
-		RHIQueue GetQueue(RHIDevice&, uint32_t queueIndex) const override;
-		std::vector<RHICommandBuffer> AllocateCommandBuffers(RHIDevice&, const RHICommandBufferAllocateInfo&) const override;
-		std::vector<RHIPhysicalDeviceInfo> EnumeratePhysicalDevice() const override;
-
-		// command
+		rhi::Device CreateDevice(const rhi::DeviceCreateInfo&) const override;
+		ShaderCompiler CreateShaderCompiler() const override;
 
 	private:
-		void CreateInstance(const RHIInstanceInitInfo&);
+		void CreateInstance(const rhi::InstanceInitInfo&);
 
+	private:
 		vk::Instance instance{ nullptr };
 
 		struct {
 			std::vector<const char*> instance;
 			std::vector<const char*> device;
 		}extensions;
+
+		struct {
+			const char* apiName{ nullptr };
+			const char* applicationName{ nullptr };
+			uint32_t applicationVersion{ 0 };
+		}info;
 
 		std::vector<const char*> validationLayers;
 
@@ -56,4 +38,171 @@ namespace engine {
 #endif // _DEBUG
 	};
 
+	class VkWrapperDevice final : public rhi::Device_T {
+		friend class VkWrapperInstance;
+		vk::Instance instance{ nullptr };
+
+	public:
+		void Destroy() override;
+		
+		rhi::Queue GetQueue(uint32_t queueIndex) const override;
+
+		rhi::Swapchain CreateSwapchain(const rhi::SwapchainCreateInfo&) const override;
+		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
+		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
+		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
+		//rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
+		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
+		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
+		rhi::Framebuffer CreateFramebuffer(const rhi::FramebufferCreateInfo&) const override;
+		rhi::Fence CreateFence(const rhi::FenceCreateInfo&) const override;
+
+	private:
+		vk::PhysicalDevice physicalDevice{ nullptr };
+		vk::Device device{ nullptr };
+		std::vector<rhi::Queue> queues;
+	};
+
+	class VkWrapperQueue final : public rhi::Queue_T {
+		friend class VkWrapperInstance;
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		
+
+	private:
+		vk::Queue queue{ nullptr };
+		uint32_t queueFamilyIndex{ 0 };
+	};
+
+	class VkWrapperSwapchain final : public rhi::Swapchain_T {
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+		std::vector<rhi::Image> GetImages() const override;
+		uint32_t AcquireNextImage() override;
+
+	private:
+		vk::SurfaceKHR surface{ nullptr };
+		vk::SwapchainKHR swapchain{ nullptr };
+		std::vector<rhi::Image> images;
+	};
+
+	class VkWrapperCommandPool final : public rhi::CommandPool_T {
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+		void Reset() override;
+		
+		std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) override;
+
+	private:
+		vk::CommandPool commandPool{ nullptr };
+		std::vector<rhi::CommandBuffer> commandBuffers;
+	};
+
+	class VkWrapperCommandBuffer final : public rhi::CommandBuffer_T {
+		friend class VkWrapperCommandPool;
+		vk::CommandPool commandPool{ nullptr };
+
+	public:
+		void Reset() override;
+		void Begin(const rhi::CommandBufferBeginInfo&) override;
+		void End() override;
+
+		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
+		void EndRenderPass() override;
+		void BindPipeline(const rhi::Pipeline&) override;
+		void BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) override;
+		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
+
+		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstCount, uint32_t firstInstance) const override;
+		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstCount, int32_t vertexOffset, uint32_t firstInstance) const override;
+
+	private:
+		vk::CommandBuffer commandBuffer{ nullptr };
+	};
+
+	class VkWrapperBuffer final : public rhi::Buffer_T {
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::Buffer buffer{ nullptr };
+		vk::DeviceMemory memory{ nullptr };
+	};
+
+	class VkWrapperImage final : public rhi::Image_T {
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::Image image{ nullptr };
+		vk::DeviceMemory memory{ nullptr };
+	};
+
+	class VkWrapperShaderModule final : public rhi::ShaderModule_T {
+		friend class VkWrapperDevice;
+		friend class VkWrapperPipeline;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::ShaderModule shaderModule{ nullptr };
+		const char* entryPoint{ nullptr };
+		rhi::ShaderStage shaderStage{ 0 };
+	};
+
+	class VkWrapperPipeline final : public rhi::Pipeline_T {
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::Pipeline pipeline{ nullptr };
+	};
+
+	class VkWrapperFramebuffer final : public rhi::Framebuffer_T {
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		std::vector<vk::ImageView> colorAttachments;
+		vk::ImageView depthAttachment{ nullptr };
+		vk::ImageView stencilAttachment{ nullptr };
+	};
+
+	class VkWrapperFence final : public rhi::Fence_T {
+		friend class VkWrapperDevice;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+		void Reset() override;
+		void Wait() override;
+
+		uint32_t GetCurrentStatus() const override;
+	};
+	
 }

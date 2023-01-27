@@ -7,6 +7,7 @@
 #define VK_ENABLE_BETA_EXTENSIONS
 #include "vulkan/vulkan.hpp"
 
+#include <cstdlib>
 #include <array>
 #include <vector>
 #include <stdexcept>
@@ -52,7 +53,9 @@ public:
 		vk::DebugUtilsMessageTypeFlagsEXT messageType,
 		const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData) {
+#ifdef _WIN32
 		OutputDebugStringA(pCallbackData->pMessage);
+#endif // _WIN32
 		return VK_FALSE;
 	}
 #endif // _DEBUG

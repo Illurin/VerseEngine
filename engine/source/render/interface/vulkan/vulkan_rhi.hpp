@@ -2,6 +2,8 @@
 
 #include "vulkan_enum.hpp"
 
+#ifdef _VULKAN
+
 namespace engine {
 
 	class VkWrapperInstance final : public rhi::Instance_T {
@@ -235,3 +237,5 @@ namespace engine {
 	};
 	
 }
+
+#endif // _VULKAN

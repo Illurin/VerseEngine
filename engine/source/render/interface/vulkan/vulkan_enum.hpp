@@ -4,6 +4,8 @@
 
 #include "render/interface/rhi.hpp"
 
+#ifdef _VULKAN
+
 namespace engine {
 	
 	class VkEnumFormat final {
@@ -519,3 +521,5 @@ namespace engine {
 	};
 
 }
+
+#endif // _VULKAN

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "render/interface/rhi.hpp"
-#include "d3d12_base.hpp"
+#include "d3d12_enum.hpp"
 
 #ifdef _DIRECT3D12
 

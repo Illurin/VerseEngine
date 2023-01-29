@@ -1,5 +1,7 @@
 #include "vulkan_util.hpp"
 
+#ifdef _VULKAN
+
 bool VulkanUtil::MemoryTypeFromProperties(
 	vk::PhysicalDeviceMemoryProperties memProp,
 	uint32_t typeBits, vk::MemoryPropertyFlags requirementMask,
@@ -170,3 +172,5 @@ bool VulkanUtil::CheckValidationLayerSupport(const std::vector<const char*>& val
 	}
 	return true;
 }
+
+#endif // _VULKAN

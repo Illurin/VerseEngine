@@ -1,5 +1,7 @@
 #include "vulkan_rhi.hpp"
 
+#ifdef _VULKAN
+
 namespace engine {
 
 	void VkWrapperInstance::Init(const rhi::InstanceInitInfo& info) {
@@ -912,3 +914,5 @@ namespace engine {
 	}
 
 }
+
+#endif // _VULKAN

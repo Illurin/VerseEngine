@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef _WIN32
-#define _DIRECT3D12
+//#define _DIRECT3D12
 #endif // _WIN32
 
 #ifdef _DIRECT3D12

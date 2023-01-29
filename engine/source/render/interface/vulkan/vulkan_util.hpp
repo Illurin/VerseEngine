@@ -4,6 +4,10 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif // _WIN32
 
+#define _VULKAN
+
+#ifdef _VULKAN
+
 #define VK_ENABLE_BETA_EXTENSIONS
 #include "vulkan/vulkan.hpp"
 
@@ -60,3 +64,5 @@ public:
 	}
 #endif // _DEBUG
 };
+
+#endif // _VULKAN

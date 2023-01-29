@@ -12,65 +12,47 @@ namespace engine {
 			switch (format) {
 			case rhi::Format::Undefined: format_ = vk::Format::eUndefined; break;
 			case rhi::Format::R8Unorm: format_ = vk::Format::eR8Unorm; break;
-			case rhi::Format::R8G8Unorm: format_ = vk::Format::eR8G8Unorm; break;
-			case rhi::Format::R8G8B8Unorm: format_ = vk::Format::eR8G8B8Unorm; break;
-			case rhi::Format::R8G8B8A8Unorm: format_ = vk::Format::eR8G8B8A8Unorm; break;
 			case rhi::Format::R8Snorm: format_ = vk::Format::eR8Snorm; break;
-			case rhi::Format::R8G8Snorm: format_ = vk::Format::eR8G8Snorm; break;
-			case rhi::Format::R8G8B8Snorm: format_ = vk::Format::eR8G8B8Snorm; break;
-			case rhi::Format::R8G8B8A8Snorm: format_ = vk::Format::eR8G8B8A8Snorm; break;
 			case rhi::Format::R8Uint: format_ = vk::Format::eR8Uint; break;
-			case rhi::Format::R8G8Uint: format_ = vk::Format::eR8G8Uint; break;
-			case rhi::Format::R8G8B8Uint: format_ = vk::Format::eR8G8B8Uint; break;
-			case rhi::Format::R8G8B8A8Uint: format_ = vk::Format::eR8G8B8A8Uint; break;
 			case rhi::Format::R8Sint: format_ = vk::Format::eR8Sint; break;
+			case rhi::Format::R8G8Unorm: format_ = vk::Format::eR8G8Unorm; break;
+			case rhi::Format::R8G8Snorm: format_ = vk::Format::eR8G8Snorm; break;
+			case rhi::Format::R8G8Uint: format_ = vk::Format::eR8G8Uint; break;
 			case rhi::Format::R8G8Sint: format_ = vk::Format::eR8G8Sint; break;
-			case rhi::Format::R8G8B8Sint: format_ = vk::Format::eR8G8B8Sint; break;
+			case rhi::Format::R8G8B8A8Unorm: format_ = vk::Format::eR8G8B8A8Unorm; break;
+			case rhi::Format::R8G8B8A8Snorm: format_ = vk::Format::eR8G8B8A8Snorm; break;
+			case rhi::Format::R8G8B8A8Uint: format_ = vk::Format::eR8G8B8A8Uint; break;
 			case rhi::Format::R8G8B8A8Sint: format_ = vk::Format::eR8G8B8A8Sint; break;
+			case rhi::Format::R8G8B8A8Srgb: format_ = vk::Format::eR8G8B8A8Srgb; break;
+			case rhi::Format::B8G8R8A8Unorm: format_ = vk::Format::eB8G8R8A8Unorm; break;
+			case rhi::Format::B8G8R8A8Srgb: format_ = vk::Format::eB8G8R8A8Srgb; break;
 			case rhi::Format::R16Unorm: format_ = vk::Format::eR16Unorm; break;
-			case rhi::Format::R16G16Unorm: format_ = vk::Format::eR16G16Unorm; break;
-			case rhi::Format::R16G16B16Unorm: format_ = vk::Format::eR16G16B16Unorm; break;
-			case rhi::Format::R16G16B16A16Unorm: format_ = vk::Format::eR16G16B16A16Unorm; break;
 			case rhi::Format::R16Snorm: format_ = vk::Format::eR16Snorm; break;
-			case rhi::Format::R16G16Snorm: format_ = vk::Format::eR16G16Snorm; break;
-			case rhi::Format::R16G16B16Snorm: format_ = vk::Format::eR16G16B16Snorm; break;
-			case rhi::Format::R16G16B16A16Snorm: format_ = vk::Format::eR16G16B16A16Snorm; break;
 			case rhi::Format::R16Uint: format_ = vk::Format::eR16Uint; break;
-			case rhi::Format::R16G16Uint: format_ = vk::Format::eR16G16Uint; break;
-			case rhi::Format::R16G16B16Uint: format_ = vk::Format::eR16G16B16Uint; break;
-			case rhi::Format::R16G16B16A16Uint: format_ = vk::Format::eR16G16B16A16Uint; break;
 			case rhi::Format::R16Sint: format_ = vk::Format::eR16Sint; break;
-			case rhi::Format::R16G16Sint: format_ = vk::Format::eR16G16Sint; break;
-			case rhi::Format::R16G16B16Sint: format_ = vk::Format::eR16G16B16Sint; break;
-			case rhi::Format::R16G16B16A16Sint: format_ = vk::Format::eR16G16B16A16Sint; break;
 			case rhi::Format::R16Sfloat: format_ = vk::Format::eR16Sfloat; break;
+			case rhi::Format::R16G16Unorm: format_ = vk::Format::eR16G16Unorm; break;
+			case rhi::Format::R16G16Snorm: format_ = vk::Format::eR16G16Snorm; break;
+			case rhi::Format::R16G16Uint: format_ = vk::Format::eR16G16Uint; break;
+			case rhi::Format::R16G16Sint: format_ = vk::Format::eR16G16Sint; break;
 			case rhi::Format::R16G16Sfloat: format_ = vk::Format::eR16G16Sfloat; break;
-			case rhi::Format::R16G16B16Sfloat: format_ = vk::Format::eR16G16B16Sfloat; break;
+			case rhi::Format::R16G16B16A16Unorm: format_ = vk::Format::eR16G16B16A16Unorm; break;
+			case rhi::Format::R16G16B16A16Snorm: format_ = vk::Format::eR16G16B16A16Snorm; break;
+			case rhi::Format::R16G16B16A16Uint: format_ = vk::Format::eR16G16B16A16Uint; break;
+			case rhi::Format::R16G16B16A16Sint: format_ = vk::Format::eR16G16B16A16Sint; break;
 			case rhi::Format::R16G16B16A16Sfloat: format_ = vk::Format::eR16G16B16A16Sfloat; break;
 			case rhi::Format::R32Uint: format_ = vk::Format::eR32Uint; break;
-			case rhi::Format::R32G32Uint: format_ = vk::Format::eR32G32Uint; break;
-			case rhi::Format::R32G32B32Uint: format_ = vk::Format::eR32G32B32Uint; break;
-			case rhi::Format::R32G32B32A32Uint: format_ = vk::Format::eR32G32B32A32Uint; break;
 			case rhi::Format::R32Sint: format_ = vk::Format::eR32Sint; break;
-			case rhi::Format::R32G32Sint: format_ = vk::Format::eR32G32Sint; break;
-			case rhi::Format::R32G32B32Sint: format_ = vk::Format::eR32G32B32Sint; break;
-			case rhi::Format::R32G32B32A32Sint: format_ = vk::Format::eR32G32B32A32Sint; break;
 			case rhi::Format::R32Sfloat: format_ = vk::Format::eR32Sfloat; break;
+			case rhi::Format::R32G32Uint: format_ = vk::Format::eR32G32Uint; break;
+			case rhi::Format::R32G32Sint: format_ = vk::Format::eR32G32Sint; break;
 			case rhi::Format::R32G32Sfloat: format_ = vk::Format::eR32G32Sfloat; break;
+			case rhi::Format::R32G32B32Uint: format_ = vk::Format::eR32G32B32Uint; break;
+			case rhi::Format::R32G32B32Sint: format_ = vk::Format::eR32G32B32Sint; break;
 			case rhi::Format::R32G32B32Sfloat: format_ = vk::Format::eR32G32B32Sfloat; break;
+			case rhi::Format::R32G32B32A32Uint: format_ = vk::Format::eR32G32B32A32Uint; break;
+			case rhi::Format::R32G32B32A32Sint: format_ = vk::Format::eR32G32B32A32Sint; break;
 			case rhi::Format::R32G32B32A32Sfloat: format_ = vk::Format::eR32G32B32A32Sfloat; break;
-			case rhi::Format::R64Uint: format_ = vk::Format::eR64Uint; break;
-			case rhi::Format::R64G64Uint: format_ = vk::Format::eR64G64Uint; break;
-			case rhi::Format::R64G64B64Uint: format_ = vk::Format::eR64G64B64Uint; break;
-			case rhi::Format::R64G64B64A64Uint: format_ = vk::Format::eR64G64B64A64Uint; break;
-			case rhi::Format::R64Sint: format_ = vk::Format::eR64Sint; break;
-			case rhi::Format::R64G64Sint: format_ = vk::Format::eR64G64Sint; break;
-			case rhi::Format::R64G64B64Sint: format_ = vk::Format::eR64G64B64Sint; break;
-			case rhi::Format::R64G64B64A64Sint: format_ = vk::Format::eR64G64B64A64Sint; break;
-			case rhi::Format::R64Sfloat: format_ = vk::Format::eR64Sfloat; break;
-			case rhi::Format::R64G64Sfloat: format_ = vk::Format::eR64G64Sfloat; break;
-			case rhi::Format::R64G64B64Sfloat: format_ = vk::Format::eR64G64B64Sfloat; break;
-			case rhi::Format::R64G64B64A64Sfloat: format_ = vk::Format::eR64G64B64A64Sfloat; break;
 			case rhi::Format::D16Unorm: format_ = vk::Format::eD16Unorm; break;
 			case rhi::Format::D32Sfloat: format_ = vk::Format::eD32Sfloat; break;
 			case rhi::Format::S8Uint: format_ = vk::Format::eS8Uint; break;
@@ -180,6 +162,26 @@ namespace engine {
 		vk::ImageUsageFlagBits imageUsage_{ 0 };
 	};
 
+	class VkEnumImageLayout final {
+	public:
+		VkEnumImageLayout(rhi::ImageLayout imageLayout) {
+			switch (imageLayout) {
+			case rhi::ImageLayout::Undefined: imageLayout_ = vk::ImageLayout::eUndefined; break;
+			case rhi::ImageLayout::ColorAttachment: imageLayout_ = vk::ImageLayout::eColorAttachmentOptimal; break;
+			case rhi::ImageLayout::DepthStencilAttachment: imageLayout_ = vk::ImageLayout::eDepthStencilAttachmentOptimal; break;
+			case rhi::ImageLayout::ShaderRead: imageLayout_ = vk::ImageLayout::eShaderReadOnlyOptimal; break;
+			case rhi::ImageLayout::TransferSrc: imageLayout_ = vk::ImageLayout::eTransferSrcOptimal; break;
+			case rhi::ImageLayout::TransferDst: imageLayout_ = vk::ImageLayout::eTransferDstOptimal; break;
+			case rhi::ImageLayout::SwapchainPresent: imageLayout_ = vk::ImageLayout::ePresentSrcKHR; break;
+			}
+		}
+
+		vk::ImageLayout Get() const { return imageLayout_; }
+
+	private:
+		vk::ImageLayout imageLayout_{ 0 };
+	};
+
 	class VkEnumImageType final {
 	public:
 		VkEnumImageType(rhi::ImageType imageType) {
@@ -256,6 +258,35 @@ namespace engine {
 		vk::DescriptorType descriptorType_{ 0 };
 	};
 
+	class VkEnumAttachmentLoadOp final {
+	public:
+		VkEnumAttachmentLoadOp(rhi::AttachmentLoadOp attachmentLoadOp) {
+			switch (attachmentLoadOp) {
+			case rhi::AttachmentLoadOp::Clear: attachmentLoadOp_ = vk::AttachmentLoadOp::eClear; break;
+			case rhi::AttachmentLoadOp::Load: attachmentLoadOp_ = vk::AttachmentLoadOp::eLoad; break;
+			}
+		}
+
+		vk::AttachmentLoadOp Get() const { return attachmentLoadOp_; }
+
+	private:
+		vk::AttachmentLoadOp attachmentLoadOp_{ 0 };
+	};
+
+	class VkEnumAttachmentStoreOp final {
+	public:
+		VkEnumAttachmentStoreOp(rhi::AttachmentStoreOp attachmentStoreOp) {
+			switch (attachmentStoreOp) {
+			case rhi::AttachmentStoreOp::Store: attachmentStoreOp_ = vk::AttachmentStoreOp::eStore; break;
+			}
+		}
+
+		vk::AttachmentStoreOp Get() const { return attachmentStoreOp_; }
+
+	private:
+		vk::AttachmentStoreOp attachmentStoreOp_{ 0 };
+	};
+
 	class VkEnumShaderStage final {
 	public:
 		VkEnumShaderStage(rhi::ShaderStage shaderStage) {
@@ -272,6 +303,22 @@ namespace engine {
 
 	private:
 		vk::ShaderStageFlagBits shaderStage_{ 0 };
+	};
+
+	class VkEnumPipelineBindPoint final {
+	public:
+		VkEnumPipelineBindPoint(rhi::PipelineType pipelineType) {
+			switch (pipelineType) {
+			case rhi::PipelineType::Graphics: pipelineBindPoint = vk::PipelineBindPoint::eGraphics; break;
+			case rhi::PipelineType::Compute: pipelineBindPoint = vk::PipelineBindPoint::eCompute; break;
+			case rhi::PipelineType::RayTracing: pipelineBindPoint = vk::PipelineBindPoint::eRayTracingKHR; break;
+			}
+		}
+
+		vk::PipelineBindPoint Get() const { return pipelineBindPoint; }
+
+	private:
+		vk::PipelineBindPoint pipelineBindPoint{ 0 };
 	};
 
 	class VkEnumVertexInputRate final {

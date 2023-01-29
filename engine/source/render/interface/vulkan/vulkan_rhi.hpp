@@ -52,6 +52,7 @@ namespace engine {
 		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
 		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
 		//rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
+		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
 		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
 		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
 		rhi::Framebuffer CreateFramebuffer(const rhi::FramebufferCreateInfo&) const override;
@@ -69,7 +70,8 @@ namespace engine {
 		vk::Device device{ nullptr };
 
 	public:
-		
+		void SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) override;
+		void PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) override;
 
 	private:
 		vk::Queue queue{ nullptr };
@@ -78,18 +80,22 @@ namespace engine {
 
 	class VkWrapperSwapchain final : public rhi::Swapchain_T {
 		friend class VkWrapperDevice;
+		friend class VkWrapperQueue;
 		vk::Device device{ nullptr };
 
 	public:
 		void Destroy() override;
 
+		rhi::Extent2D GetImageExtent() const override;
 		std::vector<rhi::Image> GetImages() const override;
-		uint32_t AcquireNextImage() override;
+		uint32_t AcquireNextImage(rhi::Fence) override;
 
 	private:
 		vk::SurfaceKHR surface{ nullptr };
 		vk::SwapchainKHR swapchain{ nullptr };
 		std::vector<rhi::Image> images;
+		rhi::Extent2D imageExtent;
+		uint32_t currentImageIndex{ 0 };
 	};
 
 	class VkWrapperCommandPool final : public rhi::CommandPool_T {
@@ -110,6 +116,7 @@ namespace engine {
 
 	class VkWrapperCommandBuffer final : public rhi::CommandBuffer_T {
 		friend class VkWrapperCommandPool;
+		friend class VkWrapperQueue;
 		vk::CommandPool commandPool{ nullptr };
 
 	public:
@@ -123,8 +130,8 @@ namespace engine {
 		void BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) override;
 		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
 
-		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstCount, uint32_t firstInstance) const override;
-		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstCount, int32_t vertexOffset, uint32_t firstInstance) const override;
+		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const override;
+		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstVertex, int32_t vertexOffset, uint32_t firstInstance) const override;
 
 	private:
 		vk::CommandBuffer commandBuffer{ nullptr };
@@ -132,6 +139,7 @@ namespace engine {
 
 	class VkWrapperBuffer final : public rhi::Buffer_T {
 		friend class VkWrapperDevice;
+		friend class VkWrapperCommandBuffer;
 		vk::Device device{ nullptr };
 
 	public:
@@ -154,6 +162,18 @@ namespace engine {
 		vk::DeviceMemory memory{ nullptr };
 	};
 
+	class VkWrapperRenderPass final : public rhi::RenderPass_T {
+		friend class VkWrapperDevice;
+		friend class VkWrapperCommandBuffer;
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::RenderPass renderPass{ nullptr };
+	};
+
 	class VkWrapperShaderModule final : public rhi::ShaderModule_T {
 		friend class VkWrapperDevice;
 		friend class VkWrapperPipeline;
@@ -170,6 +190,7 @@ namespace engine {
 
 	class VkWrapperPipeline final : public rhi::Pipeline_T {
 		friend class VkWrapperDevice;
+		friend class VkWrapperCommandBuffer;
 		vk::Device device{ nullptr };
 
 	public:
@@ -177,23 +198,28 @@ namespace engine {
 
 	private:
 		vk::Pipeline pipeline{ nullptr };
+		rhi::PipelineType pipelineType{ 0 };
 	};
 
 	class VkWrapperFramebuffer final : public rhi::Framebuffer_T {
 		friend class VkWrapperDevice;
+		friend class VkWrapperCommandBuffer;
 		vk::Device device{ nullptr };
 
 	public:
 		void Destroy() override;
 
 	private:
+		vk::Framebuffer framebuffer{ nullptr };
 		std::vector<vk::ImageView> colorAttachments;
-		vk::ImageView depthAttachment{ nullptr };
-		vk::ImageView stencilAttachment{ nullptr };
+		vk::ImageView depthStencilAttachment{ nullptr };
+		uint32_t width, height, layers;
 	};
 
 	class VkWrapperFence final : public rhi::Fence_T {
 		friend class VkWrapperDevice;
+		friend class VkWrapperQueue;
+		friend class VkWrapperSwapchain;
 		vk::Device device{ nullptr };
 
 	public:
@@ -202,7 +228,10 @@ namespace engine {
 		void Reset() override;
 		void Wait() override;
 
-		uint32_t GetCurrentStatus() const override;
+		bool GetCurrentStatus() const override;
+
+	private:
+		vk::Fence fence{ nullptr };
 	};
 	
 }

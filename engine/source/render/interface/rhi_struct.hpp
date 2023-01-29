@@ -18,8 +18,9 @@ namespace engine {
 		RHI_DEFINE_HANDLE(Swapchain)
 		RHI_DEFINE_HANDLE(CommandPool)
 		RHI_DEFINE_HANDLE(CommandBuffer)
-		RHI_DEFINE_HANDLE(Buffer) 
+		RHI_DEFINE_HANDLE(Buffer)
 		RHI_DEFINE_HANDLE(Image)
+		RHI_DEFINE_HANDLE(RenderPass)
 		RHI_DEFINE_HANDLE(ShaderModule)
 		RHI_DEFINE_HANDLE(Pipeline)
 		RHI_DEFINE_HANDLE(Framebuffer)
@@ -96,7 +97,7 @@ namespace engine {
 		};
 
 		struct ClearColorValue {
-			ClearColorValue& SetColorValue(std::array<float, 4>& colorValue) { this->colorValue = colorValue; return *this; }
+			ClearColorValue& SetColorValue(std::array<float, 4> colorValue) { this->colorValue = colorValue; return *this; }
 
 			std::array<float, 4> colorValue;
 		};
@@ -110,6 +111,11 @@ namespace engine {
 		};
 
 		struct ComponentMapping {
+			ComponentMapping& SetR(ComponentSwizzle r) { this->r = r; return *this; }
+			ComponentMapping& SetG(ComponentSwizzle g) { this->g = g; return *this; }
+			ComponentMapping& SetB(ComponentSwizzle b) { this->b = b; return *this; }
+			ComponentMapping& SetA(ComponentSwizzle a) { this->a = a; return *this; }
+
 			ComponentSwizzle r;
 			ComponentSwizzle g;
 			ComponentSwizzle b;
@@ -130,12 +136,12 @@ namespace engine {
 			PhysicalDeviceInfo& SetId(uint32_t id) { this->id = id; return *this; }
 			PhysicalDeviceInfo& SetVendorId(uint32_t vendorID) { this->vendorId = vendorID; return *this; }
 			PhysicalDeviceInfo& SetDeviceId(uint32_t deviceID) { this->deviceId = deviceID; return *this; }
-			PhysicalDeviceInfo& SetPDeviceDescription(const char* pDeviceDescription) { this->pDeviceDescription = pDeviceDescription; return *this; }
+			PhysicalDeviceInfo& SetPDeviceDescription(std::string pDeviceDescription) { this->pDeviceDescription = pDeviceDescription; return *this; }
 
 			uint32_t id;
 			uint32_t vendorId;
 			uint32_t deviceId;
-			const char* pDeviceDescription;
+			std::string pDeviceDescription;
 		};
 
 		struct QueueCreateInfo {
@@ -146,13 +152,13 @@ namespace engine {
 
 		struct DeviceCreateInfo {
 			DeviceCreateInfo& SetPhysicalDeviceId(uint32_t physicalDeviceId) { this->physicalDeviceId = physicalDeviceId; return *this; }
-			DeviceCreateInfo& SetPQueueCreateInfos(QueueCreateInfo* pQueueCreateInfos) { this->pQueueCreateInfos = pQueueCreateInfos; return *this; }
 			DeviceCreateInfo& SetQueueCreateInfoCount(uint32_t queueCreateInfoCount) { this->queueCreateInfoCount = queueCreateInfoCount; return *this; }
-			DeviceCreateInfo& SetQueueCreateInfos(std::vector<QueueCreateInfo>& queueCreateInfos) { pQueueCreateInfos = queueCreateInfos.data(); queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()); return *this; }
+			DeviceCreateInfo& SetPQueueCreateInfos(QueueCreateInfo* pQueueCreateInfos) { this->pQueueCreateInfos = pQueueCreateInfos; return *this; }
+			DeviceCreateInfo& SetQueueCreateInfos(std::vector<QueueCreateInfo>& queueCreateInfos) { queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()); pQueueCreateInfos = queueCreateInfos.data(); return *this; }
 
 			uint32_t physicalDeviceId;
-			QueueCreateInfo* pQueueCreateInfos;
 			uint32_t queueCreateInfoCount;
+			QueueCreateInfo* pQueueCreateInfos;
 		};
 
 		struct SwapchainCreateInfo {
@@ -235,6 +241,7 @@ namespace engine {
 			uint32_t baseArrayLayer;
 			uint32_t arrayLayerCount;
 		};
+
 		struct DescriptorPoolCreateInfo {
 			DescriptorPoolCreateInfo& SetDescriptorType(DescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
 			DescriptorPoolCreateInfo& SetDescriptorCount(uint32_t descriptorCount) { this->descriptorCount = descriptorCount; return *this; }
@@ -243,27 +250,61 @@ namespace engine {
 			uint32_t descriptorCount;
 		};
 
+		struct AttachmentDescription {
+			AttachmentDescription& SetFormat(Format format) { this->format = format; return *this; }
+			AttachmentDescription& SetSampleCount(SampleCount sampleCount) { this->sampleCount = sampleCount; return *this; }
+			AttachmentDescription& SetLoadOp(AttachmentLoadOp loadOp) { this->loadOp = loadOp; return *this; }
+			AttachmentDescription& SetStoreOp(AttachmentStoreOp storeOp) { this->storeOp = storeOp; return *this; }
+			AttachmentDescription& SetStencilLoadOp(AttachmentLoadOp stencilLoadOp) { this->stencilLoadOp = stencilLoadOp; return *this; }
+			AttachmentDescription& SetStencilStoreOp(AttachmentStoreOp stencilStoreOp) { this->stencilStoreOp = stencilStoreOp; return *this; }
+			AttachmentDescription& SetInitialLayout(ImageLayout initialLayout) { this->initialLayout = initialLayout; return *this; }
+			AttachmentDescription& SetPassLayout(ImageLayout passLayout) { this->passLayout = passLayout; return *this; }
+			AttachmentDescription& SetFinalLayout(ImageLayout finalLayout) { this->finalLayout = finalLayout; return *this; }
+
+			Format format;
+			SampleCount sampleCount;
+			AttachmentLoadOp loadOp;
+			AttachmentStoreOp storeOp;
+			AttachmentLoadOp stencilLoadOp;
+			AttachmentStoreOp stencilStoreOp;
+			ImageLayout initialLayout;
+			ImageLayout passLayout;
+			ImageLayout finalLayout;
+		};
+
+		struct RenderPassCreateInfo {
+			RenderPassCreateInfo& SetPipelineType(PipelineType pipelineType) { this->pipelineType = pipelineType; return *this; }
+			RenderPassCreateInfo& SetColorAttachmentCount(uint32_t colorAttachmentCount) { this->colorAttachmentCount = colorAttachmentCount; return *this; }
+			RenderPassCreateInfo& SetPColorAttachments(AttachmentDescription* pColorAttachments) { this->pColorAttachments = pColorAttachments; return *this; }
+			RenderPassCreateInfo& SetColorAttachments(std::vector<AttachmentDescription>& colorAttachments) { colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()); pColorAttachments = colorAttachments.data(); return *this; }
+			RenderPassCreateInfo& SetPDepthStencilAttachment(AttachmentDescription* pDepthStencilAttachment) { this->pDepthStencilAttachment = pDepthStencilAttachment; return *this; }
+
+			PipelineType pipelineType;
+			uint32_t colorAttachmentCount;
+			AttachmentDescription* pColorAttachments;
+			AttachmentDescription* pDepthStencilAttachment;
+		};
+
 		struct ShaderModuleCreateInfo {
-			ShaderModuleCreateInfo& SetPSourceCode(char* pSourceCode) { this->pSourceCode = pSourceCode; return *this; }
 			ShaderModuleCreateInfo& SetSourceCodeSize(uint32_t sourceCodeSize) { this->sourceCodeSize = sourceCodeSize; return *this; }
-			ShaderModuleCreateInfo& SetSourceCode(std::vector<char>& sourceCode) { pSourceCode = sourceCode.data(); sourceCodeSize = static_cast<uint32_t>(sourceCode.size()); return *this; }
+			ShaderModuleCreateInfo& SetPSourceCode(char* pSourceCode) { this->pSourceCode = pSourceCode; return *this; }
+			ShaderModuleCreateInfo& SetSourceCode(std::vector<char>& sourceCode) { sourceCodeSize = static_cast<uint32_t>(sourceCode.size()); pSourceCode = sourceCode.data(); return *this; }
 			ShaderModuleCreateInfo& SetPEntryPoint(const char* pEntryPoint) { this->pEntryPoint = pEntryPoint; return *this; }
 			ShaderModuleCreateInfo& SetShaderStage(ShaderStage shaderStage) { this->shaderStage = shaderStage; return *this; }
 
-
-			char* pSourceCode;
 			uint32_t sourceCodeSize;
+			char* pSourceCode;
 			const char* pEntryPoint;
 			ShaderStage shaderStage;
 		};
 
 		struct PipelineShaderStageInfo {
-			PipelineShaderStageInfo& SetPShaderModules(ShaderModule* pShaderModules) { this->pShaderModules = pShaderModules; return *this; }
 			PipelineShaderStageInfo& SetShaderModuleCount(uint32_t shaderModuleCount) { this->shaderModuleCount = shaderModuleCount; return *this; }
-			PipelineShaderStageInfo& SetShaderModules(std::vector<ShaderModule>& shaderModules) { pShaderModules = shaderModules.data(); shaderModuleCount = static_cast<uint32_t>(shaderModules.size()); return *this; }
+			PipelineShaderStageInfo& SetPShaderModules(ShaderModule* pShaderModules) { this->pShaderModules = pShaderModules; return *this; }
+			PipelineShaderStageInfo& SetShaderModules(std::vector<ShaderModule>& shaderModules) { shaderModuleCount = static_cast<uint32_t>(shaderModules.size()); pShaderModules = shaderModules.data(); return *this; }
 
-			ShaderModule* pShaderModules;
 			uint32_t shaderModuleCount;
+			ShaderModule* pShaderModules;
 		};
 
 		struct VertexBindingInfo {
@@ -289,17 +330,17 @@ namespace engine {
 		};
 
 		struct PipelineVertexInputInfo {
-			PipelineVertexInputInfo& SetPBindings(VertexBindingInfo* pBindings) { this->pBindings = pBindings; return *this; }
 			PipelineVertexInputInfo& SetBindingCount(uint32_t bindingCount) { this->bindingCount = bindingCount; return *this; }
-			PipelineVertexInputInfo& SetBindings(std::vector<VertexBindingInfo>& bindings) { pBindings = bindings.data(); bindingCount = static_cast<uint32_t>(bindings.size()); return *this; }
-			PipelineVertexInputInfo& SetPAttributes(VertexAttributeInfo* pAttributes) { this->pAttributes = pAttributes; return *this; }
+			PipelineVertexInputInfo& SetPBindings(VertexBindingInfo* pBindings) { this->pBindings = pBindings; return *this; }
+			PipelineVertexInputInfo& SetBindings(std::vector<VertexBindingInfo>& bindings) { bindingCount = static_cast<uint32_t>(bindings.size()); pBindings = bindings.data(); return *this; }
 			PipelineVertexInputInfo& SetAttributeCount(uint32_t attributeCount) { this->attributeCount = attributeCount; return *this; }
-			PipelineVertexInputInfo& SetAttributes(std::vector<VertexAttributeInfo>& attributes) { pAttributes = attributes.data(); attributeCount = static_cast<uint32_t>(attributes.size()); return *this; }
+			PipelineVertexInputInfo& SetPAttributes(VertexAttributeInfo* pAttributes) { this->pAttributes = pAttributes; return *this; }
+			PipelineVertexInputInfo& SetAttributes(std::vector<VertexAttributeInfo>& attributes) { attributeCount = static_cast<uint32_t>(attributes.size()); pAttributes = attributes.data(); return *this; }
 
-			VertexBindingInfo* pBindings;
 			uint32_t bindingCount;
-			VertexAttributeInfo* pAttributes;
+			VertexBindingInfo* pBindings;
 			uint32_t attributeCount;
+			VertexAttributeInfo* pAttributes;
 		};
 
 		struct PipelineInputAssemblyInfo {
@@ -335,17 +376,17 @@ namespace engine {
 		};
 
 		struct PipelineViewportInfo {
-			PipelineViewportInfo& SetPScissors(Rect2D* pScissors) { this->pScissors = pScissors; return *this; }
 			PipelineViewportInfo& SetScissorCount(uint32_t scissorCount) { this->scissorCount = scissorCount; return *this; }
-			PipelineViewportInfo& SetScissors(std::vector<Rect2D>& scissors) { pScissors = scissors.data(); scissorCount = static_cast<uint32_t>(scissors.size()); return *this; }
-			PipelineViewportInfo& SetPViewports(Viewport* pViewports) { this->pViewports = pViewports; return *this; }
+			PipelineViewportInfo& SetPScissors(Rect2D* pScissors) { this->pScissors = pScissors; return *this; }
+			PipelineViewportInfo& SetScissors(std::vector<Rect2D>& scissors) { scissorCount = static_cast<uint32_t>(scissors.size()); pScissors = scissors.data(); return *this; }
 			PipelineViewportInfo& SetViewportCount(uint32_t viewportCount) { this->viewportCount = viewportCount; return *this; }
-			PipelineViewportInfo& SetViewports(std::vector<Viewport>& viewports) { pViewports = viewports.data(); viewportCount = static_cast<uint32_t>(viewports.size()); return *this; }
+			PipelineViewportInfo& SetPViewports(Viewport* pViewports) { this->pViewports = pViewports; return *this; }
+			PipelineViewportInfo& SetViewports(std::vector<Viewport>& viewports) { viewportCount = static_cast<uint32_t>(viewports.size()); pViewports = viewports.data(); return *this; }
 
-			Rect2D* pScissors;
 			uint32_t scissorCount;
-			Viewport* pViewports;
+			Rect2D* pScissors;
 			uint32_t viewportCount;
+			Viewport* pViewports;
 		};
 
 		struct DepthStencilOpState {
@@ -407,12 +448,12 @@ namespace engine {
 		};
 
 		struct PipelineColorBlendInfo {
-			PipelineColorBlendInfo& SetPAttachments(ColorBlendAttachmentInfo* pAttachments) { this->pAttachments = pAttachments; return *this; }
 			PipelineColorBlendInfo& SetAttachmentCount(uint32_t attachmentCount) { this->attachmentCount = attachmentCount; return *this; }
-			PipelineColorBlendInfo& SetAttachments(std::vector<ColorBlendAttachmentInfo>& attachments) { pAttachments = attachments.data(); attachmentCount = static_cast<uint32_t>(attachments.size()); return *this; }
+			PipelineColorBlendInfo& SetPAttachments(ColorBlendAttachmentInfo* pAttachments) { this->pAttachments = pAttachments; return *this; }
+			PipelineColorBlendInfo& SetAttachments(std::vector<ColorBlendAttachmentInfo>& attachments) { attachmentCount = static_cast<uint32_t>(attachments.size()); pAttachments = attachments.data(); return *this; }
 
-			ColorBlendAttachmentInfo* pAttachments;
 			uint32_t attachmentCount;
+			ColorBlendAttachmentInfo* pAttachments;
 		};
 
 		struct PipelineMultisampleInfo {
@@ -442,6 +483,7 @@ namespace engine {
 			GraphicsPipelineCreateInfo& SetColorBlendInfo(PipelineColorBlendInfo colorBlendInfo) { this->colorBlendInfo = colorBlendInfo; return *this; }
 			GraphicsPipelineCreateInfo& SetMultisampleInfo(PipelineMultisampleInfo multisampleInfo) { this->multisampleInfo = multisampleInfo; return *this; }
 			GraphicsPipelineCreateInfo& SetPipelineLayoutInfo(PipelineLayoutInfo pipelineLayoutInfo) { this->pipelineLayoutInfo = pipelineLayoutInfo; return *this; }
+			GraphicsPipelineCreateInfo& SetRenderPass(RenderPass renderPass) { this->renderPass = renderPass; return *this; }
 
 			PipelineShaderStageInfo shaderStageInfo;
 			PipelineVertexInputInfo vertexInputInfo;
@@ -453,44 +495,43 @@ namespace engine {
 			PipelineColorBlendInfo colorBlendInfo;
 			PipelineMultisampleInfo multisampleInfo;
 			PipelineLayoutInfo pipelineLayoutInfo;
+			RenderPass renderPass;
 		};
 
 		struct FramebufferCreateInfo {
-			FramebufferCreateInfo& SetPColorAttachments(ImageViewInfo* pColorAttachments) { this->pColorAttachments = pColorAttachments; return *this; }
 			FramebufferCreateInfo& SetColorAttachmentCount(uint32_t colorAttachmentCount) { this->colorAttachmentCount = colorAttachmentCount; return *this; }
-			FramebufferCreateInfo& SetColorAttachments(std::vector<ImageViewInfo>& colorAttachments) { pColorAttachments = colorAttachments.data(); colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()); return *this; }
-			FramebufferCreateInfo& SetDepthAttachments(ImageViewInfo depthAttachment) { this->depthAttachment = depthAttachment; return *this; }
-			FramebufferCreateInfo& SetStencilAttachments(ImageViewInfo stencilAttachment) { this->stencilAttachment = stencilAttachment; return *this; }
+			FramebufferCreateInfo& SetPColorAttachments(ImageViewInfo* pColorAttachments) { this->pColorAttachments = pColorAttachments; return *this; }
+			FramebufferCreateInfo& SetColorAttachments(std::vector<ImageViewInfo>& colorAttachments) { colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()); pColorAttachments = colorAttachments.data(); return *this; }
+			FramebufferCreateInfo& SetPDepthStencilAttachments(ImageViewInfo* pDepthStencilAttachment) { this->pDepthStencilAttachment = pDepthStencilAttachment; return *this; }
+			FramebufferCreateInfo& SetWidth(uint32_t width) { this->width = width; return *this; }
+			FramebufferCreateInfo& SetHeight(uint32_t height) { this->height = height; return *this; }
+			FramebufferCreateInfo& SetLayers(uint32_t layers) { this->layers = layers; return *this; }
+			FramebufferCreateInfo& SetRenderPass(RenderPass renderPass) { this->renderPass = renderPass; return *this; }
 			 
+			uint32_t colorAttachmentCount;
 			ImageViewInfo* pColorAttachments;
-			uint32_t colorAttachmentCount;
-			ImageViewInfo depthAttachment;
-			ImageViewInfo stencilAttachment;
-		};
-
-		struct RenderingInfo {
-			RenderingInfo& SetFramebuffer(Framebuffer framebuffer) { this->framebuffer = framebuffer; return *this; }
-			RenderingInfo& SetColorAttachmentCount(uint32_t colorAttachmentCount) { this->colorAttachmentCount = colorAttachmentCount; return *this; }
-			RenderingInfo& SetPClearColorValue(ClearColorValue* pClearColorValue) { this->pClearColorValue = pClearColorValue; return *this; }
-			RenderingInfo& SetClearDepthStencilValue(ClearDepthStencilValue clearDepthStencilValue) { this->clearDepthStencilValue = clearDepthStencilValue; return *this; }
-
-			Framebuffer framebuffer;
-			uint32_t colorAttachmentCount;
-			ClearColorValue* pClearColorValue;
-			ClearDepthStencilValue clearDepthStencilValue;
-		};
-
-		struct FenceCreateInfo {
-
-		};
-
-		struct CommandBufferBeginInfo {
-
+			ImageViewInfo* pDepthStencilAttachment;
+			uint32_t width;
+			uint32_t height;
+			uint32_t layers;
+			RenderPass renderPass;
 		};
 
 		struct RenderPassBeginInfo {
+			RenderPassBeginInfo& SetRenderPass(RenderPass renderPass) { this->renderPass = renderPass; return *this; }
+			RenderPassBeginInfo& SetFramebuffer(Framebuffer framebuffer) { this->framebuffer = framebuffer; return *this; }
+			RenderPassBeginInfo& SetPClearColorValues(ClearColorValue* pClearColorValues) { this->pClearColorValues = pClearColorValues; return *this; }
+			RenderPassBeginInfo& SetClearDepthStencilValue(ClearDepthStencilValue clearDepthStencilValue) { this->clearDepthStencilValue = clearDepthStencilValue; return *this; }
 
+			RenderPass renderPass;
+			Framebuffer framebuffer;
+			ClearColorValue* pClearColorValues;
+			ClearDepthStencilValue clearDepthStencilValue;
 		};
+
+		struct FenceCreateInfo {};
+
+		struct CommandBufferBeginInfo {};
 
 	}
 }

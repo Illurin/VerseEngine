@@ -32,17 +32,21 @@ namespace engine {
 		double fps{ 0.0f };
 
 	private:
-		uint32_t renderWidth{ 0 };
-		uint32_t renderHeight{ 0 };
+		rhi::Extent2D renderExtent{ 0, 0 };
+		rhi::Format swapchainFormat{ rhi::Format::B8G8R8A8Unorm };
 		uint32_t frameCount{ 2 };
 
 	private:
 		rhi::Instance instance{ nullptr };
 		rhi::Device device{ nullptr };
+		rhi::Queue queue{ nullptr };
 		rhi::Swapchain swapchain{ nullptr };
+		rhi::RenderPass renderPass{ nullptr };
 		rhi::Pipeline pipeline{ nullptr };
 		rhi::CommandPool commandPool{ nullptr };
 		std::vector<rhi::CommandBuffer> commandBuffers;
+		std::vector<rhi::Framebuffer> framebuffers;
+		rhi::Fence fence{ nullptr };
 	};
 
 }

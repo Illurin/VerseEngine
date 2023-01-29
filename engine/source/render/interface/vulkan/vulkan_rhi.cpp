@@ -131,9 +131,6 @@ namespace engine {
 		auto feature = vk::PhysicalDeviceFeatures()
 			.setGeometryShader(VK_TRUE);
 
-		auto feature13 = vk::PhysicalDeviceVulkan13Features()
-			.setDynamicRendering(VK_TRUE);
-
 		auto deviceExtensions = extensions.device;
 
 		//deviceExtensions.push_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
@@ -141,7 +138,6 @@ namespace engine {
 		deviceExtensions.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
 
 		auto deviceInfo = vk::DeviceCreateInfo()
-			.setPNext(&feature13)
 			.setQueueCreateInfos(deviceQueueInfos)
 			.setPEnabledExtensionNames(deviceExtensions)
 			.setPEnabledFeatures(&feature);
@@ -151,7 +147,7 @@ namespace engine {
 		if (!device) {
 			throw std::runtime_error("Create logical device failed");
 		}
-
+		
 		auto deviceWrapper = new VkWrapperDevice();
 		deviceWrapper->instance = instance;
 		deviceWrapper->device = device;
@@ -200,7 +196,7 @@ namespace engine {
 		if (!surface) {
 			throw std::runtime_error("Create surface failed");
 		}
-
+		
 		auto surfaceFormats = physicalDevice.getSurfaceFormatsKHR(surface);
 		if (surfaceFormats.empty()) {
 			throw std::runtime_error("Do not support any surface format");
@@ -217,7 +213,9 @@ namespace engine {
 			.setSurface(surface)
 			.setImageFormat(VkEnumFormat(info.format).Get())
 			.setMinImageCount(info.frameCount)
-			.setImageExtent(surfaceCapabilities.currentExtent)
+			.setImageExtent(!info.imageExtent.width && !info.imageExtent.height
+				? surfaceCapabilities.currentExtent
+				: vk::Extent2D(info.imageExtent.width, info.imageExtent.height))
 			.setPreTransform(surfaceCapabilities.currentTransform)
 			.setPresentMode(vk::PresentModeKHR::eFifo)
 			.setImageSharingMode(vk::SharingMode::eExclusive)
@@ -246,6 +244,7 @@ namespace engine {
 		swapchainWrapper->surface = surface;
 		swapchainWrapper->swapchain = swapchain;
 		swapchainWrapper->images = swapchainImages;
+		swapchainWrapper->imageExtent = rhi::Extent2D().SetWidth(swapchainInfo.imageExtent.width).SetHeight(swapchainInfo.imageExtent.height);
 		return swapchainWrapper;
 	}
 	
@@ -297,24 +296,6 @@ namespace engine {
 		return bufferWrapper;
 	}
 
-	/*rhi::BufferView VulkanInstance::CreateBufferView(rhi::Device& device, const rhi::BufferViewCreateInfo& info) const {
-		auto bufferViewInfo = vk::BufferViewCreateInfo()
-			.setBuffer(static_cast<const VkWrapperBuffer*>(info.buffer)->GetBuffer())
-			.setFormat(VkEnumFormat(info.format).Get())
-			.setRange(info.range)
-			.setOffset(info.offset);
-
-		auto bufferView = static_cast<VkWrapperDevice*>(device)->GetDevice().createBufferView(bufferViewInfo);
-
-		if (!bufferView) {
-			throw std::runtime_error("Create buffer view failed");
-		}
-
-		auto bufferViewWrapper = new VkWrapperBufferView();
-		bufferViewWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetBufferView(bufferView);
-		return bufferViewWrapper;
-	}*/
-
 	rhi::Image VkWrapperDevice::CreateImage(const rhi::ImageCreateInfo& info) const {
 		auto imageInfo = vk::ImageCreateInfo()
 			.setFormat(VkEnumFormat(info.format).Get())
@@ -353,25 +334,6 @@ namespace engine {
 		return imageWrapper;
 	}
 
-	/*rhi::ImageView VulkanInstance::CreateImageView(rhi::Device& device, const rhi::ImageViewCreateInfo& info) const {
-		auto imageViewInfo = vk::ImageViewCreateInfo()
-			.setComponents(vk::ComponentMapping(vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA))
-			.setImage(static_cast<VkWrapperImage*>(info.image)->GetImage())
-			.setFormat(VkEnumFormat(info.format).Get())
-			.setViewType(VkEnumImageViewType(info.imageViewType).Get())
-			.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, info.baseMipLevel, info.mipLevelCount, 0, 1));
-
-		auto imageView = static_cast<VkWrapperDevice*>(device)->GetDevice().createImageView(imageViewInfo);
-
-		if (!imageView) {
-			throw std::runtime_error("Create image view failed");
-		}
-
-		auto imageViewWrapper = new VkWrapperImageView();
-		imageViewWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetImageView(imageView);
-		return imageViewWrapper;
-	}*/
-
 	/*rhi::DescriptorPool VulkanInstance::CreateDescriptorPool(rhi::Device& device, const rhi::DescriptorPoolCreateInfo& info) const {
 		auto poolSize = vk::DescriptorPoolSize()
 			.setType(VkEnumDescriptorType(info.descriptorType).Get())
@@ -392,6 +354,68 @@ namespace engine {
 		descriptorPoolWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetDescriptorPool(descriptorPool);
 		return descriptorPoolWrapper;
 	}*/
+
+	rhi::RenderPass VkWrapperDevice::CreateRenderPass(const rhi::RenderPassCreateInfo& info) const {
+		auto subpassInfo = vk::SubpassDescription()
+			.setPipelineBindPoint(VkEnumPipelineBindPoint(info.pipelineType).Get());
+		
+		uint32_t referenceIndex = 0;
+		std::vector<vk::AttachmentReference> colorAttachmentReferences;
+		for (uint32_t i = 0; i < info.colorAttachmentCount; i++) {
+			colorAttachmentReferences.push_back(vk::AttachmentReference()
+				.setAttachment(referenceIndex)
+				.setLayout(VkEnumImageLayout(info.pColorAttachments[i].passLayout).Get()));
+			referenceIndex++;
+		}
+		subpassInfo.setColorAttachments(colorAttachmentReferences);
+		vk::AttachmentReference depthStencilAttachmentReference;
+		if (info.pDepthStencilAttachment) {
+			depthStencilAttachmentReference = vk::AttachmentReference()
+				.setAttachment(referenceIndex)
+				.setLayout(VkEnumImageLayout(info.pDepthStencilAttachment->passLayout).Get());
+			subpassInfo.setPDepthStencilAttachment(&depthStencilAttachmentReference);
+			referenceIndex++;
+		}
+
+		std::vector<vk::AttachmentDescription> attachmentDescriptions;
+		for (uint32_t i = 0; i < info.colorAttachmentCount; i++) {
+			auto& attachment = info.pColorAttachments[i];
+			attachmentDescriptions.push_back(vk::AttachmentDescription()
+				.setFormat(VkEnumFormat(attachment.format).Get())
+				.setSamples(VkEnumSampleCount(attachment.sampleCount).Get())
+				.setInitialLayout(VkEnumImageLayout(info.pColorAttachments[i].initialLayout).Get())
+				.setFinalLayout(VkEnumImageLayout(info.pColorAttachments[i].finalLayout).Get())
+				.setLoadOp(VkEnumAttachmentLoadOp(attachment.loadOp).Get())
+				.setStoreOp(VkEnumAttachmentStoreOp(attachment.storeOp).Get()));
+		}
+		if (info.pDepthStencilAttachment) {
+			attachmentDescriptions.push_back(vk::AttachmentDescription()
+				.setFormat(VkEnumFormat(info.pDepthStencilAttachment->format).Get())
+				.setSamples(VkEnumSampleCount(info.pDepthStencilAttachment->sampleCount).Get())
+				.setInitialLayout(VkEnumImageLayout(info.pDepthStencilAttachment->initialLayout).Get())
+				.setFinalLayout(VkEnumImageLayout(info.pDepthStencilAttachment->finalLayout).Get())
+				.setLoadOp(VkEnumAttachmentLoadOp(info.pDepthStencilAttachment->loadOp).Get())
+				.setStoreOp(VkEnumAttachmentStoreOp(info.pDepthStencilAttachment->storeOp).Get())
+				.setStencilLoadOp(VkEnumAttachmentLoadOp(info.pDepthStencilAttachment->stencilLoadOp).Get())
+				.setStencilStoreOp(VkEnumAttachmentStoreOp(info.pDepthStencilAttachment->stencilStoreOp).Get()));
+		}
+		
+		auto renderPassInfo = vk::RenderPassCreateInfo()
+			.setAttachments(attachmentDescriptions)
+			.setSubpassCount(1)
+			.setPSubpasses(&subpassInfo);
+
+		auto renderPass = device.createRenderPass(renderPassInfo);
+
+		if (!renderPass) {
+			throw std::runtime_error("Create render pass failed");
+		}
+
+		auto renderPassWrapper = new VkWrapperRenderPass();
+		renderPassWrapper->device = device;
+		renderPassWrapper->renderPass = renderPass;
+		return renderPassWrapper;
+	}
 
 	rhi::ShaderModule VkWrapperDevice::CreateShaderModule(const rhi::ShaderModuleCreateInfo& info) const {
 		auto shaderModuleInfo = vk::ShaderModuleCreateInfo()
@@ -546,7 +570,8 @@ namespace engine {
 			.setPDepthStencilState(&depthStencilInfo)
 			.setPColorBlendState(&colorBlendInfo)
 			.setPMultisampleState(&multisampleInfo)
-			.setLayout(pipelineLayout);
+			.setLayout(pipelineLayout)
+			.setRenderPass(static_cast<VkWrapperRenderPass*>(info.renderPass)->renderPass);
 		
 		auto pipeline = device.createGraphicsPipeline(nullptr, pipelineInfo).value;
 		
@@ -559,11 +584,14 @@ namespace engine {
 		auto pipelineWrapper = new VkWrapperPipeline();
 		pipelineWrapper->device = device;
 		pipelineWrapper->pipeline = pipeline;
+		pipelineWrapper->pipelineType = rhi::PipelineType::Graphics;
 		return pipelineWrapper;
 	}
 
 	rhi::Framebuffer VkWrapperDevice::CreateFramebuffer(const rhi::FramebufferCreateInfo& info) const {
-		std::vector<vk::ImageView> colorAttachments;
+		auto framebufferWrapper = new VkWrapperFramebuffer();
+		std::vector<vk::ImageView> attachments;
+
 		for (uint32_t i = 0; i < info.colorAttachmentCount; i++) {
 			auto& colorAttachment = info.pColorAttachments[i];
 			
@@ -589,82 +617,118 @@ namespace engine {
 				throw std::runtime_error("Create image view failed");
 			}
 
-			colorAttachments.push_back(imageView);
+			framebufferWrapper->colorAttachments.push_back(imageView);
 		}
+		attachments.insert(attachments.end(), framebufferWrapper->colorAttachments.begin(), framebufferWrapper->colorAttachments.end());
 
-		auto imageViewInfo = vk::ImageViewCreateInfo()
-			.setImage(static_cast<VkWrapperImage*>(info.depthAttachment.image)->image)
-			.setFormat(VkEnumFormat(info.depthAttachment.format).Get())
-			.setViewType(VkEnumImageViewType(info.depthAttachment.viewType).Get())
-			.setComponents(vk::ComponentMapping(
-				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.r).Get(),
-				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.g).Get(),
-				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.b).Get(),
-				VkEnumComponentSwizzle(info.depthAttachment.componentMapping.a).Get()))
-			.setSubresourceRange(vk::ImageSubresourceRange(
-				vk::ImageAspectFlagBits::eDepth,
-				info.depthAttachment.baseMipLevel,
-				info.depthAttachment.mipLevelCount,
-				info.depthAttachment.baseArrayLayer,
-				info.depthAttachment.arrayLayerCount));
+		if (info.pDepthStencilAttachment) {
+			auto imageViewInfo = vk::ImageViewCreateInfo()
+				.setImage(static_cast<VkWrapperImage*>(info.pDepthStencilAttachment->image)->image)
+				.setFormat(VkEnumFormat(info.pDepthStencilAttachment->format).Get())
+				.setViewType(VkEnumImageViewType(info.pDepthStencilAttachment->viewType).Get())
+				.setComponents(vk::ComponentMapping(
+					VkEnumComponentSwizzle(info.pDepthStencilAttachment->componentMapping.r).Get(),
+					VkEnumComponentSwizzle(info.pDepthStencilAttachment->componentMapping.g).Get(),
+					VkEnumComponentSwizzle(info.pDepthStencilAttachment->componentMapping.b).Get(),
+					VkEnumComponentSwizzle(info.pDepthStencilAttachment->componentMapping.a).Get()))
+				.setSubresourceRange(vk::ImageSubresourceRange(
+					vk::ImageAspectFlagBits::eDepth,
+					info.pDepthStencilAttachment->baseMipLevel,
+					info.pDepthStencilAttachment->mipLevelCount,
+					info.pDepthStencilAttachment->baseArrayLayer,
+					info.pDepthStencilAttachment->arrayLayerCount));
 
-		auto depthAttachment = device.createImageView(imageViewInfo);
+			auto depthStencilAttachment = device.createImageView(imageViewInfo);
 
-		if (!depthAttachment) {
-			throw std::runtime_error("Create image view failed");
-		}
+			if (!depthStencilAttachment) {
+				throw std::runtime_error("Create image view failed");
+			}
 
-		imageViewInfo = vk::ImageViewCreateInfo()
-			.setImage(static_cast<VkWrapperImage*>(info.stencilAttachment.image)->image)
-			.setFormat(VkEnumFormat(info.stencilAttachment.format).Get())
-			.setViewType(VkEnumImageViewType(info.stencilAttachment.viewType).Get())
-			.setComponents(vk::ComponentMapping(
-				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.r).Get(),
-				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.g).Get(),
-				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.b).Get(),
-				VkEnumComponentSwizzle(info.stencilAttachment.componentMapping.a).Get()))
-			.setSubresourceRange(vk::ImageSubresourceRange(
-				vk::ImageAspectFlagBits::eDepth,
-				info.stencilAttachment.baseMipLevel,
-				info.stencilAttachment.mipLevelCount,
-				info.stencilAttachment.baseArrayLayer,
-				info.stencilAttachment.arrayLayerCount));
-
-		auto stencilAttachment = device.createImageView(imageViewInfo);
-		
-		if (!stencilAttachment) {
-			throw std::runtime_error("Create image view failed");
+			framebufferWrapper->depthStencilAttachment = depthStencilAttachment;
+			attachments.push_back(depthStencilAttachment);
 		}
 		
-		auto framebufferWrapper = new VkWrapperFramebuffer();
-		framebufferWrapper->colorAttachments = colorAttachments;
-		framebufferWrapper->depthAttachment = depthAttachment;
-		framebufferWrapper->stencilAttachment = stencilAttachment;
+		auto framebufferInfo = vk::FramebufferCreateInfo()
+			.setAttachments(attachments)
+			.setWidth(info.width)
+			.setHeight(info.height)
+			.setLayers(info.layers)
+			.setRenderPass(static_cast<VkWrapperRenderPass*>(info.renderPass)->renderPass);
+
+		auto framebuffer = device.createFramebuffer(framebufferInfo);
+
+		if (!framebuffer) {
+			throw std::runtime_error("Create framebuffer failed");
+		}
+
+		framebufferWrapper->device = device;
+		framebufferWrapper->framebuffer = framebuffer;
+		framebufferWrapper->width = info.width;
+		framebufferWrapper->height = info.height;
+		framebufferWrapper->layers = info.layers;
 		return framebufferWrapper;
 	}
 
-	rhi::Fence VkWrapperDevice::CreateFence(const rhi::FenceCreateInfo&) const {
-		
+	rhi::Fence VkWrapperDevice::CreateFence(const rhi::FenceCreateInfo& info) const {
+		auto fenceInfo = vk::FenceCreateInfo();
 
-		return new VkWrapperFence();
+		auto fence = device.createFence(fenceInfo);
+		
+		if (!fence) {
+			throw std::runtime_error("Create fence failed");
+		}
+
+		auto fenceWrapper = new VkWrapperFence();
+		fenceWrapper->device = device;
+		fenceWrapper->fence = fence;
+		return fenceWrapper;
 	}
 
 	
+
+	void VkWrapperQueue::SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
+		std::vector<vk::CommandBuffer> submitCommandBuffers;
+		for (uint32_t i = 0; i < commandBufferCount; i++) {
+			submitCommandBuffers.push_back(static_cast<VkWrapperCommandBuffer*>(commandBuffers[i])->commandBuffer);
+		}
+
+		auto submitInfo = vk::SubmitInfo()
+			.setCommandBuffers(submitCommandBuffers);
+
+		queue.submit(submitInfo, static_cast<VkWrapperFence*>(fence)->fence);
+	}
+
+	void VkWrapperQueue::PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) {
+		std::array<uint32_t, 1> imageIndices = { imageIndex };
+		std::array<vk::SwapchainKHR, 1> presentSwapchains = { static_cast<VkWrapperSwapchain*>(swapchain)->swapchain };
+
+		auto presentInfo = vk::PresentInfoKHR()
+			.setImageIndices(imageIndices)
+			.setSwapchains(presentSwapchains);
+		
+		auto result = queue.presentKHR(presentInfo);
+	}
+
+
+
+	rhi::Extent2D VkWrapperSwapchain::GetImageExtent() const {
+		return imageExtent;
+	}
 
 	std::vector<rhi::Image> VkWrapperSwapchain::GetImages() const {
 		return images;
 	}
 
-	uint32_t VkWrapperSwapchain::AcquireNextImage() {
-
-
-		return 0;
+	uint32_t VkWrapperSwapchain::AcquireNextImage(rhi::Fence fence) {
+		auto result = device.acquireNextImageKHR(swapchain, UINT64_MAX, nullptr, static_cast<VkWrapperFence*>(fence)->fence);
+		currentImageIndex = result.value;
+		return currentImageIndex;
 	}
-
+	
 
 
 	void VkWrapperCommandPool::Reset() {
-
+		device.resetCommandPool(commandPool);
 	}
 
 	std::vector<rhi::CommandBuffer> VkWrapperCommandPool::AllocateCommandBuffers(uint32_t bufferCount) {
@@ -695,27 +759,44 @@ namespace engine {
 
 
 	void VkWrapperCommandBuffer::Reset() {
-
+		commandBuffer.reset();
 	}
 
-	void VkWrapperCommandBuffer::Begin(const rhi::CommandBufferBeginInfo&) {
-
+	void VkWrapperCommandBuffer::Begin(const rhi::CommandBufferBeginInfo& info) {
+		commandBuffer.begin(vk::CommandBufferBeginInfo());
 	}
 
 	void VkWrapperCommandBuffer::End() {
-
+		commandBuffer.end();
 	}
 
-	void VkWrapperCommandBuffer::BeginRenderPass(const rhi::RenderPassBeginInfo&) {
+	void VkWrapperCommandBuffer::BeginRenderPass(const rhi::RenderPassBeginInfo& info) {
+		auto framebuffer = static_cast<VkWrapperFramebuffer*>(info.framebuffer);
 
+		std::vector<vk::ClearValue> clearValues;
+		for (uint32_t i = 0; i < framebuffer->colorAttachments.size(); i++) {
+			clearValues.push_back(vk::ClearColorValue(info.pClearColorValues[i].colorValue));
+		}
+		if (framebuffer->depthStencilAttachment) {
+			clearValues.push_back(vk::ClearDepthStencilValue(info.clearDepthStencilValue.depthValue, info.clearDepthStencilValue.stencilValue));
+		}
+
+		auto renderPassBeginInfo = vk::RenderPassBeginInfo()
+			.setRenderPass(static_cast<VkWrapperRenderPass*>(info.renderPass)->renderPass)
+			.setFramebuffer(framebuffer->framebuffer)
+			.setRenderArea(vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(framebuffer->width, framebuffer->height)))
+			.setClearValues(clearValues);
+		
+		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 	}
 
 	void VkWrapperCommandBuffer::EndRenderPass() {
-
+		commandBuffer.endRenderPass();
 	}
 
-	void VkWrapperCommandBuffer::BindPipeline(const rhi::Pipeline&) {
-
+	void VkWrapperCommandBuffer::BindPipeline(const rhi::Pipeline& pipeline) {
+		auto pipeline_ = static_cast<VkWrapperPipeline*>(pipeline);
+		commandBuffer.bindPipeline(VkEnumPipelineBindPoint(pipeline_->pipelineType).Get(), pipeline_->pipeline);
 	}
 
 	void VkWrapperCommandBuffer::BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) {
@@ -726,28 +807,30 @@ namespace engine {
 
 	}
 
-	void VkWrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstCount, uint32_t firstInstance) const {
-
+	void VkWrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
+		commandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
-	void VkWrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstCount, int32_t vertexOffset, uint32_t firstInstance) const {
+	void VkWrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstVertex, int32_t vertexOffset, uint32_t firstInstance) const {
 
 	}
 
 
 
 	void VkWrapperFence::Reset() {
-
+		auto result = device.resetFences(1, &fence);
 	}
 
 	void VkWrapperFence::Wait() {
-
+		vk::Result result;
+		do result = device.waitForFences(VK_TRUE, &fence, VK_TRUE, UINT64_MAX);
+		while (result == vk::Result::eTimeout);
 	}
 
-	uint32_t VkWrapperFence::GetCurrentStatus() const {
-
-
-		return 0;
+	bool VkWrapperFence::GetCurrentStatus() const {
+		auto result = device.getFenceStatus(fence);
+		if (result == vk::Result::eSuccess) return true;
+		return false;
 	}
 
 
@@ -796,15 +879,15 @@ namespace engine {
 		delete this;
 	}
 
-	/*void VulkanInstance::Destroy(rhi::ImageView& imageView) const {
-		static_cast<VkWrapperImageView*>(imageView)->GetDevice().destroy(static_cast<VkWrapperImageView*>(imageView)->GetImageView());
-		delete imageView;
-	}
-
-	void VulkanInstance::Destroy(rhi::DescriptorPool& descriptorPool) const {
+	/*void VulkanInstance::Destroy(rhi::DescriptorPool& descriptorPool) const {
 		static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDevice().destroy(static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDescriptorPool());
 		delete descriptorPool;
 	}*/
+
+	void VkWrapperRenderPass::Destroy() {
+		device.destroy(renderPass);
+		delete this;
+	}
 
 	void VkWrapperShaderModule::Destroy() {
 		device.destroy(shaderModule);
@@ -817,14 +900,15 @@ namespace engine {
 	}
 
 	void VkWrapperFramebuffer::Destroy() {
+		device.destroy(framebuffer);
 		for (auto& colorAttachment : colorAttachments) device.destroy(colorAttachment);
-		device.destroy(depthAttachment);
-		device.destroy(stencilAttachment);
+		if (depthStencilAttachment) device.destroy(depthStencilAttachment);
 		delete this;
 	}
 
 	void VkWrapperFence::Destroy() {
-
+		device.destroy(fence);
+		delete this;
 	}
 
 }

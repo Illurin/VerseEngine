@@ -5,22 +5,54 @@ namespace engine {
 
 		enum class Format {
 			Undefined,
-			R8Unorm, R8G8Unorm, R8G8B8Unorm, R8G8B8A8Unorm,
-			R8Snorm, R8G8Snorm, R8G8B8Snorm, R8G8B8A8Snorm,
-			R8Uint, R8G8Uint, R8G8B8Uint, R8G8B8A8Uint,
-			R8Sint, R8G8Sint, R8G8B8Sint, R8G8B8A8Sint,
-			R16Unorm, R16G16Unorm, R16G16B16Unorm, R16G16B16A16Unorm,
-			R16Snorm, R16G16Snorm, R16G16B16Snorm, R16G16B16A16Snorm,
-			R16Uint, R16G16Uint, R16G16B16Uint, R16G16B16A16Uint,
-			R16Sint, R16G16Sint, R16G16B16Sint, R16G16B16A16Sint,
-			R16Sfloat, R16G16Sfloat, R16G16B16Sfloat, R16G16B16A16Sfloat,
-			R32Uint, R32G32Uint, R32G32B32Uint, R32G32B32A32Uint,
-			R32Sint, R32G32Sint, R32G32B32Sint, R32G32B32A32Sint,
-			R32Sfloat, R32G32Sfloat, R32G32B32Sfloat, R32G32B32A32Sfloat,
-			R64Uint, R64G64Uint, R64G64B64Uint, R64G64B64A64Uint,
-			R64Sint, R64G64Sint, R64G64B64Sint, R64G64B64A64Sint,
-			R64Sfloat, R64G64Sfloat, R64G64B64Sfloat, R64G64B64A64Sfloat,
-			D16Unorm, D32Sfloat, S8Uint, D16UnormS8Uint, D24UnormS8Uint, D32SfloatS8Uint
+			R8Unorm,
+			R8Snorm,
+			R8Uint,
+			R8Sint,
+			R8G8Unorm,
+			R8G8Snorm,
+			R8G8Uint,
+			R8G8Sint,
+			R8G8B8A8Unorm,
+			R8G8B8A8Snorm,
+			R8G8B8A8Uint,
+			R8G8B8A8Sint,
+			R8G8B8A8Srgb,
+			B8G8R8A8Unorm,
+			B8G8R8A8Srgb,
+			R16Unorm,
+			R16Snorm,
+			R16Uint,
+			R16Sint,
+			R16Sfloat,
+			R16G16Unorm,
+			R16G16Snorm,
+			R16G16Uint,
+			R16G16Sint,
+			R16G16Sfloat,
+			R16G16B16A16Unorm,
+			R16G16B16A16Snorm,
+			R16G16B16A16Uint,
+			R16G16B16A16Sint,
+			R16G16B16A16Sfloat,
+			R32Uint,
+			R32Sint,
+			R32Sfloat,
+			R32G32Uint,
+			R32G32Sint,
+			R32G32Sfloat,
+			R32G32B32Uint,
+			R32G32B32Sint,
+			R32G32B32Sfloat,
+			R32G32B32A32Uint,
+			R32G32B32A32Sint,
+			R32G32B32A32Sfloat,
+			D16Unorm,
+			D32Sfloat,
+			S8Uint,
+			D16UnormS8Uint,
+			D24UnormS8Uint,
+			D32SfloatS8Uint
 		};
 
 		enum class QueueType {
@@ -67,6 +99,16 @@ namespace engine {
 			TransferDst
 		};
 
+		enum class ImageLayout {
+			Undefined,
+			ColorAttachment,
+			DepthStencilAttachment,
+			ShaderRead,
+			TransferSrc,
+			TransferDst,
+			SwapchainPresent
+		};
+
 		enum class ImageType {
 			Image1D,
 			Image2D,
@@ -103,12 +145,27 @@ namespace engine {
 			StorageTexelBuffer
 		};
 
+		enum class AttachmentLoadOp {
+			Load,
+			Clear
+		};
+
+		enum class AttachmentStoreOp {
+			Store
+		};
+
 		enum class ShaderStage {
 			Vertex,
 			TessellationControl,
 			TessellationEvaluation,
 			Geometry,
 			Fragment
+		};
+
+		enum class PipelineType {
+			Graphics,
+			Compute,
+			RayTracing
 		};
 
 		enum class VertexInputRate {

@@ -19,60 +19,60 @@ namespace engine {
 	}
 
 	void ShaderCompiler::Define(const wchar_t* macro) {
-		arguments.push_back(L"-D");
-		arguments.push_back(macro);
+		arguments.emplace_back(L"-D");
+		arguments.emplace_back(macro);
 	}
 
 	void ShaderCompiler::AddIncludePath(const wchar_t* includePath) {
-		arguments.push_back(L"-I");
-		arguments.push_back(includePath);
+		arguments.emplace_back(L"-I");
+		arguments.emplace_back(includePath);
 	}
 
 	void ShaderCompiler::SetEncoding(const wchar_t* utf8_or_utf16) {
-		arguments.push_back(L"-encoding");
-		arguments.push_back(utf8_or_utf16);
+		arguments.emplace_back(L"-encoding");
+		arguments.emplace_back(utf8_or_utf16);
 	}
 
 	void ShaderCompiler::AddSpirvExtension(const wchar_t* extension) {
 		std::wstring argument = L"-fspv-extension=";
 		argument += extension;
-		arguments.push_back(argument);
+		arguments.emplace_back(argument);
 	}
 
 	void ShaderCompiler::SetSpirvTargetEnv(const wchar_t* targetEnv) {
-		arguments.push_back(std::wstring(L"-fspv-target-env=") + targetEnv);
+		arguments.emplace_back(std::wstring(L"-fspv-target-env=") + targetEnv);
 	}
 
 	void ShaderCompiler::SetSpirvRegisterShift(const wchar_t* registerType, const wchar_t* bindingShift, const wchar_t* space) {
-		arguments.push_back(std::wstring(L"-fvk-") + registerType + std::wstring(L"-shift"));
-		arguments.push_back(bindingShift);
-		arguments.push_back(space);
+		arguments.emplace_back(std::wstring(L"-fvk-") + registerType + std::wstring(L"-shift"));
+		arguments.emplace_back(bindingShift);
+		arguments.emplace_back(space);
 	}
 
 	void ShaderCompiler::SetSpirvBindGlobals(const wchar_t* binding, const wchar_t* descSet) {
-		arguments.push_back(L"-fvk-bind-globals");
-		arguments.push_back(binding);
-		arguments.push_back(descSet);
+		arguments.emplace_back(L"-fvk-bind-globals");
+		arguments.emplace_back(binding);
+		arguments.emplace_back(descSet);
 	}
 
 	void ShaderCompiler::SetSpirvBindRegister(const wchar_t* registerSlot, const wchar_t* space, const wchar_t* binding, const wchar_t* descSet) {
-		arguments.push_back(L"-fvk-bind-register");
-		arguments.push_back(registerSlot);
-		arguments.push_back(space);
-		arguments.push_back(binding);
-		arguments.push_back(descSet);
+		arguments.emplace_back(L"-fvk-bind-register");
+		arguments.emplace_back(registerSlot);
+		arguments.emplace_back(space);
+		arguments.emplace_back(binding);
+		arguments.emplace_back(descSet);
 	}
 
 	void ShaderCompiler::ConfigSpirvOptimization(const wchar_t* info) {
-		arguments.push_back(std::wstring(L"-Oconfig=") + info);
+		arguments.emplace_back(std::wstring(L"-Oconfig=") + info);
 	}
 
 	void ShaderCompiler::AddArgument(const wchar_t* argument) {
-		arguments.push_back(argument);
+		arguments.emplace_back(argument);
 	}
 
 	void ShaderCompiler::AddArgument(const wchar_t* profile, const wchar_t* argument) {
-		profileArguments[profile].push_back(argument);
+		profileArguments[profile].emplace_back(argument);
 	}
 
 	void ShaderCompiler::ClearArguments() {
@@ -82,18 +82,18 @@ namespace engine {
 
 	void ShaderCompiler::Compile(char* pSourceCode, uint32_t sourceCodeSize, const wchar_t* entryPoint, const wchar_t* profile) {
 		std::vector<const wchar_t*> arguments;
-		arguments.push_back(L"-E");
-		arguments.push_back(entryPoint);
-		arguments.push_back(L"-T");
-		arguments.push_back(profile);
+		arguments.emplace_back(L"-E");
+		arguments.emplace_back(entryPoint);
+		arguments.emplace_back(L"-T");
+		arguments.emplace_back(profile);
 
 		for (auto& argument : this->arguments) {
-			arguments.push_back(argument.c_str());
+			arguments.emplace_back(argument.c_str());
 		}
 		
 		if (profileArguments.find(profile) != profileArguments.end()) {
 			for (auto& argument : profileArguments.at(profile)) {
-				arguments.push_back(argument.c_str());
+				arguments.emplace_back(argument.c_str());
 			}
 		}
 
@@ -151,12 +151,9 @@ namespace engine {
 			return false;
 		}
 
-		sourceObject.clear();
+		sourceObject.resize(dxcObjectInfo->GetBufferSize());
 		char* ptr = static_cast<char*>(dxcObjectInfo->GetBufferPointer());
-
-		for (size_t i = 0; i < dxcObjectInfo->GetBufferSize(); i++) {
-			sourceObject.push_back(ptr[i]);
-		}
+		std::copy(ptr, ptr + dxcObjectInfo->GetBufferSize(), sourceObject.begin());
 
 		dxcObjectInfo->Release();
 
@@ -178,12 +175,7 @@ namespace engine {
 			return false;
 		}
 		
-		errorInfo.clear();
-		const char* ptr = static_cast<const char*>(dxcErrorInfo->GetStringPointer());
-
-		for (size_t i = 0; i < dxcErrorInfo->GetStringLength(); i++) {
-			errorInfo += ptr[i];
-		}
+		errorInfo = static_cast<const char*>(dxcErrorInfo->GetStringPointer());
 
 		dxcErrorInfo->Release();
 

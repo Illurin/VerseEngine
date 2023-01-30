@@ -4,7 +4,7 @@
 
 namespace engine {
 
-	void VkWrapperInstance::Init(const rhi::InstanceInitInfo& info) {
+	void VkWrapperInstance::Init(const rhi::InstanceCreateInfo& info) {
 #ifdef _DEBUG
 		validationLayers = {
 			"VK_LAYER_KHRONOS_validation",
@@ -14,14 +14,15 @@ namespace engine {
 			throw std::runtime_error("Do not support validation layers");
 		}
 		
-		extensions.instance.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		extensions.instance.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #endif // _DEBUG
 
-		extensions.instance.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-		extensions.device.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		extensions.instance.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		extensions.instance.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+		extensions.device.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 #ifdef _WIN32
-		extensions.instance.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+		extensions.instance.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #endif // _WIN32
 
 		CreateInstance(info);
@@ -53,7 +54,7 @@ namespace engine {
 		this->info.applicationVersion = info.applicationVersion;
 	}
 
-	void VkWrapperInstance::CreateInstance(const rhi::InstanceInitInfo& info) {
+	void VkWrapperInstance::CreateInstance(const rhi::InstanceCreateInfo& info) {
 		auto applicationInfo = vk::ApplicationInfo()
 			.setApiVersion(VK_API_VERSION_1_3)
 			.setPEngineName("Verse Engine")
@@ -80,7 +81,7 @@ namespace engine {
 			throw std::runtime_error("Enumerate physical devices failed");
 		}
 
-		std::vector<rhi::PhysicalDeviceInfo> infos;
+		std::vector<rhi::PhysicalDeviceInfo> infos(gpus.size());
 
 		for (uint32_t i = 0; i < gpus.size(); i++) {
 			auto properties = gpus[i].getProperties();
@@ -91,7 +92,7 @@ namespace engine {
 				.SetDeviceId(properties.deviceID)
 				.SetDeviceDescription(properties.deviceName);
 
-			infos.push_back(info);
+			infos[i] = info;
 		}
 		return infos;
 	}
@@ -106,7 +107,7 @@ namespace engine {
 		auto physicalDevice = gpus[info.physicalDeviceId];
 		auto queueProp = physicalDevice.getQueueFamilyProperties();
 
-		std::vector<vk::DeviceQueueCreateInfo> deviceQueueInfos;
+		std::vector<vk::DeviceQueueCreateInfo> deviceQueueInfos(info.queueCreateInfoCount);
 
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
 			uint32_t queueIndex;
@@ -127,22 +128,27 @@ namespace engine {
 			auto deviceQueueInfo = vk::DeviceQueueCreateInfo()
 				.setQueuePriorities(priorities)
 				.setQueueFamilyIndex(queueIndex);
-			deviceQueueInfos.push_back(deviceQueueInfo);
+			deviceQueueInfos[i] = deviceQueueInfo;
 		}
 
-		auto feature = vk::PhysicalDeviceFeatures()
+		auto features = vk::PhysicalDeviceFeatures()
 			.setGeometryShader(VK_TRUE);
 
 		auto deviceExtensions = extensions.device;
 
-		//deviceExtensions.push_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
-		//deviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
-		deviceExtensions.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+		//deviceExtensions.emplace_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
+		//deviceExtensions.emplace_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
+		deviceExtensions.emplace_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+		deviceExtensions.emplace_back(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
+
+		auto lineRasterizationFeaturesEXT = vk::PhysicalDeviceLineRasterizationFeaturesEXT()
+			.setSmoothLines(VK_TRUE);
 
 		auto deviceInfo = vk::DeviceCreateInfo()
+			.setPNext(&lineRasterizationFeaturesEXT)
 			.setQueueCreateInfos(deviceQueueInfos)
 			.setPEnabledExtensionNames(deviceExtensions)
-			.setPEnabledFeatures(&feature);
+			.setPEnabledFeatures(&features);
 
 		auto device = physicalDevice.createDevice(deviceInfo);
 
@@ -155,12 +161,13 @@ namespace engine {
 		deviceWrapper->device = device;
 		deviceWrapper->physicalDevice = physicalDevice;
 
+		deviceWrapper->queues.resize(info.queueCreateInfoCount);
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
 			auto queue = new VkWrapperQueue();
 			queue->device = device;
 			queue->queue = device.getQueue(deviceQueueInfos[i].queueFamilyIndex, 0);
 			queue->queueFamilyIndex = deviceQueueInfos[i].queueFamilyIndex;
-			deviceWrapper->queues.push_back(queue);
+			deviceWrapper->queues[i] = queue;
 		}
 
 		return deviceWrapper;
@@ -215,9 +222,9 @@ namespace engine {
 			.setSurface(surface)
 			.setImageFormat(VkEnumFormat(info.format).Get())
 			.setMinImageCount(info.frameCount)
-			.setImageExtent(!info.imageExtent.width && !info.imageExtent.height
-				? surfaceCapabilities.currentExtent
-				: vk::Extent2D(info.imageExtent.width, info.imageExtent.height))
+			.setImageExtent(!info.imageExtent.width && !info.imageExtent.height ?
+				surfaceCapabilities.currentExtent :
+				vk::Extent2D(info.imageExtent.width, info.imageExtent.height))
 			.setPreTransform(surfaceCapabilities.currentTransform)
 			.setPresentMode(vk::PresentModeKHR::eFifo)
 			.setImageSharingMode(vk::SharingMode::eExclusive)
@@ -238,7 +245,7 @@ namespace engine {
 		for (auto& image : images) {
 			auto imageWrapper = new VkWrapperImage();
 			imageWrapper->image = image;
-			swapchainImages.push_back(imageWrapper);
+			swapchainImages.emplace_back(imageWrapper);
 		}
 		
 		auto swapchainWrapper = new VkWrapperSwapchain();
@@ -362,11 +369,11 @@ namespace engine {
 			.setPipelineBindPoint(VkEnumPipelineBindPoint(info.pipelineType).Get());
 		
 		uint32_t referenceIndex = 0;
-		std::vector<vk::AttachmentReference> colorAttachmentReferences;
+		std::vector<vk::AttachmentReference> colorAttachmentReferences(info.colorAttachmentCount);
 		for (uint32_t i = 0; i < info.colorAttachmentCount; i++) {
-			colorAttachmentReferences.push_back(vk::AttachmentReference()
+			colorAttachmentReferences[i] = vk::AttachmentReference()
 				.setAttachment(referenceIndex)
-				.setLayout(VkEnumImageLayout(info.pColorAttachments[i].passLayout).Get()));
+				.setLayout(VkEnumImageLayout(info.pColorAttachments[i].passLayout).Get());
 			referenceIndex++;
 		}
 		subpassInfo.setColorAttachments(colorAttachmentReferences);
@@ -379,19 +386,19 @@ namespace engine {
 			referenceIndex++;
 		}
 
-		std::vector<vk::AttachmentDescription> attachmentDescriptions;
+		std::vector<vk::AttachmentDescription> attachmentDescriptions(info.colorAttachmentCount);
 		for (uint32_t i = 0; i < info.colorAttachmentCount; i++) {
 			auto& attachment = info.pColorAttachments[i];
-			attachmentDescriptions.push_back(vk::AttachmentDescription()
+			attachmentDescriptions[i] = vk::AttachmentDescription()
 				.setFormat(VkEnumFormat(attachment.format).Get())
 				.setSamples(VkEnumSampleCount(attachment.sampleCount).Get())
 				.setInitialLayout(VkEnumImageLayout(info.pColorAttachments[i].initialLayout).Get())
 				.setFinalLayout(VkEnumImageLayout(info.pColorAttachments[i].finalLayout).Get())
 				.setLoadOp(VkEnumAttachmentLoadOp(attachment.loadOp).Get())
-				.setStoreOp(VkEnumAttachmentStoreOp(attachment.storeOp).Get()));
+				.setStoreOp(VkEnumAttachmentStoreOp(attachment.storeOp).Get());
 		}
 		if (info.pDepthStencilAttachment) {
-			attachmentDescriptions.push_back(vk::AttachmentDescription()
+			attachmentDescriptions.emplace_back(vk::AttachmentDescription()
 				.setFormat(VkEnumFormat(info.pDepthStencilAttachment->format).Get())
 				.setSamples(VkEnumSampleCount(info.pDepthStencilAttachment->sampleCount).Get())
 				.setInitialLayout(VkEnumImageLayout(info.pDepthStencilAttachment->initialLayout).Get())
@@ -435,32 +442,32 @@ namespace engine {
 	}
 
 	rhi::Pipeline VkWrapperDevice::CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo& info) const {
-		std::vector<vk::PipelineShaderStageCreateInfo> shaderStageInfos;
+		std::vector<vk::PipelineShaderStageCreateInfo> shaderStageInfos(info.shaderStageInfo.shaderModuleCount);
 		for (uint32_t i = 0; i < info.shaderStageInfo.shaderModuleCount; i++) {
 			auto shaderModule = static_cast<VkWrapperShaderModule*>(info.shaderStageInfo.pShaderModules[i]);
-			shaderStageInfos.push_back(vk::PipelineShaderStageCreateInfo()
+			shaderStageInfos[i] = vk::PipelineShaderStageCreateInfo()
 				.setModule(shaderModule->shaderModule)
 				.setPName(shaderModule->entryPoint)
-				.setStage(VkEnumShaderStage(shaderModule->shaderStage).Get()));
+				.setStage(VkEnumShaderStage(shaderModule->shaderStage).Get());
 		}
 
-		std::vector<vk::VertexInputBindingDescription> vertexBindingInfos;
+		std::vector<vk::VertexInputBindingDescription> vertexBindingInfos(info.vertexInputInfo.bindingCount);
 		for (uint32_t i = 0; i < info.vertexInputInfo.bindingCount; i++) {
 			auto& binding = info.vertexInputInfo.pBindings[i];
-			vertexBindingInfos.push_back(vk::VertexInputBindingDescription()
+			vertexBindingInfos[i] = vk::VertexInputBindingDescription()
 				.setBinding(binding.bindingSlot)
 				.setStride(binding.stride)
-				.setInputRate(VkEnumVertexInputRate(binding.inputRate).Get()));
+				.setInputRate(VkEnumVertexInputRate(binding.inputRate).Get());
 		}
 
-		std::vector<vk::VertexInputAttributeDescription> vertexAttributeInfos;
+		std::vector<vk::VertexInputAttributeDescription> vertexAttributeInfos(info.vertexInputInfo.attributeCount);
 		for (uint32_t i = 0; i < info.vertexInputInfo.attributeCount; i++) {
 			auto& attribute = info.vertexInputInfo.pAttributes[i];
-			vertexAttributeInfos.push_back(vk::VertexInputAttributeDescription()
+			vertexAttributeInfos[i] = vk::VertexInputAttributeDescription()
 				.setBinding(attribute.bindingSlot)
 				.setLocation(attribute.location)
 				.setFormat(VkEnumFormat(attribute.format).Get())
-				.setOffset(attribute.offset));
+				.setOffset(attribute.offset);
 		}
 		
 		auto vertexInputInfo = vk::PipelineVertexInputStateCreateInfo()
@@ -474,7 +481,14 @@ namespace engine {
 		auto tessellatonInfo = vk::PipelineTessellationStateCreateInfo()
 			.setPatchControlPoints(info.tessellationInfo.patchControlPoints);
 		
+		auto rasterizationLineInfoEXT = vk::PipelineRasterizationLineStateCreateInfoEXT()
+			.setLineRasterizationMode(info.rasterizationInfo.smoothLine ?
+				vk::LineRasterizationModeEXT::eRectangularSmooth :
+				vk::LineRasterizationModeEXT::eDefault)
+			.setStippledLineEnable(VK_FALSE);
+
 		auto rasterizationInfo = vk::PipelineRasterizationStateCreateInfo()
+			.setPNext(&rasterizationLineInfoEXT)
 			.setCullMode(VkEnumCullMode(info.rasterizationInfo.cullMode).Get())
 			.setPolygonMode(VkEnumPolygonMode(info.rasterizationInfo.polygonMode).Get())
 			.setFrontFace(VkEnumFrontFace(info.rasterizationInfo.frontFace).Get())
@@ -485,21 +499,21 @@ namespace engine {
 			.setDepthBiasClamp(info.rasterizationInfo.depthClamp)
 			.setRasterizerDiscardEnable(VK_FALSE);
 
-		std::vector<vk::Rect2D> scissors;
+		std::vector<vk::Rect2D> scissors(info.viewportInfo.scissorCount);
 		for (uint32_t i = 0; i < info.viewportInfo.scissorCount; i++) {
 			auto& scissorInfo = info.viewportInfo.pScissors[i];
-			scissors.push_back(vk::Rect2D()
+			scissors[i] = vk::Rect2D()
 				.setExtent(vk::Extent2D(scissorInfo.extent.width, scissorInfo.extent.height))
-				.setOffset(vk::Offset2D(scissorInfo.offset.x, scissorInfo.offset.y)));
+				.setOffset(vk::Offset2D(scissorInfo.offset.x, scissorInfo.offset.y));
 		}
 
-		std::vector<vk::Viewport> viewports;
+		std::vector<vk::Viewport> viewports(info.viewportInfo.viewportCount);
 		for (uint32_t i = 0; i < info.viewportInfo.viewportCount; i++) {
 			auto& viewportInfo = info.viewportInfo.pViewports[i];
-			viewports.push_back(vk::Viewport()
+			viewports[i] = vk::Viewport()
 				.setWidth(viewportInfo.width).setHeight(viewportInfo.height)
 				.setX(viewportInfo.x).setY(viewportInfo.y)
-				.setMinDepth(viewportInfo.minDepth).setMaxDepth(viewportInfo.maxDepth));
+				.setMinDepth(viewportInfo.minDepth).setMaxDepth(viewportInfo.maxDepth);
 		}
 
 		auto viewportInfo = vk::PipelineViewportStateCreateInfo()
@@ -530,15 +544,15 @@ namespace engine {
 			.setDepthBoundsTestEnable(info.depthStencilInfo.depthBoundsTestEnable)
 			.setMinDepthBounds(info.depthStencilInfo.minDepthBounds)
 			.setMaxDepthBounds(info.depthStencilInfo.maxDepthBounds)
-			.setDepthCompareOp(VkEnumCompareOp(info.depthStencilInfo.compareOp).Get())
+			.setDepthCompareOp(VkEnumCompareOp(info.depthStencilInfo.depthCompareOp).Get())
 			.setStencilTestEnable(info.depthStencilInfo.stencilTestEnable)
 			.setFront(frontOp)
 			.setBack(backOp);
 
-		std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
+		std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments(info.colorBlendInfo.attachmentCount);
 		for (uint32_t i = 0; i < info.colorBlendInfo.attachmentCount; i++) {
 			auto& attachmentInfo = info.colorBlendInfo.pAttachments[i];
-			colorBlendAttachments.push_back(vk::PipelineColorBlendAttachmentState()
+			colorBlendAttachments[i] = vk::PipelineColorBlendAttachmentState()
 				.setBlendEnable(attachmentInfo.blendEnable)
 				.setColorWriteMask(VkEnumColorComponent(attachmentInfo.colorWriteMask).Get())
 				.setColorBlendOp(VkEnumBlendOp(attachmentInfo.colorBlendOp).Get())
@@ -546,7 +560,7 @@ namespace engine {
 				.setSrcColorBlendFactor(VkEnumBlendFactor(attachmentInfo.srcColorBlendFactor).Get())
 				.setDstColorBlendFactor(VkEnumBlendFactor(attachmentInfo.dstColorBlendFactor).Get())
 				.setSrcAlphaBlendFactor(VkEnumBlendFactor(attachmentInfo.srcAlphaBlendFactor).Get())
-				.setDstAlphaBlendFactor(VkEnumBlendFactor(attachmentInfo.dstAlphaBlendFactor).Get()));
+				.setDstAlphaBlendFactor(VkEnumBlendFactor(attachmentInfo.dstAlphaBlendFactor).Get());
 		}
 
 		auto colorBlendInfo = vk::PipelineColorBlendStateCreateInfo()
@@ -619,7 +633,7 @@ namespace engine {
 				throw std::runtime_error("Create image view failed");
 			}
 
-			framebufferWrapper->colorAttachments.push_back(imageView);
+			framebufferWrapper->colorAttachments.emplace_back(imageView);
 		}
 		attachments.insert(attachments.end(), framebufferWrapper->colorAttachments.begin(), framebufferWrapper->colorAttachments.end());
 
@@ -647,7 +661,7 @@ namespace engine {
 			}
 
 			framebufferWrapper->depthStencilAttachment = depthStencilAttachment;
-			attachments.push_back(depthStencilAttachment);
+			attachments.emplace_back(depthStencilAttachment);
 		}
 		
 		auto framebufferInfo = vk::FramebufferCreateInfo()
@@ -689,9 +703,9 @@ namespace engine {
 	
 
 	void VkWrapperQueue::SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
-		std::vector<vk::CommandBuffer> submitCommandBuffers;
+		std::vector<vk::CommandBuffer> submitCommandBuffers(commandBufferCount);
 		for (uint32_t i = 0; i < commandBufferCount; i++) {
-			submitCommandBuffers.push_back(static_cast<VkWrapperCommandBuffer*>(commandBuffers[i])->commandBuffer);
+			submitCommandBuffers[i] = static_cast<VkWrapperCommandBuffer*>(commandBuffers[i])->commandBuffer;
 		}
 
 		auto submitInfo = vk::SubmitInfo()
@@ -745,12 +759,12 @@ namespace engine {
 			throw std::runtime_error("Allocate command buffers failed");
 		}
 
-		std::vector<rhi::CommandBuffer> cmdWrappers;
+		std::vector<rhi::CommandBuffer> cmdWrappers(bufferCount);
 		for (uint32_t i = 0; i < bufferCount; i++) {
 			auto cmdWrapper = new VkWrapperCommandBuffer();
 			cmdWrapper->commandPool = commandPool;
 			cmdWrapper->commandBuffer = cmdBuffer[i];
-			cmdWrappers.push_back(cmdWrapper);
+			cmdWrappers[i] = cmdWrapper;
 		}
 
 		commandBuffers.insert(commandBuffers.end(), cmdWrappers.begin(), cmdWrappers.end());
@@ -775,12 +789,12 @@ namespace engine {
 	void VkWrapperCommandBuffer::BeginRenderPass(const rhi::RenderPassBeginInfo& info) {
 		auto framebuffer = static_cast<VkWrapperFramebuffer*>(info.framebuffer);
 
-		std::vector<vk::ClearValue> clearValues;
+		std::vector<vk::ClearValue> clearValues(framebuffer->colorAttachments.size());
 		for (uint32_t i = 0; i < framebuffer->colorAttachments.size(); i++) {
-			clearValues.push_back(vk::ClearColorValue(info.pClearColorValues[i].colorValue));
+			clearValues[i] = vk::ClearColorValue(info.pClearColorValues[i].colorValue);
 		}
 		if (framebuffer->depthStencilAttachment) {
-			clearValues.push_back(vk::ClearDepthStencilValue(info.clearDepthStencilValue.depthValue, info.clearDepthStencilValue.stencilValue));
+			clearValues.emplace_back(vk::ClearDepthStencilValue(info.clearDepthStencilValue.depthValue, info.clearDepthStencilValue.stencilValue));
 		}
 
 		auto renderPassBeginInfo = vk::RenderPassBeginInfo()

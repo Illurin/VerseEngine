@@ -8,7 +8,7 @@ namespace engine {
 
 	class VkWrapperInstance final : public rhi::Instance_T {
 	public:
-		void Init(const rhi::InstanceInitInfo&) override;
+		void Init(const rhi::InstanceCreateInfo&) override;
 		void Destroy() override;
 
 		std::vector<rhi::PhysicalDeviceInfo> GetPhysicalDeviceInfo() const override;
@@ -17,7 +17,7 @@ namespace engine {
 		ShaderCompiler CreateShaderCompiler() const override;
 
 	private:
-		void CreateInstance(const rhi::InstanceInitInfo&);
+		void CreateInstance(const rhi::InstanceCreateInfo&);
 
 	private:
 		vk::Instance instance{ nullptr };
@@ -25,13 +25,13 @@ namespace engine {
 		struct {
 			std::vector<const char*> instance;
 			std::vector<const char*> device;
-		}extensions;
+		} extensions;
 
 		struct {
 			const char* apiName{ nullptr };
 			const char* applicationName{ nullptr };
 			uint32_t applicationVersion{ 0 };
-		}info;
+		} info;
 
 		std::vector<const char*> validationLayers;
 

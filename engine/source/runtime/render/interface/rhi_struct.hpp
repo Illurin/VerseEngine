@@ -122,10 +122,10 @@ namespace engine {
 			ComponentSwizzle a;
 		};
 
-		struct InstanceInitInfo {
-			InstanceInitInfo& SetPApiName(const char* pApiName) { this->pApiName = pApiName; return *this; }
-			InstanceInitInfo& SetPApplicationName(const char* pApplicationName) { this->pApplicationName = pApplicationName; return *this; }
-			InstanceInitInfo& SetApplicationVersion(uint32_t applicationVersion) { this->applicationVersion = applicationVersion; return *this; }
+		struct InstanceCreateInfo {
+			InstanceCreateInfo& SetPApiName(const char* pApiName) { this->pApiName = pApiName; return *this; }
+			InstanceCreateInfo& SetPApplicationName(const char* pApplicationName) { this->pApplicationName = pApplicationName; return *this; }
+			InstanceCreateInfo& SetApplicationVersion(uint32_t applicationVersion) { this->applicationVersion = applicationVersion; return *this; }
 
 			const char* pApiName;
 			const char* pApplicationName;
@@ -297,7 +297,7 @@ namespace engine {
 			const char* pEntryPoint;
 			ShaderStage shaderStage;
 		};
-
+		
 		struct PipelineShaderStageInfo {
 			PipelineShaderStageInfo& SetShaderModuleCount(uint32_t shaderModuleCount) { this->shaderModuleCount = shaderModuleCount; return *this; }
 			PipelineShaderStageInfo& SetPShaderModules(ShaderModule* pShaderModules) { this->pShaderModules = pShaderModules; return *this; }
@@ -362,17 +362,19 @@ namespace engine {
 			PipelineRasterizationInfo& SetPolygonMode(PolygonMode polygonMode) { this->polygonMode = polygonMode; return *this; }
 			PipelineRasterizationInfo& SetFrontFace(FrontFace frontFace) { this->frontFace = frontFace; return *this; }
 			PipelineRasterizationInfo& SetLineWidth(float lineWidth) { this->lineWidth = lineWidth; return *this; }
+			PipelineRasterizationInfo& SetSmoothLine(bool smoothLine) { this->smoothLine = smoothLine; return *this; }
 			PipelineRasterizationInfo& SetDepthBias(float depthBias) { this->depthBias = depthBias; return *this; }
 			PipelineRasterizationInfo& SetSlopeScaledDepthBias(float slopeScaledDepthBias) { this->slopeScaledDepthBias = slopeScaledDepthBias; return *this; }
-			PipelineRasterizationInfo& SetDepthClamp(bool depthClamp) { this->depthClamp = depthClamp; return *this; }
+			PipelineRasterizationInfo& SetDepthClamp(float depthClamp) { this->depthClamp = depthClamp; return *this; }
 
 			CullMode cullMode;
 			PolygonMode polygonMode;
 			FrontFace frontFace;
 			float lineWidth;
+			bool smoothLine;
 			float depthBias;
 			float slopeScaledDepthBias;
-			bool depthClamp;
+			float depthClamp;
 		};
 
 		struct PipelineViewportInfo {
@@ -390,15 +392,15 @@ namespace engine {
 		};
 
 		struct DepthStencilOpState {
+			DepthStencilOpState& SetCompareOp(CompareOp compareOp) { this->compareOp = compareOp; }
 			DepthStencilOpState& SetPassOp(StencilOp passOp) { this->passOp = passOp; }
 			DepthStencilOpState& SetFailOp(StencilOp failOp) { this->failOp = failOp; }
 			DepthStencilOpState& SetDepthFailOp(StencilOp depthFailOp) { this->depthFailOp = depthFailOp; }
-			DepthStencilOpState& SetCompareOp(CompareOp compareOp) { this->compareOp = compareOp; }
 
+			CompareOp compareOp;
 			StencilOp passOp;
 			StencilOp failOp;
 			StencilOp depthFailOp;
-			CompareOp compareOp;
 		};
 
 		struct PipelineDepthStencilInfo {
@@ -407,7 +409,7 @@ namespace engine {
 			PipelineDepthStencilInfo& SetDepthBoundsTestEnable(bool depthBoundsTestEnable) { this->depthBoundsTestEnable = depthBoundsTestEnable; return *this; }
 			PipelineDepthStencilInfo& SetMinDepthBounds(float minDepthBounds) { this->minDepthBounds = minDepthBounds; return *this; }
 			PipelineDepthStencilInfo& SetMaxDepthBounds(float maxDepthBounds) { this->maxDepthBounds = maxDepthBounds; return *this; }
-			PipelineDepthStencilInfo& SetCompareFunc(CompareOp compareOp) { this->compareOp = compareOp; return *this; }
+			PipelineDepthStencilInfo& SetDepthCompareOp(CompareOp depthCompareOp) { this->depthCompareOp = depthCompareOp; return *this; }
 			PipelineDepthStencilInfo& SetStencilTestEnable(bool stencilTestEnable) { this->stencilTestEnable = stencilTestEnable; return *this; }
 			PipelineDepthStencilInfo& SetFrontOp(DepthStencilOpState frontOp) { this->frontOp = frontOp; return *this; }
 			PipelineDepthStencilInfo& SetBackOp(DepthStencilOpState backOp) { this->backOp = backOp; return *this; }
@@ -419,7 +421,7 @@ namespace engine {
 			bool depthBoundsTestEnable;
 			float minDepthBounds;
 			float maxDepthBounds;
-			CompareOp compareOp;
+			CompareOp depthCompareOp;
 			bool stencilTestEnable;
 			DepthStencilOpState frontOp;
 			DepthStencilOpState backOp;

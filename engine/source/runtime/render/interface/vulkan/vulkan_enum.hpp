@@ -57,8 +57,6 @@ namespace engine {
 			case rhi::Format::R32G32B32A32Sfloat: format_ = vk::Format::eR32G32B32A32Sfloat; break;
 			case rhi::Format::D16Unorm: format_ = vk::Format::eD16Unorm; break;
 			case rhi::Format::D32Sfloat: format_ = vk::Format::eD32Sfloat; break;
-			case rhi::Format::S8Uint: format_ = vk::Format::eS8Uint; break;
-			case rhi::Format::D16UnormS8Uint: format_ = vk::Format::eD16UnormS8Uint; break;
 			case rhi::Format::D24UnormS8Uint: format_ = vk::Format::eD24UnormS8Uint; break;
 			case rhi::Format::D32SfloatS8Uint: format_ = vk::Format::eD32SfloatS8Uint; break;
 			}
@@ -369,7 +367,6 @@ namespace engine {
 			case rhi::CullMode::None: cullMode_ = vk::CullModeFlagBits::eNone; break;
 			case rhi::CullMode::Front: cullMode_ = vk::CullModeFlagBits::eFront; break;
 			case rhi::CullMode::Back: cullMode_ = vk::CullModeFlagBits::eBack; break;
-			case rhi::CullMode::Both: cullMode_ = vk::CullModeFlagBits::eFrontAndBack; break;
 			}
 		}
 
@@ -383,9 +380,8 @@ namespace engine {
 	public:
 		VkEnumPolygonMode(rhi::PolygonMode polygonMode) {
 			switch (polygonMode) {
-			case rhi::PolygonMode::Point: polygonMode_ = vk::PolygonMode::ePoint; break;
-			case rhi::PolygonMode::Line: polygonMode_ = vk::PolygonMode::eLine; break;
-			case rhi::PolygonMode::Fill: polygonMode_ = vk::PolygonMode::eFill; break;
+			case rhi::PolygonMode::Wireframe: polygonMode_ = vk::PolygonMode::eLine; break;
+			case rhi::PolygonMode::Solid: polygonMode_ = vk::PolygonMode::eFill; break;
 			}
 		}
 

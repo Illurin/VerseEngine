@@ -9,7 +9,7 @@ namespace engine {
 
 		class Instance_T {
 		public:
-			virtual void Init(const InstanceInitInfo&) = 0;
+			virtual void Init(const InstanceCreateInfo&) = 0;
 			virtual void Destroy() = 0;
 
 			virtual std::vector<PhysicalDeviceInfo> GetPhysicalDeviceInfo() const = 0;

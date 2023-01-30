@@ -49,8 +49,6 @@ namespace engine {
 			R32G32B32A32Sfloat,
 			D16Unorm,
 			D32Sfloat,
-			S8Uint,
-			D16UnormS8Uint,
 			D24UnormS8Uint,
 			D32SfloatS8Uint
 		};
@@ -190,14 +188,12 @@ namespace engine {
 		enum class CullMode {
 			None,
 			Front,
-			Back,
-			Both
+			Back
 		};
 
 		enum class PolygonMode {
-			Fill,
-			Line,
-			Point
+			Wireframe,
+			Solid
 		};
 
 		enum class FrontFace {

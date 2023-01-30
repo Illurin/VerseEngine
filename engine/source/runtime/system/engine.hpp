@@ -2,7 +2,7 @@
 
 #include "runtime/system/global_config.hpp"
 #include "runtime/system/platform/platform_info.hpp"
-#include "runtime/render/interface/vulkan/vulkan_rhi.hpp"
+#include "runtime/render/interface/rhi_instance.hpp"
 
 namespace engine {
 

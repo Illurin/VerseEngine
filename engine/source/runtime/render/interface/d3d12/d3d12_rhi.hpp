@@ -9,13 +9,13 @@ namespace engine {
 
 	class D3D12WrapperInstance final : public rhi::Instance_T {
 	public:
-		virtual void Init(const rhi::InstanceInitInfo&) = 0;
-		virtual void Destroy() = 0;
+		void Init(const rhi::InstanceCreateInfo&) override;
+		void Destroy() override;
 
-		virtual std::vector<rhi::PhysicalDeviceInfo> GetPhysicalDeviceInfo() const = 0;
+		std::vector<rhi::PhysicalDeviceInfo> GetPhysicalDeviceInfo() const override;
 
-		virtual rhi::Device CreateDevice(const rhi::DeviceCreateInfo&) const = 0;
-		virtual ShaderCompiler CreateShaderCompiler() const = 0;
+		rhi::Device CreateDevice(const rhi::DeviceCreateInfo&) const override;
+		ShaderCompiler CreateShaderCompiler() const override;
 
 	private:
 		IDXGIFactory7* factory{ nullptr };
@@ -36,23 +36,23 @@ namespace engine {
 		IDXGIFactory7* factory{ nullptr };
 
 	public:
-		virtual void Destroy() = 0;
+		virtual void Destroy() override;
 
-		virtual rhi::Queue GetQueue(uint32_t queueIndex) const = 0;
+		rhi::Queue GetQueue(uint32_t queueIndex) const override;
 
-		virtual rhi::Swapchain CreateSwapchain(const rhi::SwapchainCreateInfo&) const = 0;
-		virtual CommandPool CreateCommandPool(const CommandPoolCreateInfo&) const = 0;
-		virtual Buffer CreateBuffer(const BufferCreateInfo&) const = 0;
-		virtual Image CreateImage(const ImageCreateInfo&) const = 0;
-		//virtual DescriptorPool CreateDescriptorPool(const DescriptorPoolCreateInfo&) const = 0;
-		virtual RenderPass CreateRenderPass(const RenderPassCreateInfo&) const = 0;
-		virtual ShaderModule CreateShaderModule(const ShaderModuleCreateInfo&) const = 0;
-		virtual Pipeline CreateGraphicsPipeline(const GraphicsPipelineCreateInfo&) const = 0;
-		virtual Framebuffer CreateFramebuffer(const FramebufferCreateInfo&) const = 0;
-		virtual Fence CreateFence(const FenceCreateInfo&) const = 0;
+		rhi::Swapchain CreateSwapchain(const rhi::SwapchainCreateInfo&) const override;
+		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
+		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
+		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
+		//rhi::DescriptorPool CreateDescriptorPool(const DescriptorPoolCreateInfo&) const override;
+		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
+		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
+		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
+		rhi::Framebuffer CreateFramebuffer(const rhi::FramebufferCreateInfo&) const override;
+		rhi::Fence CreateFence(const rhi::FenceCreateInfo&) const override;
 
 	private:
-		ID3D12Device* device{ nullptr };
+		ID3D12Device2* device{ nullptr };
 		std::vector<rhi::Queue> queues;
 	};
 
@@ -61,8 +61,8 @@ namespace engine {
 		friend class D3D12WrapperDevice;
 
 	public:
-		virtual void SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) = 0;
-		virtual void PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) = 0;
+		void SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) override;
+		void PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) override;
 
 	private:
 		ID3D12CommandQueue* queue{ nullptr };
@@ -73,87 +73,119 @@ namespace engine {
 		friend class D3D12WrapperDevice;
 
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
 
-		virtual rhi::Extent2D GetImageExtent() const = 0;
-		virtual std::vector<rhi::Image> GetImages() const = 0;
-		virtual uint32_t AcquireNextImage(rhi::Fence) = 0;
+		rhi::Extent2D GetImageExtent() const override;
+		std::vector<rhi::Image> GetImages() const override;
+		uint32_t AcquireNextImage(rhi::Fence) override;
 
 	private:
 		IDXGISwapChain3* swapchain{ nullptr };
+		std::vector<rhi::Image> images;
+		rhi::Extent2D imageExtent{ 0, 0 };
+		uint32_t currentImageIndex{ 0 };
 	};
 
-	class CommandPool_T {
+	class D3D12WrapperCommandPool final : public rhi::CommandPool_T {
+		friend class D3D12WrapperDevice;
+
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
 
-		virtual void Reset() = 0;
+		void Reset() override;
 
-		virtual std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) = 0;
+		std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) override;
+
+	private:
+		ID3D12CommandAllocator* commandAllocator{ nullptr };
+		D3D12_COMMAND_LIST_TYPE commandListType{ D3D12_COMMAND_LIST_TYPE_DIRECT };
 	};
 
-	class CommandBuffer_T {
+	class D3D12WrapperCommandBuffer final : public rhi::CommandBuffer_T{
 	public:
-		virtual void Reset() = 0;
-		virtual void Begin(const CommandBufferBeginInfo&) = 0;
-		virtual void End() = 0;
+		void Reset() override;
+		void Begin(const rhi::CommandBufferBeginInfo&) override;
+		void End() override;
 
-		virtual void BeginRenderPass(const RenderPassBeginInfo&) = 0;
-		virtual void EndRenderPass() = 0;
-		virtual void BindPipeline(const Pipeline&) = 0;
-		virtual void BindVertexBuffer(uint32_t bindingCount, Buffer* pBuffer, uint64_t* pOffsets) = 0;
-		virtual void BindIndexBuffer(Buffer& buffer, uint64_t offset, IndexType indexType) = 0;
+		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
+		void EndRenderPass() override;
+		void BindPipeline(const rhi::Pipeline&) override;
+		void BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) override;
+		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
 
-		virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const = 0;
-		virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstVertex, int32_t vertexOffset, uint32_t firstInstance) const = 0;
+		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const override;
+		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstVertex, int32_t vertexOffset, uint32_t firstInstance) const override;
 	};
 
-	class Buffer_T {
+	class D3D12WrapperBuffer final : public rhi::Buffer_T {
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
 	};
 
-	class Image_T {
+	class D3D12WrapperImage final : public rhi::Image_T{
+		friend class D3D12WrapperDevice;
+
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
+
+	private:
+		ID3D12Resource* resource{ nullptr };
 	};
 
-	class RenderPass_T {
+	class D3D12WrapperRenderPass final : public rhi::RenderPass_T {
+		friend class D3D12WrapperDevice;
+
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
+
+	private:
+		uint32_t colorAttachmentCount;
+		rhi::AttachmentDescription* pColorAttachments;
+		rhi::AttachmentDescription* pDepthStencilAttachment;
 	};
 
-	class ShaderModule_T {
+	class D3D12WrapperShaderModule final : public rhi::ShaderModule_T {
+		friend class D3D12WrapperDevice;
+		friend class D3D12WrapperPipeline;
+
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
 
+	private:
+		std::vector<char> binarySource;
+		rhi::ShaderStage shaderStage{ 0 };
 	};
 
-	class Pipeline_T {
+	class D3D12WrapperPipeline final : public rhi::Pipeline_T {
+		friend class D3D12WrapperDevice;
+
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
 
-
+	private:
+		ID3D12PipelineState* pipeline;
+		std::vector<D3D12_RECT> scissors;
+		std::vector<D3D12_VIEWPORT> viewports;
+		struct {
+			float minDepthBounds;
+			float maxDepthBounds;
+		} depthStencilInfo;
 	};
 
-	class Framebuffer_T {
+	class D3D12WrapperFramebuffer final : public rhi::Framebuffer_T {
 	public:
-		virtual void Destroy() = 0;
-
-
+		void Destroy() override;
 	};
 
-	class Fence_T {
+	class D3D12WrapperFence final : public rhi::Fence_T {
 	public:
-		virtual void Destroy() = 0;
+		void Destroy() override;
 
-		virtual void Reset() = 0;
-		virtual void Wait() = 0;
+		void Reset() override;
+		void Wait() override;
 
-		virtual bool GetCurrentStatus() const = 0;
+		bool GetCurrentStatus() const override;
 	};
-
-	
 
 }
 

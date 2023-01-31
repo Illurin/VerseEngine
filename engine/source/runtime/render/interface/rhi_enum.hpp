@@ -101,10 +101,11 @@ namespace engine {
 			Undefined,
 			ColorAttachment,
 			DepthStencilAttachment,
-			ShaderRead,
+			DepthStencilReadOnly,
+			ShaderReadOnly,
 			TransferSrc,
 			TransferDst,
-			SwapchainPresent
+			Present
 		};
 
 		enum class ImageType {
@@ -145,11 +146,13 @@ namespace engine {
 
 		enum class AttachmentLoadOp {
 			Load,
-			Clear
+			Clear,
+			DontCare
 		};
 
 		enum class AttachmentStoreOp {
-			Store
+			Store,
+			DontCare
 		};
 
 		enum class ShaderStage {
@@ -177,7 +180,6 @@ namespace engine {
 			LineStrip,
 			TriangleList,
 			TriangleStrip,
-			TriangleFan,
 			LineListAdj,
 			LineStripAdj,
 			TriangleListAdj,

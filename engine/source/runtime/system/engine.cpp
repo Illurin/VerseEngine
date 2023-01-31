@@ -8,7 +8,7 @@ namespace engine {
 
 	void Engine::Start(const PlatformInfo& platformInfo) {
 		auto instanceInfo = rhi::InstanceCreateInfo()
-			.SetPApiName("Direct3D12")
+			.SetPApiName("Vulkan")
 			.SetPApplicationName("Test application")
 			.SetApplicationVersion(1);
 
@@ -46,7 +46,7 @@ namespace engine {
 			.SetStoreOp(rhi::AttachmentStoreOp::Store)
 			.SetInitialLayout(rhi::ImageLayout::Undefined)
 			.SetPassLayout(rhi::ImageLayout::ColorAttachment)
-			.SetFinalLayout(rhi::ImageLayout::SwapchainPresent);
+			.SetFinalLayout(rhi::ImageLayout::Present);
 		
 		auto renderPassInfo = rhi::RenderPassCreateInfo()
 			.SetPipelineType(rhi::PipelineType::Graphics)
@@ -145,35 +145,30 @@ namespace engine {
 		
 		commandPool = device->CreateCommandPool(commandPoolInfo);
 		
-		//commandBuffers = commandPool->AllocateCommandBuffers(frameCount);
+		commandBuffers = commandPool->AllocateCommandBuffers(frameCount);
 		
-		//for (auto& swapchainImage : swapchainImages) {
-		//	auto imageViewInfo = rhi::ImageViewInfo()
-		//		.SetImage(swapchainImage)
-		//		.SetFormat(swapchainFormat)
-		//		.SetViewType(rhi::ImageViewType::Image2D)
-		//		.SetComponentMapping(rhi::ComponentMapping()
-		//			.SetR(rhi::ComponentSwizzle::Identity)
-		//			.SetG(rhi::ComponentSwizzle::Identity)
-		//			.SetB(rhi::ComponentSwizzle::Identity)
-		//			.SetA(rhi::ComponentSwizzle::Identity))
-		//		.SetBaseMipLevel(0)
-		//		.SetMipLevelCount(1)
-		//		.SetBaseArrayLayer(0)
-		//		.SetArrayLayerCount(1);
-		//
-		//	auto framebufferInfo = rhi::FramebufferCreateInfo()
-		//		.SetWidth(renderExtent.width)
-		//		.SetHeight(renderExtent.height)
-		//		.SetLayers(1)
-		//		.SetColorAttachmentCount(1)
-		//		.SetPColorAttachments(&imageViewInfo)
-		//		.SetRenderPass(renderPass);
-		//
-		//	framebuffers.push_back(device->CreateFramebuffer(framebufferInfo));
-		//}
-		//
-		//fence = device->CreateFence(rhi::FenceCreateInfo());
+		for (auto& swapchainImage : swapchainImages) {
+			auto imageViewInfo = rhi::ImageViewInfo()
+				.SetImage(swapchainImage)
+				.SetFormat(swapchainFormat)
+				.SetViewType(rhi::ImageViewType::Image2D)
+				.SetBaseMipLevel(0)
+				.SetMipLevelCount(1)
+				.SetBaseArrayLayer(0)
+				.SetArrayLayerCount(1);
+		
+			auto framebufferInfo = rhi::FramebufferCreateInfo()
+				.SetWidth(renderExtent.width)
+				.SetHeight(renderExtent.height)
+				.SetLayers(1)
+				.SetColorAttachmentCount(1)
+				.SetPColorAttachments(&imageViewInfo)
+				.SetRenderPass(renderPass);
+		
+			framebuffers.push_back(device->CreateFramebuffer(framebufferInfo));
+		}
+
+		fence = device->CreateFence(rhi::FenceCreateInfo());
 	}
 
 	void Engine::Run() {
@@ -183,13 +178,13 @@ namespace engine {
 	}
 
 	void Engine::Exit() {
-		/*for (auto& framebuffer : framebuffers) framebuffer->Destroy();
+		for (auto& framebuffer : framebuffers) framebuffer->Destroy();
 		fence->Destroy();
 		swapchain->Destroy();
 		pipeline->Destroy();
 		commandPool->Destroy();
 		device->Destroy();
-		instance->Destroy();*/
+		instance->Destroy();
 	}
 
 	void Engine::Tick() {
@@ -202,33 +197,34 @@ namespace engine {
 	}
 
 	void Engine::RendererTick() {
-		//fence->Reset();
-		//uint32_t swapchainImageIndex = swapchain->AcquireNextImage(fence);
-		//auto& commandBuffer = commandBuffers[swapchainImageIndex];
-		//fence->Wait();
-		//
-		//commandBuffer->Reset();
-		//commandBuffer->Begin(rhi::CommandBufferBeginInfo());
-		//
-		//auto clearColorValue = rhi::ClearColorValue().SetColorValue(std::array<float, 4>({ 0.0f, 0.0f, 0.0f, 0.0f }));
+		fence->Reset();
+		uint32_t swapchainImageIndex = swapchain->AcquireNextImage(fence);
+		auto& commandBuffer = commandBuffers[swapchainImageIndex];
+		fence->Wait();
+		
+		commandBuffer->Reset();
+		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
+		
+		auto clearColorValue = rhi::ClearColorValue().SetColorValue(std::array<float, 4>({ 0.0f, 0.0f, 0.0f, 0.0f }));
 
-		//auto renderPassBeginInfo = rhi::RenderPassBeginInfo()
-		//	.SetRenderPass(renderPass)
-		//	.SetFramebuffer(framebuffers[swapchainImageIndex])
-		//	.SetPClearColorValues(&clearColorValue);
-		//commandBuffer->BeginRenderPass(renderPassBeginInfo);
+		auto renderPassBeginInfo = rhi::RenderPassBeginInfo()
+			.SetRenderPass(renderPass)
+			.SetFramebuffer(framebuffers[swapchainImageIndex])
+			.SetPClearColorValues(&clearColorValue);
+		commandBuffer->BeginRenderPass(renderPassBeginInfo);
 
-		//// Draw Call
-		//commandBuffer->BindPipeline(pipeline);
-		//commandBuffer->Draw(3, 1, 0, 0);
+		// Draw Call
+		commandBuffer->BindPipeline(pipeline);
 
-		//commandBuffer->EndRenderPass();
-		//commandBuffer->End();
+		commandBuffer->Draw(3, 1, 0, 0);
 
-		//fence->Reset();
-		//queue->SubmitCommandBuffers(1, &commandBuffer, fence);
-		//fence->Wait();
-		//queue->PresentSwapchain(swapchain, swapchainImageIndex);
+		commandBuffer->EndRenderPass();
+		commandBuffer->End();
+
+		fence->Reset();
+		queue->SubmitCommandBuffers(1, &commandBuffer, fence);
+		fence->Wait();
+		queue->PresentSwapchain(swapchain, swapchainImageIndex);
 	}
 
 	void Engine::CalculateDeltaTime() {

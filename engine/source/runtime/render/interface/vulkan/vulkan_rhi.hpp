@@ -42,6 +42,7 @@ namespace engine {
 
 	class VkWrapperDevice final : public rhi::Device_T {
 		friend class VkWrapperInstance;
+
 		vk::Instance instance{ nullptr };
 
 	public:
@@ -69,6 +70,7 @@ namespace engine {
 	class VkWrapperQueue final : public rhi::Queue_T {
 		friend class VkWrapperInstance;
 		friend class VkWrapperDevice;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -83,6 +85,7 @@ namespace engine {
 	class VkWrapperSwapchain final : public rhi::Swapchain_T {
 		friend class VkWrapperDevice;
 		friend class VkWrapperQueue;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -102,6 +105,7 @@ namespace engine {
 
 	class VkWrapperCommandPool final : public rhi::CommandPool_T {
 		friend class VkWrapperDevice;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -119,6 +123,7 @@ namespace engine {
 	class VkWrapperCommandBuffer final : public rhi::CommandBuffer_T {
 		friend class VkWrapperCommandPool;
 		friend class VkWrapperQueue;
+
 		vk::CommandPool commandPool{ nullptr };
 
 	public:
@@ -133,7 +138,7 @@ namespace engine {
 		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
 
 		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const override;
-		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstVertex, int32_t vertexOffset, uint32_t firstInstance) const override;
+		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) const override;
 
 	private:
 		vk::CommandBuffer commandBuffer{ nullptr };
@@ -142,6 +147,7 @@ namespace engine {
 	class VkWrapperBuffer final : public rhi::Buffer_T {
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -154,6 +160,7 @@ namespace engine {
 
 	class VkWrapperImage final : public rhi::Image_T {
 		friend class VkWrapperDevice;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -167,6 +174,7 @@ namespace engine {
 	class VkWrapperRenderPass final : public rhi::RenderPass_T {
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -179,6 +187,7 @@ namespace engine {
 	class VkWrapperShaderModule final : public rhi::ShaderModule_T {
 		friend class VkWrapperDevice;
 		friend class VkWrapperPipeline;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -193,6 +202,7 @@ namespace engine {
 	class VkWrapperPipeline final : public rhi::Pipeline_T {
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -206,6 +216,7 @@ namespace engine {
 	class VkWrapperFramebuffer final : public rhi::Framebuffer_T {
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
+
 		vk::Device device{ nullptr };
 
 	public:
@@ -222,6 +233,7 @@ namespace engine {
 		friend class VkWrapperDevice;
 		friend class VkWrapperQueue;
 		friend class VkWrapperSwapchain;
+
 		vk::Device device{ nullptr };
 
 	public:

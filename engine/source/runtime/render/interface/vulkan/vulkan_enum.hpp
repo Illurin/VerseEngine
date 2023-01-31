@@ -169,10 +169,11 @@ namespace engine {
 			case rhi::ImageLayout::Undefined: imageLayout_ = vk::ImageLayout::eUndefined; break;
 			case rhi::ImageLayout::ColorAttachment: imageLayout_ = vk::ImageLayout::eColorAttachmentOptimal; break;
 			case rhi::ImageLayout::DepthStencilAttachment: imageLayout_ = vk::ImageLayout::eDepthStencilAttachmentOptimal; break;
-			case rhi::ImageLayout::ShaderRead: imageLayout_ = vk::ImageLayout::eShaderReadOnlyOptimal; break;
+			case rhi::ImageLayout::DepthStencilReadOnly: imageLayout_ = vk::ImageLayout::eDepthStencilReadOnlyOptimal; break;
+			case rhi::ImageLayout::ShaderReadOnly: imageLayout_ = vk::ImageLayout::eShaderReadOnlyOptimal; break;
 			case rhi::ImageLayout::TransferSrc: imageLayout_ = vk::ImageLayout::eTransferSrcOptimal; break;
 			case rhi::ImageLayout::TransferDst: imageLayout_ = vk::ImageLayout::eTransferDstOptimal; break;
-			case rhi::ImageLayout::SwapchainPresent: imageLayout_ = vk::ImageLayout::ePresentSrcKHR; break;
+			case rhi::ImageLayout::Present: imageLayout_ = vk::ImageLayout::ePresentSrcKHR; break;
 			}
 		}
 
@@ -264,6 +265,7 @@ namespace engine {
 			switch (attachmentLoadOp) {
 			case rhi::AttachmentLoadOp::Clear: attachmentLoadOp_ = vk::AttachmentLoadOp::eClear; break;
 			case rhi::AttachmentLoadOp::Load: attachmentLoadOp_ = vk::AttachmentLoadOp::eLoad; break;
+			case rhi::AttachmentLoadOp::DontCare: attachmentLoadOp_ = vk::AttachmentLoadOp::eDontCare; break;
 			}
 		}
 
@@ -278,6 +280,7 @@ namespace engine {
 		VkEnumAttachmentStoreOp(rhi::AttachmentStoreOp attachmentStoreOp) {
 			switch (attachmentStoreOp) {
 			case rhi::AttachmentStoreOp::Store: attachmentStoreOp_ = vk::AttachmentStoreOp::eStore; break;
+			case rhi::AttachmentStoreOp::DontCare: attachmentStoreOp_ = vk::AttachmentStoreOp::eDontCare; break;
 			}
 		}
 
@@ -345,7 +348,6 @@ namespace engine {
 			case rhi::PrimitiveTopology::LineStrip: primitiveTopology_ = vk::PrimitiveTopology::eLineStrip; break;
 			case rhi::PrimitiveTopology::TriangleList: primitiveTopology_ = vk::PrimitiveTopology::eTriangleList; break;
 			case rhi::PrimitiveTopology::TriangleStrip: primitiveTopology_ = vk::PrimitiveTopology::eTriangleStrip; break;
-			case rhi::PrimitiveTopology::TriangleFan: primitiveTopology_ = vk::PrimitiveTopology::eTriangleFan; break;
 			case rhi::PrimitiveTopology::LineListAdj: primitiveTopology_ = vk::PrimitiveTopology::eLineListWithAdjacency; break;
 			case rhi::PrimitiveTopology::LineStripAdj: primitiveTopology_ = vk::PrimitiveTopology::eLineStripWithAdjacency; break;
 			case rhi::PrimitiveTopology::TriangleListAdj: primitiveTopology_ = vk::PrimitiveTopology::eTriangleListWithAdjacency; break;

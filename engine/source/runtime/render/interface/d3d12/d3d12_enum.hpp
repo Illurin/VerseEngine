@@ -121,37 +121,6 @@ namespace engine {
 		UINT sampleCount_{ 1 };
 	};
 
-	class D3D12EnumResourceState final {
-	public:
-		D3D12EnumResourceState(rhi::BufferUsage bufferUsage) {
-			switch (bufferUsage) {
-			case rhi::BufferUsage::UniformBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-			case rhi::BufferUsage::StorageBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-			case rhi::BufferUsage::UniformTexelBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-			case rhi::BufferUsage::StorageTexelBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-			case rhi::BufferUsage::VertexBuffer: state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-			case rhi::BufferUsage::IndexBuffer: state = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
-			case rhi::BufferUsage::TransferSrc: state = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
-			case rhi::BufferUsage::TransferDst: state = D3D12_RESOURCE_STATE_COPY_DEST; break;
-			}
-		}
-
-		D3D12EnumResourceState(rhi::ImageUsage bufferUsage) {
-			switch (bufferUsage) {
-			case rhi::ImageUsage::ColorAttachment: state = D3D12_RESOURCE_STATE_RENDER_TARGET; break;
-			case rhi::ImageUsage::DepthStencilAttachment: state = D3D12_RESOURCE_STATE_DEPTH_WRITE; break;
-			case rhi::ImageUsage::Sampled: state = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
-			case rhi::ImageUsage::TransferSrc: state = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
-			case rhi::ImageUsage::TransferDst: state = D3D12_RESOURCE_STATE_COPY_DEST; break;
-			}
-		}
-
-		D3D12_RESOURCE_STATES Get() const { return state; }
-
-	private:
-		D3D12_RESOURCE_STATES state{ D3D12_RESOURCE_STATE_COMMON };
-	};
-
 	class D3D12EnumUsage final {
 	public:
 		D3D12EnumUsage(rhi::ImageUsage imageUsage) {
@@ -170,6 +139,27 @@ namespace engine {
 		DXGI_USAGE imageUsage_{ DXGI_USAGE_RENDER_TARGET_OUTPUT };
 	};
 
+	class D3D12EnumResourceStates final {
+	public:
+		D3D12EnumResourceStates(rhi::ImageLayout imageLayout) {
+			switch (imageLayout) {
+			case rhi::ImageLayout::Undefined: resourceStates = D3D12_RESOURCE_STATE_COMMON; break;
+			case rhi::ImageLayout::ColorAttachment: resourceStates = D3D12_RESOURCE_STATE_RENDER_TARGET; break;
+			case rhi::ImageLayout::DepthStencilAttachment: resourceStates = D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ; break;
+			case rhi::ImageLayout::DepthStencilReadOnly: resourceStates = D3D12_RESOURCE_STATE_DEPTH_READ; break;
+			case rhi::ImageLayout::ShaderReadOnly: resourceStates = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
+			case rhi::ImageLayout::TransferSrc: resourceStates = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
+			case rhi::ImageLayout::TransferDst: resourceStates = D3D12_RESOURCE_STATE_COPY_DEST; break;
+			case rhi::ImageLayout::Present: resourceStates = D3D12_RESOURCE_STATE_PRESENT; break;
+			}
+		}
+
+		D3D12_RESOURCE_STATES Get() const { return resourceStates; }
+
+	private:
+		D3D12_RESOURCE_STATES resourceStates{ D3D12_RESOURCE_STATE_COMMON };
+	};
+
 	class D3D12EnumImageType final {
 	public:
 		D3D12EnumImageType(rhi::ImageType imageType) {
@@ -186,22 +176,39 @@ namespace engine {
 		D3D12_RESOURCE_DIMENSION imageType_{ D3D12_RESOURCE_DIMENSION_TEXTURE1D };
 	};
 
-	class D3D12EnumRTVType final {
+	class D3D12EnumRTVDimension final {
 	public:
-		D3D12EnumRTVType(rhi::ImageViewType imageViewType) {
+		D3D12EnumRTVDimension(rhi::ImageViewType imageViewType) {
 			switch (imageViewType) {
-			case rhi::ImageViewType::Image1D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE1D; break;
-			case rhi::ImageViewType::Image2D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE2D; break;
-			case rhi::ImageViewType::Image3D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE3D; break;
-			case rhi::ImageViewType::ImageArray1D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE1DARRAY; break;
-			case rhi::ImageViewType::ImageArray2D: imageViewType_ = D3D12_RTV_DIMENSION_TEXTURE2DARRAY; break;
+			case rhi::ImageViewType::Image1D: rtvDimension = D3D12_RTV_DIMENSION_TEXTURE1D; break;
+			case rhi::ImageViewType::Image2D: rtvDimension = D3D12_RTV_DIMENSION_TEXTURE2D; break;
+			case rhi::ImageViewType::Image3D: rtvDimension = D3D12_RTV_DIMENSION_TEXTURE3D; break;
+			case rhi::ImageViewType::ImageArray1D: rtvDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY; break;
+			case rhi::ImageViewType::ImageArray2D: rtvDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY; break;
 			}
 		}
 
-		D3D12_RTV_DIMENSION Get() const { return imageViewType_; }
+		D3D12_RTV_DIMENSION Get() const { return rtvDimension; }
 
 	private:
-		D3D12_RTV_DIMENSION imageViewType_{ D3D12_RTV_DIMENSION_UNKNOWN };
+		D3D12_RTV_DIMENSION rtvDimension{ D3D12_RTV_DIMENSION_UNKNOWN };
+	};
+
+	class D3D12EnumDSVDimension final {
+	public:
+		D3D12EnumDSVDimension(rhi::ImageViewType imageViewType) {
+			switch (imageViewType) {
+			case rhi::ImageViewType::Image1D: dsvDimension = D3D12_DSV_DIMENSION_TEXTURE1D; break;
+			case rhi::ImageViewType::Image2D: dsvDimension = D3D12_DSV_DIMENSION_TEXTURE2D; break;
+			case rhi::ImageViewType::ImageArray1D: dsvDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY; break;
+			case rhi::ImageViewType::ImageArray2D: dsvDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY; break;
+			}
+		}
+
+		D3D12_DSV_DIMENSION Get() const { return dsvDimension; }
+
+	private:
+		D3D12_DSV_DIMENSION dsvDimension{ D3D12_DSV_DIMENSION_UNKNOWN };
 	};
 
 	class D3D12EnumSRVType final {
@@ -244,6 +251,37 @@ namespace engine {
 		D3D12_DESCRIPTOR_HEAP_TYPE heapType_{ D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER };
 	};
 
+	class D3D12RenderPassBeginningAccessType final {
+	public:
+		D3D12RenderPassBeginningAccessType(rhi::AttachmentLoadOp attachmentLoadOp) {
+			switch (attachmentLoadOp) {
+			case rhi::AttachmentLoadOp::Load: acessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE; break;
+			case rhi::AttachmentLoadOp::Clear: acessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR; break;
+			case rhi::AttachmentLoadOp::DontCare: acessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS; break;
+			}
+		}
+
+		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE Get() const { return acessType; }
+
+	private:
+		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE acessType{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD };
+	};
+
+	class D3D12RenderPassEndingAccessType final {
+	public:
+		D3D12RenderPassEndingAccessType(rhi::AttachmentStoreOp attachmentStoreOp) {
+			switch (attachmentStoreOp) {
+			case rhi::AttachmentStoreOp::Store: acessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE; break;
+			case rhi::AttachmentStoreOp::DontCare: acessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS; break;
+			}
+		}
+
+		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE Get() const { return acessType; }
+
+	private:
+		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE acessType{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD };
+	};
+
 	class D3D12EnumPrimitiveTopologyType final {
 	public:
 		D3D12EnumPrimitiveTopologyType(rhi::PrimitiveTopology primitiveTopology) {
@@ -255,7 +293,6 @@ namespace engine {
 			case rhi::PrimitiveTopology::LineStripAdj: primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; break;
 			case rhi::PrimitiveTopology::TriangleList:
 			case rhi::PrimitiveTopology::TriangleStrip:
-			case rhi::PrimitiveTopology::TriangleFan:
 			case rhi::PrimitiveTopology::TriangleListAdj:
 			case rhi::PrimitiveTopology::TriangleStripAdj: primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; break;
 			case rhi::PrimitiveTopology::PatchList: primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH; break;
@@ -266,6 +303,73 @@ namespace engine {
 
 	private:
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType{ D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED };
+	};
+
+	class D3DEnumPrimitiveTopology final {
+	public:
+		D3DEnumPrimitiveTopology(rhi::PrimitiveTopology primitiveTopology) {
+			switch (primitiveTopology) {
+			case rhi::PrimitiveTopology::PointList: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_POINTLIST; break;
+			case rhi::PrimitiveTopology::LineList: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_LINELIST; break;
+			case rhi::PrimitiveTopology::LineStrip: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP; break;
+			case rhi::PrimitiveTopology::LineListAdj: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ; break;
+			case rhi::PrimitiveTopology::LineStripAdj: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ; break;
+			case rhi::PrimitiveTopology::TriangleList: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST; break;
+			case rhi::PrimitiveTopology::TriangleStrip: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP; break;
+			case rhi::PrimitiveTopology::TriangleListAdj: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ; break;
+			case rhi::PrimitiveTopology::TriangleStripAdj: primitiveTopology_ = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ; break;
+			}
+		}
+
+		D3D_PRIMITIVE_TOPOLOGY Get() const { return primitiveTopology_; }
+
+	private:
+		D3D_PRIMITIVE_TOPOLOGY primitiveTopology_{ D3D_PRIMITIVE_TOPOLOGY_UNDEFINED };
+	};
+
+	class D3DEnumPatchControlPoints final {
+	public:
+		D3DEnumPatchControlPoints(uint32_t patchControlPoints) {
+			switch (patchControlPoints) {
+			case 1: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST; break;
+			case 2: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_2_CONTROL_POINT_PATCHLIST; break;
+			case 3: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST; break;
+			case 4: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST; break;
+			case 5: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_5_CONTROL_POINT_PATCHLIST; break;
+			case 6: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_6_CONTROL_POINT_PATCHLIST; break;
+			case 7: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_7_CONTROL_POINT_PATCHLIST; break;
+			case 8: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_8_CONTROL_POINT_PATCHLIST; break;
+			case 9: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_9_CONTROL_POINT_PATCHLIST; break;
+			case 10: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_10_CONTROL_POINT_PATCHLIST; break;
+			case 11: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_11_CONTROL_POINT_PATCHLIST; break;
+			case 12: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_12_CONTROL_POINT_PATCHLIST; break;
+			case 13: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_13_CONTROL_POINT_PATCHLIST; break;
+			case 14: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_14_CONTROL_POINT_PATCHLIST; break;
+			case 15: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_15_CONTROL_POINT_PATCHLIST; break;
+			case 16: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST; break;
+			case 17: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_17_CONTROL_POINT_PATCHLIST; break;
+			case 18: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_18_CONTROL_POINT_PATCHLIST; break;
+			case 19: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_19_CONTROL_POINT_PATCHLIST; break;
+			case 20: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_20_CONTROL_POINT_PATCHLIST; break;
+			case 21: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_21_CONTROL_POINT_PATCHLIST; break;
+			case 22: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_22_CONTROL_POINT_PATCHLIST; break;
+			case 23: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_23_CONTROL_POINT_PATCHLIST; break;
+			case 24: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_24_CONTROL_POINT_PATCHLIST; break;
+			case 25: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST; break;
+			case 26: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_26_CONTROL_POINT_PATCHLIST; break;
+			case 27: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_27_CONTROL_POINT_PATCHLIST; break;
+			case 28: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_28_CONTROL_POINT_PATCHLIST; break;
+			case 29: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_29_CONTROL_POINT_PATCHLIST; break;
+			case 30: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_30_CONTROL_POINT_PATCHLIST; break;
+			case 31: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_31_CONTROL_POINT_PATCHLIST; break;
+			case 32: primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST; break;
+			}
+		}
+
+		D3D_PRIMITIVE_TOPOLOGY Get() const { return primitiveTopology; }
+
+	private:
+		D3D_PRIMITIVE_TOPOLOGY primitiveTopology{ D3D_PRIMITIVE_TOPOLOGY_UNDEFINED };
 	};
 
 	class D3D12EnumCullMode final {
@@ -423,6 +527,8 @@ namespace engine {
 	private:
 		D3D12_COLOR_WRITE_ENABLE colorWriteEnable{ D3D12_COLOR_WRITE_ENABLE_ALL };
 	};
+
+
 
 }
 

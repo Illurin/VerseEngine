@@ -73,7 +73,7 @@ namespace engine {
 			virtual void BindIndexBuffer(Buffer& buffer, uint64_t offset, IndexType indexType) = 0;
 
 			virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const = 0;
-			virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstVertex, int32_t vertexOffset, uint32_t firstInstance) const = 0;
+			virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) const = 0;
 		};
 
 		class Buffer_T {

@@ -125,18 +125,18 @@ namespace engine {
 	public:
 		D3D12EnumUsage(rhi::ImageUsage imageUsage) {
 			switch (imageUsage) {
-			case rhi::ImageUsage::ColorAttachment: imageUsage_ = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
-			case rhi::ImageUsage::DepthStencilAttachment: imageUsage_ = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
-			case rhi::ImageUsage::Sampled: imageUsage_ = DXGI_USAGE_SHADER_INPUT; break;
-			case rhi::ImageUsage::TransferSrc: imageUsage_ = DXGI_USAGE_READ_ONLY; break;
-			case rhi::ImageUsage::TransferDst: imageUsage_ = DXGI_USAGE_UNORDERED_ACCESS; break;
+			case rhi::ImageUsage::ColorAttachment: usage = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
+			case rhi::ImageUsage::DepthStencilAttachment: usage = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
+			case rhi::ImageUsage::Sampled: usage = DXGI_USAGE_SHADER_INPUT; break;
+			case rhi::ImageUsage::TransferSrc: usage = DXGI_USAGE_READ_ONLY; break;
+			case rhi::ImageUsage::TransferDst: usage = DXGI_USAGE_UNORDERED_ACCESS; break;
 			}
 		}
 
-		DXGI_USAGE Get() const { return imageUsage_; }
+		DXGI_USAGE Get() const { return usage; }
 
 	private:
-		DXGI_USAGE imageUsage_{ DXGI_USAGE_RENDER_TARGET_OUTPUT };
+		DXGI_USAGE usage{ DXGI_USAGE_RENDER_TARGET_OUTPUT };
 	};
 
 	class D3D12EnumResourceStates final {
@@ -151,6 +151,17 @@ namespace engine {
 			case rhi::ImageLayout::TransferSrc: resourceStates = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
 			case rhi::ImageLayout::TransferDst: resourceStates = D3D12_RESOURCE_STATE_COPY_DEST; break;
 			case rhi::ImageLayout::Present: resourceStates = D3D12_RESOURCE_STATE_PRESENT; break;
+			}
+		}
+
+		D3D12EnumResourceStates(rhi::BufferUsage bufferUsage) {
+			switch (bufferUsage) {
+			case rhi::BufferUsage::ConstantBuffer: resourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case rhi::BufferUsage::StorageBuffer: resourceStates = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			case rhi::BufferUsage::VertexBuffer: resourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case rhi::BufferUsage::IndexBuffer: resourceStates = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
+			case rhi::BufferUsage::TransferSrc: resourceStates = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
+			case rhi::BufferUsage::TransferDst: resourceStates = D3D12_RESOURCE_STATE_COPY_DEST; break;
 			}
 		}
 
@@ -231,26 +242,6 @@ namespace engine {
 		D3D12_SRV_DIMENSION imageViewType_{ D3D12_SRV_DIMENSION_UNKNOWN };
 	};
 
-	class D3D12EnumHeapType final {
-	public:
-		D3D12EnumHeapType(rhi::DescriptorType descriptorType) {
-			switch (descriptorType) {
-			case rhi::DescriptorType::Sampler: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER; break;
-			case rhi::DescriptorType::SampledImage: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
-			case rhi::DescriptorType::StorageImage: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
-			case rhi::DescriptorType::UniformBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
-			case rhi::DescriptorType::StorageBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
-			case rhi::DescriptorType::UniformTexelBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
-			case rhi::DescriptorType::StorageTexelBuffer: heapType_ = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
-			}
-		}
-
-		D3D12_DESCRIPTOR_HEAP_TYPE Get() const { return heapType_; }
-
-	private:
-		D3D12_DESCRIPTOR_HEAP_TYPE heapType_{ D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER };
-	};
-
 	class D3D12RenderPassBeginningAccessType final {
 	public:
 		D3D12RenderPassBeginningAccessType(rhi::AttachmentLoadOp attachmentLoadOp) {
@@ -280,6 +271,21 @@ namespace engine {
 
 	private:
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE acessType{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD };
+	};
+
+	class D3D12EnumInputClassification final {
+	public:
+		D3D12EnumInputClassification(rhi::VertexInputRate vertexInputRate) {
+			switch (vertexInputRate) {
+			case rhi::VertexInputRate::PerVertex: inputClassification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; break;
+			case rhi::VertexInputRate::PerInstance: inputClassification = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA; break;
+			}
+		}
+
+		D3D12_INPUT_CLASSIFICATION Get() const { return inputClassification; }
+
+	private:
+		D3D12_INPUT_CLASSIFICATION inputClassification{ D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA };
 	};
 
 	class D3D12EnumPrimitiveTopologyType final {

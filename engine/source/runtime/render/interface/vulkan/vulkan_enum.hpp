@@ -127,10 +127,8 @@ namespace engine {
 	public:
 		VkEnumBufferUsage(rhi::BufferUsage bufferUsage) {
 			switch (bufferUsage) {
-			case rhi::BufferUsage::UniformBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer; break;
+			case rhi::BufferUsage::ConstantBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer; break;
 			case rhi::BufferUsage::StorageBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eStorageBuffer; break;
-			case rhi::BufferUsage::UniformTexelBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformTexelBuffer; break;
-			case rhi::BufferUsage::StorageTexelBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eStorageTexelBuffer; break;
 			case rhi::BufferUsage::VertexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eVertexBuffer; break;
 			case rhi::BufferUsage::IndexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer; break;
 			case rhi::BufferUsage::TransferSrc: bufferUsage_ = vk::BufferUsageFlagBits::eTransferSrc; break;
@@ -246,10 +244,8 @@ namespace engine {
 			case rhi::DescriptorType::Sampler: descriptorType_ = vk::DescriptorType::eSampler; break;
 			case rhi::DescriptorType::SampledImage: descriptorType_ = vk::DescriptorType::eSampledImage; break;
 			case rhi::DescriptorType::StorageImage: descriptorType_ = vk::DescriptorType::eStorageImage; break;
-			case rhi::DescriptorType::UniformBuffer: descriptorType_ = vk::DescriptorType::eUniformBuffer; break;
+			case rhi::DescriptorType::ConstantBuffer: descriptorType_ = vk::DescriptorType::eUniformBuffer; break;
 			case rhi::DescriptorType::StorageBuffer: descriptorType_ = vk::DescriptorType::eStorageBuffer; break;
-			case rhi::DescriptorType::UniformTexelBuffer: descriptorType_ = vk::DescriptorType::eUniformTexelBuffer; break;
-			case rhi::DescriptorType::StorageTexelBuffer: descriptorType_ = vk::DescriptorType::eStorageTexelBuffer; break;
 			}
 		}
 

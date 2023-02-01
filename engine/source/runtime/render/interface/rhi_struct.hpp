@@ -193,22 +193,12 @@ namespace engine {
 			BufferUsage usage;
 		};
 
-		struct BufferViewCreateInfo {
-			BufferViewCreateInfo& SetBuffer(Buffer buffer) { this->buffer = buffer; return *this; }
-			BufferViewCreateInfo& SetFormat(Format format) { this->format = format; return *this; }
-			BufferViewCreateInfo& SetRange(uint64_t range) { this->range = range; return *this; }
-			BufferViewCreateInfo& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
-
-			Buffer buffer;
-			Format format;
-			uint64_t range;
-			uint64_t offset;
-		};
-
 		struct ImageCreateInfo {
 			ImageCreateInfo& SetFormat(Format format) { this->format = format; return *this; }
 			ImageCreateInfo& SetImageType(ImageType imageType) { this->imageType = imageType; return *this; }
 			ImageCreateInfo& SetExtent(Extent3D extent) { this->extent = extent; return *this; }
+			ImageCreateInfo& SetUsage(ImageUsage usage) { this->usage = usage; return *this; }
+			ImageCreateInfo& SetInitialLayout(ImageLayout initialLayout) { this->initialLayout = initialLayout; return *this; }
 			ImageCreateInfo& SetMipLevels(uint32_t mipLevels) { this->mipLevels = mipLevels; return *this; }
 			ImageCreateInfo& SetArrayLayers(uint32_t arrayLayers) { this->arrayLayers = arrayLayers; return *this; }
 			ImageCreateInfo& SetSampleCount(SampleCount sampleCount) { this->sampleCount = sampleCount; return *this; }
@@ -217,9 +207,22 @@ namespace engine {
 			ImageType imageType;
 			Extent3D extent;
 			ImageUsage usage;
+			ImageLayout initialLayout;
 			uint32_t mipLevels;
 			uint32_t arrayLayers;
 			SampleCount sampleCount;
+		};
+
+		struct BufferViewInfo {
+			BufferViewInfo& SetBuffer(Buffer buffer) { this->buffer = buffer; return *this; }
+			BufferViewInfo& SetFormat(Format format) { this->format = format; return *this; }
+			BufferViewInfo& SetRange(uint64_t range) { this->range = range; return *this; }
+			BufferViewInfo& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
+
+			Buffer buffer;
+			Format format;
+			uint64_t range;
+			uint64_t offset;
 		};
 
 		struct ImageViewInfo {
@@ -308,23 +311,21 @@ namespace engine {
 		};
 
 		struct VertexBindingInfo {
-			VertexBindingInfo& SetBindingSlot(uint32_t bindingSlot) { this->bindingSlot = bindingSlot; return *this; }
 			VertexBindingInfo& SetInputRate(rhi::VertexInputRate inputRate) { this->inputRate = inputRate; return *this; }
 			VertexBindingInfo& SetStride(uint32_t stride) { this->stride = stride; return *this; }
 
-			uint32_t bindingSlot;
 			rhi::VertexInputRate inputRate;
 			uint32_t stride;
 		};
 
 		struct VertexAttributeInfo {
 			VertexAttributeInfo& SetBindingSlot(uint32_t bindingSlot) { this->bindingSlot = bindingSlot; return *this; }
-			VertexAttributeInfo& SetLocation(uint32_t location) { this->location = location; return *this; }
+			VertexAttributeInfo& SetSemantic(const char* semantic) { this->semantic = semantic; return *this; }
 			VertexAttributeInfo& SetFormat(rhi::Format format) { this->format = format; return *this; }
 			VertexAttributeInfo& SetOffset(uint32_t offset) { this->offset = offset; return *this; }
 
 			uint32_t bindingSlot;
-			uint32_t location;
+			const char* semantic;
 			rhi::Format format;
 			uint32_t offset;
 		};

@@ -79,10 +79,8 @@ namespace engine {
 		};
 
 		enum class BufferUsage {
-			UniformBuffer,
+			ConstantBuffer,
 			StorageBuffer,
-			UniformTexelBuffer,
-			StorageTexelBuffer,
 			VertexBuffer,
 			IndexBuffer,
 			TransferSrc,
@@ -138,10 +136,8 @@ namespace engine {
 			Sampler,
 			SampledImage,
 			StorageImage,
-			UniformBuffer,
-			StorageBuffer,
-			UniformTexelBuffer,
-			StorageTexelBuffer
+			ConstantBuffer,
+			StorageBuffer
 		};
 
 		enum class AttachmentLoadOp {

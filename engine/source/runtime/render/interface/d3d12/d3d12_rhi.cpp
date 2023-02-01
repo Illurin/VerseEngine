@@ -76,6 +76,7 @@ namespace engine {
 		deviceWrapper->factory = factory;
 		deviceWrapper->device = device;
 		deviceWrapper->queues = queues;
+		device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &deviceWrapper->feature.sampleQuality, sizeof(UINT));
 		return deviceWrapper;
 	}
 
@@ -156,25 +157,27 @@ namespace engine {
 	}
 
 	rhi::Buffer D3D12WrapperDevice::CreateBuffer(const rhi::BufferCreateInfo& info) const {
-		/*ComPtr<ID3D12Resource> buffer;
-		if (FAILED(static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(info.size);
+
+		decltype(D3D12WrapperBuffer::resource) resource;
+		if (FAILED(device->CreateCommittedResource(
+			&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(info.size),
-			D3D12EnumResourceState(info.usage).Get(),
+			&resourceDesc,
+			D3D12EnumResourceStates(info.usage).Get(),
 			nullptr,
-			IID_PPV_ARGS(&buffer)))) {
+			IID_PPV_ARGS(&resource)))) {
 			throw std::runtime_error("Create buffer failed");
 		}
 		
 		auto bufferWrapper = new D3D12WrapperBuffer();
-		bufferWrapper->SetResource(buffer);
-		return bufferWrapper;*/
-		return new D3D12WrapperBuffer();
+		bufferWrapper->resource = resource;
+		return bufferWrapper;
 	}
 
 	rhi::Image D3D12WrapperDevice::CreateImage(const rhi::ImageCreateInfo& info) const {
-		/*D3D12_RESOURCE_DESC resourceDesc;
+		D3D12_RESOURCE_DESC resourceDesc;
 		resourceDesc.Format = D3D12EnumFormat(info.format).Get();
 		resourceDesc.Dimension = D3D12EnumImageType(info.imageType).Get();
 		resourceDesc.Width = info.extent.width;
@@ -184,23 +187,24 @@ namespace engine {
 		resourceDesc.MipLevels = info.mipLevels;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		resourceDesc.SampleDesc.Count = D3D12EnumSampleCount(info.sampleCount).Get();
-		static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &resourceDesc.SampleDesc.Quality, sizeof(UINT));
+		resourceDesc.SampleDesc.Quality = info.sampleCount == rhi::SampleCount::Count1 ? 0 : feature.sampleQuality;
 
-		ComPtr<ID3D12Resource> image;
-		if (FAILED(static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+		decltype(D3D12WrapperImage::resource) resource;
+		if (FAILED(device->CreateCommittedResource(
+			&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			D3D12EnumResourceState(info.usage).Get(),
+			D3D12EnumResourceStates(info.initialLayout).Get(),
 			nullptr,
-			IID_PPV_ARGS(&image)))) {
+			IID_PPV_ARGS(&resource)))) {
 			throw std::runtime_error("Create image failed");
 		}
 
 		auto imageWrapper = new D3D12WrapperImage();
-		imageWrapper->SetResource(image);
-		return imageWrapper;*/
-		return new D3D12WrapperImage();
+		imageWrapper->resource = resource;
+		return imageWrapper;
 	}
 
 	/*rhi::DescriptorPool D3D12WrapperDevice::CreateDescriptorPool(rhi::Device& device, const rhi::DescriptorPoolCreateInfo& info) const {
@@ -242,6 +246,21 @@ namespace engine {
 	}
 
 	rhi::Pipeline D3D12WrapperDevice::CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo& info) const {
+		std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs(info.vertexInputInfo.attributeCount);
+		for (uint32_t i = 0; i < info.vertexInputInfo.attributeCount; i++) {
+			auto bindingSlot = info.vertexInputInfo.pAttributes[i].bindingSlot;
+			D3D12_INPUT_ELEMENT_DESC inputElementDesc = {};
+			inputElementDesc.SemanticName = info.vertexInputInfo.pAttributes[i].semantic;
+			inputElementDesc.InputSlot = bindingSlot;
+			inputElementDesc.Format = D3D12EnumFormat(info.vertexInputInfo.pAttributes[i].format).Get();
+			inputElementDesc.AlignedByteOffset = info.vertexInputInfo.pAttributes[i].offset;
+			inputElementDesc.InputSlotClass = D3D12EnumInputClassification(info.vertexInputInfo.pBindings[bindingSlot].inputRate).Get();
+		}
+
+		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+		inputLayoutDesc.NumElements = static_cast<UINT>(info.vertexInputInfo.attributeCount);
+		inputLayoutDesc.pInputElementDescs = inputElementDescs.data();
+		
 		D3D12_RASTERIZER_DESC rasterizationDesc = {};
 		rasterizationDesc.AntialiasedLineEnable = info.rasterizationInfo.smoothLine;
 		rasterizationDesc.CullMode = D3D12EnumCullMode(info.rasterizationInfo.cullMode).Get();
@@ -249,7 +268,7 @@ namespace engine {
 		rasterizationDesc.DepthBias = static_cast<INT>(info.rasterizationInfo.depthBias);
 		rasterizationDesc.DepthBiasClamp = info.rasterizationInfo.depthClamp;
 		rasterizationDesc.SlopeScaledDepthBias = info.rasterizationInfo.slopeScaledDepthBias;
-		rasterizationDesc.MultisampleEnable = info.multisampleInfo.rasterizationSamples == rhi::SampleCount::Count1 ? false : true;
+		rasterizationDesc.MultisampleEnable = info.multisampleInfo.rasterizationSamples == rhi::SampleCount::Count1 ? FALSE : TRUE;
 		rasterizationDesc.FrontCounterClockwise = D3D12EnumFrontCounterClockwise(info.rasterizationInfo.frontFace).Get();
 		
 		D3D12_DEPTH_STENCILOP_DESC frontOpDesc = {};
@@ -276,7 +295,7 @@ namespace engine {
 		depthStencilDesc.BackFace = backOpDesc;
 		
 		D3D12_BLEND_DESC blendDesc = {};
-		blendDesc.IndependentBlendEnable = true;
+		blendDesc.IndependentBlendEnable = TRUE;
 		blendDesc.AlphaToCoverageEnable = info.multisampleInfo.alphaToCoverageEnable;
 		
 		for (uint32_t i = 0; i < info.colorBlendInfo.attachmentCount; i++) {
@@ -294,6 +313,7 @@ namespace engine {
 		}
 
 		D3D12StreamingGraphicsPipelineDesc pipelineDesc = {};
+		pipelineDesc.inputLayoutDesc.value = inputLayoutDesc;
 		pipelineDesc.rasterizationDesc.value = rasterizationDesc;
 		pipelineDesc.depthStencilDesc.value = depthStencilDesc;
 		pipelineDesc.blendDesc.value = blendDesc;
@@ -497,7 +517,7 @@ namespace engine {
 		}
 		queue->ExecuteCommandLists(commandBufferCount, submitCommandBuffers.data());
 
-		queue->Signal(static_cast<D3D12WrapperFence*>(fence)->fence, true);
+		queue->Signal(static_cast<D3D12WrapperFence*>(fence)->fence, TRUE);
 	}
 
 	void D3D12WrapperQueue::PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) {
@@ -516,7 +536,7 @@ namespace engine {
 
 	uint32_t D3D12WrapperSwapchain::AcquireNextImage(rhi::Fence fence) {
 		currentImageIndex = swapchain->GetCurrentBackBufferIndex();
-		queue->Signal(static_cast<D3D12WrapperFence*>(fence)->fence, true);
+		queue->Signal(static_cast<D3D12WrapperFence*>(fence)->fence, TRUE);
 		return currentImageIndex;
 	}
 
@@ -682,13 +702,13 @@ namespace engine {
 
 
 	void D3D12WrapperFence::Reset() {
-		fence->Signal(false);
+		fence->Signal(FALSE);
 	}
 
 	void D3D12WrapperFence::Wait() {
 		if (!fence->GetCompletedValue()) {
-			HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
-			fence->SetEventOnCompletion(true, eventHandle);
+			HANDLE eventHandle = CreateEventEx(nullptr, nullptr, FALSE, EVENT_ALL_ACCESS);
+			fence->SetEventOnCompletion(TRUE, eventHandle);
 
 			if (!eventHandle) {
 				throw std::runtime_error("Create event failed");
@@ -738,11 +758,13 @@ namespace engine {
 	}
 
 	void D3D12WrapperBuffer::Destroy() {
-
+		resource->Release();
+		delete this;
 	}
 
 	void D3D12WrapperImage::Destroy() {
-
+		resource->Release();
+		delete this;
 	}
 
 	void D3D12WrapperRenderPass::Destroy() {

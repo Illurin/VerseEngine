@@ -55,6 +55,9 @@ namespace engine {
 	private:
 		ID3D12Device2* device{ nullptr };
 		std::vector<rhi::Queue> queues;
+		struct {
+			UINT sampleQuality{ 0 };
+		} feature;
 	};
 
 	class D3D12WrapperQueue final : public rhi::Queue_T{
@@ -134,8 +137,13 @@ namespace engine {
 	};
 
 	class D3D12WrapperBuffer final : public rhi::Buffer_T {
+		friend class D3D12WrapperDevice;
+
 	public:
 		void Destroy() override;
+
+	private:
+		ID3D12Resource* resource{ nullptr };
 	};
 
 	class D3D12WrapperImage final : public rhi::Image_T{

@@ -3,6 +3,7 @@
 #include "runtime/system/global_config.hpp"
 #include "runtime/system/platform/platform_info.hpp"
 #include "runtime/render/interface/rhi_instance.hpp"
+#include "runtime/math/math.hpp"
 
 namespace engine {
 

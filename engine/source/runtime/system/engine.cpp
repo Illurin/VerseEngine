@@ -23,7 +23,7 @@ namespace engine {
 			.SetQueueCreateInfoCount(1);
 		
 		device = instance->CreateDevice(deviceInfo);
-		
+
 		queue = device->GetQueue(0);
 		
 		auto swapchainInfo = rhi::SwapchainCreateInfo()
@@ -55,6 +55,11 @@ namespace engine {
 		
 		renderPass = device->CreateRenderPass(renderPassInfo);
 		
+		
+
+		auto vertexBufferInfo = rhi::BufferCreateInfo()
+			.SetUsage(rhi::BufferUsage::VertexBuffer);
+
 		std::vector<char> shaderSource;
 		auto shaderCompiler = instance->CreateShaderCompiler();
 		
@@ -104,7 +109,7 @@ namespace engine {
 			.SetWidth(static_cast<float>(renderExtent.width)).SetHeight(static_cast<float>(renderExtent.height))
 			.SetX(0.0f).SetY(0.0f)
 			.SetMinDepth(0.0f).SetMaxDepth(0.0f);
-		
+
 		auto viewportInfo = rhi::PipelineViewportInfo()
 			.SetPScissors(&scissor).SetScissorCount(1)
 			.SetPViewports(&viewport).SetViewportCount(1);

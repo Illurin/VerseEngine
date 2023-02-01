@@ -311,10 +311,10 @@ namespace engine {
 			.setImageType(VkEnumImageType(info.imageType).Get())
 			.setExtent(vk::Extent3D(info.extent.width, info.extent.height, info.extent.depth))
 			.setUsage(VkEnumImageUsage(info.usage).Get())
+			.setInitialLayout(VkEnumImageLayout(info.initialLayout).Get())
 			.setTiling(vk::ImageTiling::eOptimal)
 			.setArrayLayers(info.arrayLayers)
 			.setMipLevels(info.mipLevels)
-			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setSamples(VkEnumSampleCount(info.sampleCount).Get());
 		
 		auto image = device.createImage(imageInfo);
@@ -455,7 +455,7 @@ namespace engine {
 		for (uint32_t i = 0; i < info.vertexInputInfo.bindingCount; i++) {
 			auto& binding = info.vertexInputInfo.pBindings[i];
 			vertexBindingInfos[i] = vk::VertexInputBindingDescription()
-				.setBinding(binding.bindingSlot)
+				.setBinding(i)
 				.setStride(binding.stride)
 				.setInputRate(VkEnumVertexInputRate(binding.inputRate).Get());
 		}
@@ -465,7 +465,7 @@ namespace engine {
 			auto& attribute = info.vertexInputInfo.pAttributes[i];
 			vertexAttributeInfos[i] = vk::VertexInputAttributeDescription()
 				.setBinding(attribute.bindingSlot)
-				.setLocation(attribute.location)
+				.setLocation(i)
 				.setFormat(VkEnumFormat(attribute.format).Get())
 				.setOffset(attribute.offset);
 		}

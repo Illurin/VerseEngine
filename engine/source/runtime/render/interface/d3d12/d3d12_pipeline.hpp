@@ -4,6 +4,13 @@
 
 #ifdef _DIRECT3D12
 
+struct alignas(void*) D3D12StreamingInputLayoutDesc {
+private:
+	D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type{ D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT };
+public:
+	D3D12_INPUT_LAYOUT_DESC value;
+};
+
 struct alignas(void*) D3D12StreamingRasterizerDesc {
 private:
 	D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type{ D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER };
@@ -109,6 +116,7 @@ struct D3D12StreamingGraphicsPipelineDesc {
 	D3D12StreamingGS gs;
 	D3D12StreamingPS ps;
 	D3D12StreamingRootSignature rootSignature;
+	D3D12StreamingInputLayoutDesc inputLayoutDesc;
 	D3D12StreamingRasterizerDesc rasterizationDesc;
 	D3D12StreamingDepthStencilDesc1 depthStencilDesc;
 	D3D12StreamingBlendDesc blendDesc;

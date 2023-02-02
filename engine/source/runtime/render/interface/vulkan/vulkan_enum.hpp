@@ -500,11 +500,11 @@ namespace engine {
 	public:
 		VkEnumColorComponent(rhi::ColorComponent colorComponent) {
 			switch (colorComponent) {
+			case rhi::ColorComponent::All: colorComponent_ = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA; break;
 			case rhi::ColorComponent::R: colorComponent_ = vk::ColorComponentFlagBits::eR; break;
 			case rhi::ColorComponent::G: colorComponent_ = vk::ColorComponentFlagBits::eG; break;
 			case rhi::ColorComponent::B: colorComponent_ = vk::ColorComponentFlagBits::eB; break;
 			case rhi::ColorComponent::A: colorComponent_ = vk::ColorComponentFlagBits::eA; break;
-			case rhi::ColorComponent::All: colorComponent_ = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA; break;
 			}
 		}
 
@@ -512,6 +512,21 @@ namespace engine {
 
 	private:
 		vk::ColorComponentFlags colorComponent_{ 0 };
+	};
+
+	class VkEnumIndexType final {
+	public:
+		VkEnumIndexType(rhi::IndexType indexType) {
+			switch (indexType) {
+			case rhi::IndexType::Uint16: indexType_ = vk::IndexType::eUint16; break;
+			case rhi::IndexType::Uint32: indexType_ = vk::IndexType::eUint32; break;
+			}
+		}
+
+		vk::IndexType Get() const { return indexType_; }
+
+	private:
+		vk::IndexType indexType_{ 0 };
 	};
 
 }

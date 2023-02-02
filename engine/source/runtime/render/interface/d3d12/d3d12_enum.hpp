@@ -156,10 +156,10 @@ namespace engine {
 
 		D3D12EnumResourceStates(rhi::BufferUsage bufferUsage) {
 			switch (bufferUsage) {
-			case rhi::BufferUsage::ConstantBuffer: resourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case rhi::BufferUsage::ConstantBuffer:
+			case rhi::BufferUsage::VertexBuffer:
+			case rhi::BufferUsage::IndexBuffer: resourceStates = D3D12_RESOURCE_STATE_GENERIC_READ; break;
 			case rhi::BufferUsage::StorageBuffer: resourceStates = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			case rhi::BufferUsage::VertexBuffer: resourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-			case rhi::BufferUsage::IndexBuffer: resourceStates = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
 			case rhi::BufferUsage::TransferSrc: resourceStates = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
 			case rhi::BufferUsage::TransferDst: resourceStates = D3D12_RESOURCE_STATE_COPY_DEST; break;
 			}
@@ -534,7 +534,20 @@ namespace engine {
 		D3D12_COLOR_WRITE_ENABLE colorWriteEnable{ D3D12_COLOR_WRITE_ENABLE_ALL };
 	};
 
+	class D3D12EnumIndexType final {
+	public:
+		D3D12EnumIndexType(rhi::IndexType indexType) {
+			switch (indexType) {
+			case rhi::IndexType::Uint16: format = DXGI_FORMAT_R16_UINT; break;
+			case rhi::IndexType::Uint32: format = DXGI_FORMAT_R32_UINT; break;
+			}
+		}
 
+		DXGI_FORMAT Get() const { return format; }
+
+	private:
+		DXGI_FORMAT format{ DXGI_FORMAT_UNKNOWN };
+	};
 
 }
 

@@ -252,11 +252,11 @@ namespace engine {
 		};
 
 		enum class ColorComponent {
+			All,
 			R,
 			G,
 			B,
-			A,
-			All
+			A
 		};
 
 		enum class IndexType {

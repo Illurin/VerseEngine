@@ -6,6 +6,9 @@
 
 namespace engine {
 
+	//
+	// Vulkan handle wrapper for RHI Instance
+	//
 	class VkWrapperInstance final : public rhi::Instance_T {
 	public:
 		void Init(const rhi::InstanceCreateInfo&) override;
@@ -40,7 +43,11 @@ namespace engine {
 #endif // _DEBUG
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Device
+	//
 	class VkWrapperDevice final : public rhi::Device_T {
+
 		friend class VkWrapperInstance;
 
 		vk::Instance instance{ nullptr };
@@ -54,7 +61,6 @@ namespace engine {
 		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
 		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
 		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
-		//rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
 		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
 		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
 		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
@@ -67,7 +73,11 @@ namespace engine {
 		std::vector<rhi::Queue> queues;
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Queue
+	//
 	class VkWrapperQueue final : public rhi::Queue_T {
+
 		friend class VkWrapperInstance;
 		friend class VkWrapperDevice;
 
@@ -82,7 +92,11 @@ namespace engine {
 		uint32_t queueFamilyIndex{ 0 };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Swapchain
+	//
 	class VkWrapperSwapchain final : public rhi::Swapchain_T {
+
 		friend class VkWrapperDevice;
 		friend class VkWrapperQueue;
 
@@ -93,17 +107,22 @@ namespace engine {
 
 		rhi::Extent2D GetImageExtent() const override;
 		std::vector<rhi::Image> GetImages() const override;
+
 		uint32_t AcquireNextImage(rhi::Fence) override;
 
 	private:
 		vk::SurfaceKHR surface{ nullptr };
 		vk::SwapchainKHR swapchain{ nullptr };
 		std::vector<rhi::Image> images;
-		rhi::Extent2D imageExtent;
+		rhi::Extent2D imageExtent{ 0, 0 };
 		uint32_t currentImageIndex{ 0 };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI CommandPool
+	//
 	class VkWrapperCommandPool final : public rhi::CommandPool_T {
+
 		friend class VkWrapperDevice;
 
 		vk::Device device{ nullptr };
@@ -120,7 +139,11 @@ namespace engine {
 		std::vector<rhi::CommandBuffer> commandBuffers;
 	};
 
+	//
+	// Vulkan handle wrapper for RHI CommandBuffer
+	//
 	class VkWrapperCommandBuffer final : public rhi::CommandBuffer_T {
+
 		friend class VkWrapperCommandPool;
 		friend class VkWrapperQueue;
 
@@ -134,17 +157,21 @@ namespace engine {
 		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
 		void EndRenderPass() override;
 		void BindPipeline(const rhi::Pipeline&) override;
-		void BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) override;
+		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) override;
 		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
 
-		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const override;
-		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) const override;
+		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
 
 	private:
 		vk::CommandBuffer commandBuffer{ nullptr };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Buffer
+	//
 	class VkWrapperBuffer final : public rhi::Buffer_T {
+
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
 
@@ -153,12 +180,20 @@ namespace engine {
 	public:
 		void Destroy() override;
 
+		void* Map() override;
+		void* Map(uint64_t offset, uint64_t size) override;
+		void Unmap() override;
+
 	private:
 		vk::Buffer buffer{ nullptr };
 		vk::DeviceMemory memory{ nullptr };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Image
+	//
 	class VkWrapperImage final : public rhi::Image_T {
+
 		friend class VkWrapperDevice;
 
 		vk::Device device{ nullptr };
@@ -171,7 +206,11 @@ namespace engine {
 		vk::DeviceMemory memory{ nullptr };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI RenderPass
+	//
 	class VkWrapperRenderPass final : public rhi::RenderPass_T {
+
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
 
@@ -184,7 +223,11 @@ namespace engine {
 		vk::RenderPass renderPass{ nullptr };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI ShaderModule
+	//
 	class VkWrapperShaderModule final : public rhi::ShaderModule_T {
+
 		friend class VkWrapperDevice;
 		friend class VkWrapperPipeline;
 
@@ -199,7 +242,11 @@ namespace engine {
 		rhi::ShaderStage shaderStage{ 0 };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Pipeline
+	//
 	class VkWrapperPipeline final : public rhi::Pipeline_T {
+
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
 
@@ -213,7 +260,11 @@ namespace engine {
 		rhi::PipelineType pipelineType{ 0 };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Framebuffer
+	//
 	class VkWrapperFramebuffer final : public rhi::Framebuffer_T {
+
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
 
@@ -226,10 +277,14 @@ namespace engine {
 		vk::Framebuffer framebuffer{ nullptr };
 		std::vector<vk::ImageView> colorAttachments;
 		vk::ImageView depthStencilAttachment{ nullptr };
-		uint32_t width, height, layers;
+		uint32_t width{ 0 }, height{ 0 }, layers{ 0 };
 	};
 
+	//
+	// Vulkan handle wrapper for RHI Fence
+	//
 	class VkWrapperFence final : public rhi::Fence_T {
+
 		friend class VkWrapperDevice;
 		friend class VkWrapperQueue;
 		friend class VkWrapperSwapchain;

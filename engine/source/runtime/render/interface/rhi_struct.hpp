@@ -10,7 +10,7 @@
 namespace engine {
 	namespace rhi {
 
-		/*--------------------handle--------------------*/
+		/* -------------------- handle -------------------- */
 
 		RHI_DEFINE_HANDLE(Instance)
 		RHI_DEFINE_HANDLE(Device)
@@ -20,13 +20,15 @@ namespace engine {
 		RHI_DEFINE_HANDLE(CommandBuffer)
 		RHI_DEFINE_HANDLE(Buffer)
 		RHI_DEFINE_HANDLE(Image)
+		RHI_DEFINE_HANDLE(DescriptorSet)
+		RHI_DEFINE_HANDLE(DescriptorSetLayout)
 		RHI_DEFINE_HANDLE(RenderPass)
 		RHI_DEFINE_HANDLE(ShaderModule)
 		RHI_DEFINE_HANDLE(Pipeline)
 		RHI_DEFINE_HANDLE(Framebuffer)
 		RHI_DEFINE_HANDLE(Fence)
 
-		/*--------------------info--------------------*/
+		/* -------------------- info --------------------*/
 
 		struct Extent2D {
 			Extent2D& SetWidth(uint32_t width) { this->width = width; return *this; }
@@ -245,12 +247,20 @@ namespace engine {
 			uint32_t arrayLayerCount;
 		};
 
-		struct DescriptorPoolCreateInfo {
-			DescriptorPoolCreateInfo& SetDescriptorType(DescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
-			DescriptorPoolCreateInfo& SetDescriptorCount(uint32_t descriptorCount) { this->descriptorCount = descriptorCount; return *this; }
+		struct SamplerInfo {
 
+		};
+
+		struct DescriptorSetLayoutBinding {
+			DescriptorSetLayoutBinding& SetDescriptorType(DescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
+			DescriptorSetLayoutBinding& SetDescriptorCount(uint32_t descriptorCount) { this->descriptorCount = descriptorCount; return *this; }
+
+			uint32_t binding;
 			DescriptorType descriptorType;
 			uint32_t descriptorCount;
+			uint32_t shaderStageCount;
+			ShaderStage* pShaderStages;
+			SamplerInfo* pStaticSampler;
 		};
 
 		struct AttachmentDescription {
@@ -319,12 +329,12 @@ namespace engine {
 		};
 
 		struct VertexAttributeInfo {
-			VertexAttributeInfo& SetBindingSlot(uint32_t bindingSlot) { this->bindingSlot = bindingSlot; return *this; }
+			VertexAttributeInfo& SetBinding(uint32_t binding) { this->binding = binding; return *this; }
 			VertexAttributeInfo& SetSemantic(const char* semantic) { this->semantic = semantic; return *this; }
 			VertexAttributeInfo& SetFormat(rhi::Format format) { this->format = format; return *this; }
 			VertexAttributeInfo& SetOffset(uint32_t offset) { this->offset = offset; return *this; }
 
-			uint32_t bindingSlot;
+			uint32_t binding;
 			const char* semantic;
 			rhi::Format format;
 			uint32_t offset;

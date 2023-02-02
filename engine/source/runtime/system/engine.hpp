@@ -48,6 +48,9 @@ namespace engine {
 		std::vector<rhi::CommandBuffer> commandBuffers;
 		std::vector<rhi::Framebuffer> framebuffers;
 		rhi::Fence fence{ nullptr };
+
+	private:
+		rhi::Buffer vertexBuffer{ nullptr };
 	};
 
 }

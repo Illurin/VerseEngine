@@ -4,6 +4,10 @@
 
 namespace engine {
 
+
+	/* -------------------- D3D12WrapperInstance -------------------- */
+
+
 	void D3D12WrapperInstance::Init(const rhi::InstanceCreateInfo& info) {
 		uint32_t factoryFlag = 0;
 
@@ -84,12 +88,13 @@ namespace engine {
 		ShaderCompiler shaderCompiler;
 		shaderCompiler.AddArgument(ShaderCompileArgument::matrix_column_major);
 		shaderCompiler.AddArgument(ShaderCompileArgument::enable_debug_info);
-		shaderCompiler.AddArgument(ShaderCompileArgument::embed_debug);
 		shaderCompiler.AddArgument(ShaderCompileArgument::treat_warnings_as_errors);
 		shaderCompiler.AddIncludePath(StringToWString(GlobalConfig::configPath).c_str());
 		return shaderCompiler;
 	}
 
+
+	/* -------------------- D3D12WrapperDevice -------------------- */
 
 
 	rhi::Queue D3D12WrapperDevice::GetQueue(uint32_t queueIndex) const {
@@ -143,16 +148,9 @@ namespace engine {
 	}
 
 	rhi::CommandPool D3D12WrapperDevice::CreateCommandPool(const rhi::CommandPoolCreateInfo& info) const {
-		auto commandListType = static_cast<D3D12WrapperQueue*>(info.queue)->commandListType;
-		decltype(D3D12WrapperCommandPool::commandAllocator) cmdAllocator;
-		if (FAILED(device->CreateCommandAllocator(commandListType, IID_PPV_ARGS(&cmdAllocator)))) {
-			throw std::runtime_error("Create command allocator failed");
-		}
-		
 		auto cmdPoolWrapper = new D3D12WrapperCommandPool();
 		cmdPoolWrapper->device = device;
-		cmdPoolWrapper->commandAllocator = cmdAllocator;
-		cmdPoolWrapper->commandListType = commandListType;
+		cmdPoolWrapper->commandListType = static_cast<D3D12WrapperQueue*>(info.queue)->commandListType;
 		return cmdPoolWrapper;
 	}
 
@@ -173,6 +171,7 @@ namespace engine {
 		
 		auto bufferWrapper = new D3D12WrapperBuffer();
 		bufferWrapper->resource = resource;
+		bufferWrapper->bufferSize = static_cast<UINT>(info.size);
 		return bufferWrapper;
 	}
 
@@ -207,19 +206,6 @@ namespace engine {
 		return imageWrapper;
 	}
 
-	/*rhi::DescriptorPool D3D12WrapperDevice::CreateDescriptorPool(rhi::Device& device, const rhi::DescriptorPoolCreateInfo& info) const {
-		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-		heapDesc.NumDescriptors = info.descriptorCount;
-		heapDesc.Type = D3D12EnumHeapType(info.descriptorType).Get();
-
-		ComPtr<ID3D12Heap> heap;
-		static_cast<D3D12WrapperDevice*>(device)->GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap));
-
-		auto descriptorPoolWrapper = new D3D12WrapperDescriptorPool();
-		descriptorPoolWrapper->SetHeap(heap);
-		return descriptorPoolWrapper;
-	}*/
-
 	rhi::RenderPass D3D12WrapperDevice::CreateRenderPass(const rhi::RenderPassCreateInfo& info) const {
 		auto renderPass = new D3D12WrapperRenderPass();
 		renderPass->colorAttachmentCount = info.colorAttachmentCount;
@@ -248,13 +234,14 @@ namespace engine {
 	rhi::Pipeline D3D12WrapperDevice::CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo& info) const {
 		std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs(info.vertexInputInfo.attributeCount);
 		for (uint32_t i = 0; i < info.vertexInputInfo.attributeCount; i++) {
-			auto bindingSlot = info.vertexInputInfo.pAttributes[i].bindingSlot;
+			auto bindingSlot = info.vertexInputInfo.pAttributes[i].binding;
 			D3D12_INPUT_ELEMENT_DESC inputElementDesc = {};
 			inputElementDesc.SemanticName = info.vertexInputInfo.pAttributes[i].semantic;
 			inputElementDesc.InputSlot = bindingSlot;
 			inputElementDesc.Format = D3D12EnumFormat(info.vertexInputInfo.pAttributes[i].format).Get();
 			inputElementDesc.AlignedByteOffset = info.vertexInputInfo.pAttributes[i].offset;
 			inputElementDesc.InputSlotClass = D3D12EnumInputClassification(info.vertexInputInfo.pBindings[bindingSlot].inputRate).Get();
+			inputElementDescs[i] = inputElementDesc;
 		}
 
 		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
@@ -357,13 +344,21 @@ namespace engine {
 			}
 		}
 		
-		ID3DBlob* rootSignatureBlob;
 		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, &rootSignatureBlob, nullptr);
+		ID3DBlob* rootSignatureBlob, * errorBlob;
+		if (FAILED(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignatureBlob, &errorBlob))) {
+			throw std::runtime_error("Serialize root signature failed");
+		}
+		if (errorBlob) {
+			OutputDebugStringA(static_cast<char*>(errorBlob->GetBufferPointer()));
+		}
 
 		ID3D12RootSignature* rootSignature;
-		device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(), rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+		if (FAILED(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(), rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature)))) {
+			throw std::runtime_error("Create root signature failed");
+		}
+		
 		pipelineDesc.rootSignature.value = rootSignature;
 
 		D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
@@ -395,11 +390,18 @@ namespace engine {
 
 		auto pipelineWrapper = new D3D12WrapperPipeline();
 		pipelineWrapper->pipeline = pipeline;
+		pipelineWrapper->rootSignature = rootSignature;
 		pipelineWrapper->scissors = scissors;
 		pipelineWrapper->viewports = viewports;
 		pipelineWrapper->primitiveTopology = info.inputAssemblyInfo.topology == rhi::PrimitiveTopology::PatchList ?
 			D3DEnumPatchControlPoints(info.tessellationInfo.patchControlPoints).Get() : 
 			D3DEnumPrimitiveTopology(info.inputAssemblyInfo.topology).Get();
+
+		pipelineWrapper->vertexInputInfo.bindingStride.resize(info.vertexInputInfo.bindingCount);
+		for (uint32_t i = 0; i < info.vertexInputInfo.bindingCount; i++) {
+			pipelineWrapper->vertexInputInfo.bindingStride[i] = info.vertexInputInfo.pBindings[i].stride;
+		}
+
 		pipelineWrapper->depthStencilInfo.minDepthBounds = info.depthStencilInfo.maxDepthBounds;
 		pipelineWrapper->depthStencilInfo.maxDepthBounds = info.depthStencilInfo.maxDepthBounds;
 		return pipelineWrapper;
@@ -509,6 +511,8 @@ namespace engine {
 	}
 
 
+	/* -------------------- D3D12WrapperQueue -------------------- */
+
 
 	void D3D12WrapperQueue::SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
 		std::vector<ID3D12CommandList*> submitCommandBuffers(commandBufferCount);
@@ -524,6 +528,8 @@ namespace engine {
 		static_cast<D3D12WrapperSwapchain*>(swapchain)->swapchain->Present(0, 0);
 	}
 
+
+	/* -------------------- D3D12WrapperSwapchain -------------------- */
 
 
 	rhi::Extent2D D3D12WrapperSwapchain::GetImageExtent() const {
@@ -541,22 +547,32 @@ namespace engine {
 	}
 
 
+	/* -------------------- D3D12WrapperCommandPool -------------------- */
+
 
 	void D3D12WrapperCommandPool::Reset() {
-		commandAllocator->Reset();
+		for (auto& commandBuffer : commandBuffers) {
+			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->commandAllocator->Reset();
+		}
 	}
 
 	std::vector<rhi::CommandBuffer> D3D12WrapperCommandPool::AllocateCommandBuffers(uint32_t bufferCount) {
 		std::vector<rhi::CommandBuffer> cmdWrappers(bufferCount);
 		for (uint32_t i = 0; i < bufferCount; i++) {
+			decltype(D3D12WrapperCommandBuffer::commandAllocator) cmdAllocator;
+			if (FAILED(device->CreateCommandAllocator(commandListType, IID_PPV_ARGS(&cmdAllocator)))) {
+				throw std::runtime_error("Create command allocator failed");
+			}
+
 			decltype(D3D12WrapperCommandBuffer::commandList) commandList;
-			if (FAILED(device->CreateCommandList(0, commandListType, commandAllocator, nullptr, IID_PPV_ARGS(&commandList)))) {
+			if (FAILED(device->CreateCommandList(0, commandListType, cmdAllocator, nullptr, IID_PPV_ARGS(&commandList)))) {
 				throw std::runtime_error("Create graphics command list failed");
 			}
+
 			commandList->Close();
 
 			auto cmdWrapper = new D3D12WrapperCommandBuffer();
-			cmdWrapper->commandAllocator = commandAllocator;
+			cmdWrapper->commandAllocator = cmdAllocator;
 			cmdWrapper->commandList = commandList;
 			cmdWrappers[i] = cmdWrapper;
 		}
@@ -566,13 +582,15 @@ namespace engine {
 	}
 
 
+	/* -------------------- D3D12WrapperCommandBuffer -------------------- */
+
 
 	void D3D12WrapperCommandBuffer::Reset() {
-		commandList->Reset(commandAllocator, nullptr);
+		commandAllocator->Reset();
 	}
 
 	void D3D12WrapperCommandBuffer::Begin(const rhi::CommandBufferBeginInfo& info) {
-
+		commandList->Reset(commandAllocator, nullptr);
 	}
 
 	void D3D12WrapperCommandBuffer::End() {
@@ -670,35 +688,105 @@ namespace engine {
 	void D3D12WrapperCommandBuffer::EndRenderPass() {
 		commandList->EndRenderPass();
 		commandList->ResourceBarrier(static_cast<UINT>(renderPassResourceBarriers.size()), renderPassResourceBarriers.data());
+		if (pipeline) pipeline = nullptr;
 		decltype(renderPassResourceBarriers) temp;
 		temp.swap(renderPassResourceBarriers);
 	}
 
 	void D3D12WrapperCommandBuffer::BindPipeline(const rhi::Pipeline& pipeline) {
+		this->pipeline = static_cast<D3D12WrapperPipeline*>(pipeline);
 		auto pipelineState = static_cast<D3D12WrapperPipeline*>(pipeline);
 		commandList->SetPipelineState(pipelineState->pipeline);
 		commandList->RSSetScissorRects(static_cast<UINT>(pipelineState->scissors.size()), pipelineState->scissors.data());
 		commandList->RSSetViewports(static_cast<UINT>(pipelineState->viewports.size()), pipelineState->viewports.data());
 		commandList->OMSetDepthBounds(pipelineState->depthStencilInfo.minDepthBounds, pipelineState->depthStencilInfo.maxDepthBounds);
 		commandList->IASetPrimitiveTopology(pipelineState->primitiveTopology);
+		commandList->SetGraphicsRootSignature(pipelineState->rootSignature);
 	}
 
-	void D3D12WrapperCommandBuffer::BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) {
-
+	void D3D12WrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) {
+		vertexBindingInfo.vertexBufferViews.resize(bindingCount);
+		for (uint32_t i = 0; i < bindingCount; i++) {
+			auto vertexBuffer = static_cast<D3D12WrapperBuffer*>(pBuffers[i]);
+			vertexBindingInfo.vertexBufferViews[i].BufferLocation = vertexBuffer->resource->GetGPUVirtualAddress();
+			vertexBindingInfo.vertexBufferViews[i].SizeInBytes = vertexBuffer->bufferSize;
+		}
+		vertexBindingInfo.firstBinding = firstBinding;
+		vertexBindingInfo.bindingCount = bindingCount;
+		vertexBindingInfo.dirty = true;
 	}
 
 	void D3D12WrapperCommandBuffer::BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) {
-
+		auto indexBuffer = static_cast<D3D12WrapperBuffer*>(buffer);
+		D3D12_INDEX_BUFFER_VIEW indexBufferView = {};
+		indexBufferView.BufferLocation = indexBuffer->resource->GetGPUVirtualAddress();
+		indexBufferView.SizeInBytes = indexBuffer->bufferSize;
+		indexBufferView.Format = D3D12EnumIndexType(indexType).Get();
+		commandList->IASetIndexBuffer(&indexBufferView);
 	}
 
-	void D3D12WrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
+	void D3D12WrapperCommandBuffer::PrepareRenderingInfo() {
+		if (vertexBindingInfo.dirty) {
+			for (uint32_t i = 0; i < vertexBindingInfo.bindingCount; i++) {
+				vertexBindingInfo.vertexBufferViews[i].StrideInBytes = pipeline->vertexInputInfo.bindingStride[i];
+			}
+			commandList->IASetVertexBuffers(vertexBindingInfo.firstBinding, vertexBindingInfo.bindingCount, vertexBindingInfo.vertexBufferViews.data());
+
+			vertexBindingInfo.dirty = false;
+
+			decltype(vertexBindingInfo.vertexBufferViews) temp;
+			temp.swap(vertexBindingInfo.vertexBufferViews);
+		}
+	}
+
+	void D3D12WrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
+		PrepareRenderingInfo();
 		commandList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
-	void D3D12WrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) const {
+	void D3D12WrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
+		PrepareRenderingInfo();
 		commandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
+
+	/* -------------------- D3D12WrapperBuffer -------------------- */
+
+
+	void* D3D12WrapperBuffer::Map() {
+		range = {};
+
+		void* pData;
+		if (FAILED(resource->Map(0, nullptr, &pData))) {
+			throw std::runtime_error("Map the resource failed");
+		}
+
+		return pData;
+	}
+
+	void* D3D12WrapperBuffer::Map(uint64_t offset, uint64_t size) {
+		range.Begin = static_cast<SIZE_T>(offset);
+		range.End = static_cast<SIZE_T>(size);
+
+		void* pData;
+		if (FAILED(resource->Map(0, &range, &pData))) {
+			throw std::runtime_error("Map the resource failed");
+		}
+
+		return pData;
+	}
+
+	void D3D12WrapperBuffer::Unmap() {
+		if (range.End == 0) {
+			resource->Unmap(0, nullptr);
+		}
+		else {
+			resource->Unmap(0, &range);
+		}
+	}
+
+
+	/* -------------------- D3D12WrapperFence -------------------- */
 
 
 	void D3D12WrapperFence::Reset() {
@@ -723,6 +811,8 @@ namespace engine {
 		return fence->GetCompletedValue();
 	}
 
+
+	/* -------------------- destroy handle -------------------- */
 
 
 	void D3D12WrapperInstance::Destroy() {
@@ -749,9 +839,10 @@ namespace engine {
 	}
 
 	void D3D12WrapperCommandPool::Destroy() {
-		commandAllocator->Release();
 		for (auto& commandBuffer : commandBuffers) {
-			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->commandList->Release();
+			auto cmdBuffer = static_cast<D3D12WrapperCommandBuffer*>(commandBuffer);
+			cmdBuffer->commandAllocator->Release();
+			cmdBuffer->commandList->Release();
 			delete commandBuffer;
 		}
 		delete this;
@@ -779,12 +870,13 @@ namespace engine {
 
 	void D3D12WrapperPipeline::Destroy() {
 		pipeline->Release();
+		rootSignature->Release();
 		delete this;
 	}
 
 	void D3D12WrapperFramebuffer::Destroy() {
-		renderTargetHeap->Release();
-		depthStencilHeap->Release();
+		if (renderTargetHeap) renderTargetHeap->Release();
+		if (depthStencilHeap) depthStencilHeap->Release();
 		delete this;
 	}
 

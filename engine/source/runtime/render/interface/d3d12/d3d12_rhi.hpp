@@ -7,6 +7,9 @@
 
 namespace engine {
 
+	//
+	// Direct3D12 handle wrapper for RHI Instance
+	//
 	class D3D12WrapperInstance final : public rhi::Instance_T {
 	public:
 		void Init(const rhi::InstanceCreateInfo&) override;
@@ -31,7 +34,11 @@ namespace engine {
 #endif // _DEBUG
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Device
+	//
 	class D3D12WrapperDevice final : public rhi::Device_T {
+
 		friend class D3D12WrapperInstance;
 
 		IDXGIFactory7* factory{ nullptr };
@@ -45,7 +52,6 @@ namespace engine {
 		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
 		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
 		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
-		//rhi::DescriptorPool CreateDescriptorPool(const DescriptorPoolCreateInfo&) const override;
 		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
 		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
 		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
@@ -60,7 +66,11 @@ namespace engine {
 		} feature;
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Queue
+	//
 	class D3D12WrapperQueue final : public rhi::Queue_T{
+
 		friend class D3D12WrapperInstance;
 		friend class D3D12WrapperDevice;
 
@@ -73,7 +83,11 @@ namespace engine {
 		D3D12_COMMAND_LIST_TYPE commandListType{ D3D12_COMMAND_LIST_TYPE_DIRECT };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Swapchain
+	//
 	class D3D12WrapperSwapchain final : public rhi::Swapchain_T {
+
 		friend class D3D12WrapperDevice;
 		friend class D3D12WrapperQueue;
 
@@ -84,6 +98,7 @@ namespace engine {
 
 		rhi::Extent2D GetImageExtent() const override;
 		std::vector<rhi::Image> GetImages() const override;
+
 		uint32_t AcquireNextImage(rhi::Fence) override;
 
 	private:
@@ -93,7 +108,11 @@ namespace engine {
 		uint32_t currentImageIndex{ 0 };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI CommandPool
+	//
 	class D3D12WrapperCommandPool final : public rhi::CommandPool_T {
+
 		friend class D3D12WrapperDevice;
 
 		ID3D12Device* device{ nullptr };
@@ -106,16 +125,18 @@ namespace engine {
 		std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) override;
 
 	private:
-		ID3D12CommandAllocator* commandAllocator{ nullptr };
-		D3D12_COMMAND_LIST_TYPE commandListType{ D3D12_COMMAND_LIST_TYPE_DIRECT };
 		std::vector<rhi::CommandBuffer> commandBuffers;
+		D3D12_COMMAND_LIST_TYPE commandListType{ D3D12_COMMAND_LIST_TYPE_DIRECT };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI CommandBuffer
+	//
 	class D3D12WrapperCommandBuffer final : public rhi::CommandBuffer_T{
+
 		friend class D3D12WrapperCommandPool;
 		friend class D3D12WrapperQueue;
-
-		ID3D12CommandAllocator* commandAllocator{ nullptr };
+		friend class D3D12WrapperPipeline;
 
 	public:
 		void Reset() override;
@@ -125,28 +146,55 @@ namespace engine {
 		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
 		void EndRenderPass() override;
 		void BindPipeline(const rhi::Pipeline&) override;
-		void BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) override;
+		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) override;
 		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
 
-		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const override;
-		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) const override;
+		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
 	
 	private:
+		void PrepareRenderingInfo();
+
+	private:
+		ID3D12CommandAllocator* commandAllocator{ nullptr };
 		ID3D12GraphicsCommandList4* commandList{ nullptr };
+		D3D12WrapperPipeline* pipeline{ nullptr };
 		std::vector<D3D12_RESOURCE_BARRIER> renderPassResourceBarriers;
+
+		struct {
+			std::vector<D3D12_VERTEX_BUFFER_VIEW> vertexBufferViews;
+			uint32_t firstBinding{ 0 };
+			uint32_t bindingCount{ 0 };
+			bool dirty{ false };
+		} vertexBindingInfo;
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Buffer
+	//
 	class D3D12WrapperBuffer final : public rhi::Buffer_T {
+
 		friend class D3D12WrapperDevice;
+		friend class D3D12WrapperCommandBuffer;
 
 	public:
 		void Destroy() override;
 
+		void* Map() override;
+		void* Map(uint64_t offset, uint64_t size) override;
+		void Unmap() override;
+
 	private:
 		ID3D12Resource* resource{ nullptr };
+		UINT bufferSize{ 0 };
+		D3D12_RANGE range{ 0, 0 };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Image
+	//
 	class D3D12WrapperImage final : public rhi::Image_T{
+
 		friend class D3D12WrapperDevice;
 
 	public:
@@ -156,7 +204,11 @@ namespace engine {
 		ID3D12Resource* resource{ nullptr };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI RenderPass
+	//
 	class D3D12WrapperRenderPass final : public rhi::RenderPass_T {
+
 		friend class D3D12WrapperDevice;
 		friend class D3D12WrapperCommandBuffer;
 
@@ -169,7 +221,11 @@ namespace engine {
 		rhi::AttachmentDescription* pDepthStencilAttachment{ nullptr };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI ShaderModule
+	//
 	class D3D12WrapperShaderModule final : public rhi::ShaderModule_T {
+
 		friend class D3D12WrapperDevice;
 		friend class D3D12WrapperPipeline;
 
@@ -181,7 +237,11 @@ namespace engine {
 		rhi::ShaderStage shaderStage{ 0 };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Pipeline
+	//
 	class D3D12WrapperPipeline final : public rhi::Pipeline_T {
+
 		friend class D3D12WrapperDevice;
 		friend class D3D12WrapperCommandBuffer;
 
@@ -190,16 +250,26 @@ namespace engine {
 
 	private:
 		ID3D12PipelineState* pipeline{ nullptr };
+		ID3D12RootSignature* rootSignature{ nullptr };
 		std::vector<D3D12_RECT> scissors;
 		std::vector<D3D12_VIEWPORT> viewports;
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology{ D3D_PRIMITIVE_TOPOLOGY_UNDEFINED };
+
+		struct {
+			std::vector<uint32_t> bindingStride;
+		} vertexInputInfo;
+
 		struct {
 			float minDepthBounds{ 0.0f };
 			float maxDepthBounds{ 0.0f };
 		} depthStencilInfo;
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Framebuffer
+	//
 	class D3D12WrapperFramebuffer final : public rhi::Framebuffer_T {
+
 		friend class D3D12WrapperDevice;
 		friend class D3D12WrapperCommandBuffer;
 
@@ -214,7 +284,11 @@ namespace engine {
 		UINT rtvHandleIncrementSize{ 0 };
 	};
 
+	//
+	// Direct3D12 handle wrapper for RHI Fence
+	//
 	class D3D12WrapperFence final : public rhi::Fence_T {
+
 		friend class D3D12WrapperDevice;
 		friend class D3D12WrapperQueue;
 		friend class D3D12WrapperSwapchain;

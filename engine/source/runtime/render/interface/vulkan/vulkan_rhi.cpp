@@ -4,6 +4,10 @@
 
 namespace engine {
 
+
+	/* -------------------- VkWrapperInstance -------------------- */
+
+
 	void VkWrapperInstance::Init(const rhi::InstanceCreateInfo& info) {
 #ifdef _DEBUG
 		validationLayers = {
@@ -184,7 +188,9 @@ namespace engine {
 		return shaderCompiler;
 	}
 
-	
+
+	/* -------------------- VkWrapperDevice -------------------- */
+
 
 	rhi::Queue VkWrapperDevice::GetQueue(uint32_t queueIndex) const {
 		if (queueIndex >= queues.size()) {
@@ -343,27 +349,6 @@ namespace engine {
 		return imageWrapper;
 	}
 
-	/*rhi::DescriptorPool VulkanInstance::CreateDescriptorPool(rhi::Device& device, const rhi::DescriptorPoolCreateInfo& info) const {
-		auto poolSize = vk::DescriptorPoolSize()
-			.setType(VkEnumDescriptorType(info.descriptorType).Get())
-			.setDescriptorCount(info.descriptorCount);
-		
-		auto poolInfo = vk::DescriptorPoolCreateInfo()
-			.setMaxSets(info.descriptorCount)
-			.setPoolSizeCount(1)
-			.setPPoolSizes(&poolSize);
-
-		auto descriptorPool = static_cast<VkWrapperDevice*>(device)->GetDevice().createDescriptorPool(poolInfo);
-
-		if (!descriptorPool) {
-			throw std::runtime_error("Create descriptor pool failed");
-		}
-
-		auto descriptorPoolWrapper = new VkWrapperDescriptorPool();
-		descriptorPoolWrapper->SetDevice(static_cast<VkWrapperDevice*>(device)->GetDevice()).SetDescriptorPool(descriptorPool);
-		return descriptorPoolWrapper;
-	}*/
-
 	rhi::RenderPass VkWrapperDevice::CreateRenderPass(const rhi::RenderPassCreateInfo& info) const {
 		auto subpassInfo = vk::SubpassDescription()
 			.setPipelineBindPoint(VkEnumPipelineBindPoint(info.pipelineType).Get());
@@ -464,7 +449,7 @@ namespace engine {
 		for (uint32_t i = 0; i < info.vertexInputInfo.attributeCount; i++) {
 			auto& attribute = info.vertexInputInfo.pAttributes[i];
 			vertexAttributeInfos[i] = vk::VertexInputAttributeDescription()
-				.setBinding(attribute.bindingSlot)
+				.setBinding(attribute.binding)
 				.setLocation(i)
 				.setFormat(VkEnumFormat(attribute.format).Get())
 				.setOffset(attribute.offset);
@@ -700,7 +685,9 @@ namespace engine {
 		return fenceWrapper;
 	}
 
-	
+
+	/* -------------------- VkWrapperQueue -------------------- */
+
 
 	void VkWrapperQueue::SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
 		std::vector<vk::CommandBuffer> submitCommandBuffers(commandBufferCount);
@@ -726,6 +713,8 @@ namespace engine {
 	}
 
 
+	/* -------------------- VkWrapperSwapchain -------------------- */
+
 
 	rhi::Extent2D VkWrapperSwapchain::GetImageExtent() const {
 		return imageExtent;
@@ -741,6 +730,8 @@ namespace engine {
 		return currentImageIndex;
 	}
 	
+
+	/* -------------------- VkWrapperCommandPool -------------------- */
 
 
 	void VkWrapperCommandPool::Reset() {
@@ -772,6 +763,8 @@ namespace engine {
 		return cmdWrappers;
 	}
 
+
+	/* -------------------- VkWrapperCommandBuffer -------------------- */
 
 
 	void VkWrapperCommandBuffer::Reset() {
@@ -815,22 +808,60 @@ namespace engine {
 		commandBuffer.bindPipeline(VkEnumPipelineBindPoint(pipeline_->pipelineType).Get(), pipeline_->pipeline);
 	}
 
-	void VkWrapperCommandBuffer::BindVertexBuffer(uint32_t bindingCount, rhi::Buffer* pBuffer, uint64_t* pOffsets) {
-
+	void VkWrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) {
+		std::vector<vk::Buffer> vertexBuffers(bindingCount);
+		std::vector<vk::DeviceSize> offsets(bindingCount);
+		for (uint32_t i = 0; i < bindingCount; i++) {
+			vertexBuffers[i] = static_cast<VkWrapperBuffer*>(pBuffers[i])->buffer;
+			offsets[i] = 0;
+		}
+		
+		commandBuffer.bindVertexBuffers(firstBinding, bindingCount, vertexBuffers.data(), offsets.data());
 	}
 
 	void VkWrapperCommandBuffer::BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) {
-
+		auto indexBuffer = static_cast<VkWrapperBuffer*>(buffer)->buffer;
+		commandBuffer.bindIndexBuffer(indexBuffer, offset, VkEnumIndexType(indexType).Get());
 	}
 
-	void VkWrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
+	void VkWrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
 		commandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
-	void VkWrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) const {
+	void VkWrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
 		commandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
+
+	/* -------------------- VkWrapperBuffer -------------------- */
+
+
+	void* VkWrapperBuffer::Map() {
+		auto pData = device.mapMemory(memory, 0, VK_WHOLE_SIZE);
+
+		if (!pData) {
+			throw std::runtime_error("Map the memory failed");
+		}
+
+		return pData;
+	}
+
+	void* VkWrapperBuffer::Map(uint64_t offset, uint64_t size) {
+		auto pData = device.mapMemory(memory, offset, size);
+
+		if (!pData) {
+			throw std::runtime_error("Map the memory failed");
+		}
+
+		return pData;
+	}
+
+	void VkWrapperBuffer::Unmap() {
+		device.unmapMemory(memory);
+	}
+
+
+	/* -------------------- VkWrapperFence -------------------- */
 
 
 	void VkWrapperFence::Reset() {
@@ -849,6 +880,8 @@ namespace engine {
 		return false;
 	}
 
+
+	/* -------------------- destroy handle -------------------- */
 
 
 	void VkWrapperInstance::Destroy() {
@@ -894,11 +927,6 @@ namespace engine {
 		device.free(memory);
 		delete this;
 	}
-
-	/*void VulkanInstance::Destroy(rhi::DescriptorPool& descriptorPool) const {
-		static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDevice().destroy(static_cast<VkWrapperDescriptorPool*>(descriptorPool)->GetDescriptorPool());
-		delete descriptorPool;
-	}*/
 
 	void VkWrapperRenderPass::Destroy() {
 		device.destroy(renderPass);

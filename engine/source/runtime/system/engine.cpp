@@ -8,6 +8,7 @@ namespace engine {
 
 	void Engine::Start(const PlatformInfo& platformInfo) {
 		auto instanceInfo = rhi::InstanceCreateInfo()
+			//.SetPApiName("Direct3D12")
 			.SetPApiName("Vulkan")
 			.SetPApplicationName("Test application")
 			.SetApplicationVersion(1);
@@ -55,10 +56,28 @@ namespace engine {
 		
 		renderPass = device->CreateRenderPass(renderPassInfo);
 		
-		
+		struct VertexData {
+			math::Vector3f worldPos;
+			math::Vector3f color;
+		};
+
+		std::array<VertexData, 3> verticesData;
+		verticesData[0].worldPos = math::Vector3f(0.0f, 0.5f, 0.0f);
+		verticesData[0].color = math::Vector3f(1.0f, 0.0f, 0.0f);
+		verticesData[1].worldPos = math::Vector3f(-0.5f, -0.5f, 0.0f);
+		verticesData[1].color = math::Vector3f(0.0f, 1.0f, 0.0f);
+		verticesData[2].worldPos = math::Vector3f(0.5f, -0.5f, 0.0f);
+		verticesData[2].color = math::Vector3f(0.0f, 0.0f, 1.0f);
 
 		auto vertexBufferInfo = rhi::BufferCreateInfo()
+			.SetSize(sizeof(VertexData) * 3)
 			.SetUsage(rhi::BufferUsage::VertexBuffer);
+
+		vertexBuffer = device->CreateBuffer(vertexBufferInfo);
+		
+		auto ptr = reinterpret_cast<VertexData*>(vertexBuffer->Map());
+		std::copy(verticesData.begin(), verticesData.end(), ptr);
+		vertexBuffer->Unmap();
 
 		std::vector<char> shaderSource;
 		auto shaderCompiler = instance->CreateShaderCompiler();
@@ -88,6 +107,26 @@ namespace engine {
 		auto shaderStageInfo = rhi::PipelineShaderStageInfo()
 			.SetShaderModuleCount(static_cast<uint32_t>(shaderModules.size())).SetPShaderModules(shaderModules.data());
 		
+		auto vertexBindingInfo = rhi::VertexBindingInfo()
+			.SetInputRate(rhi::VertexInputRate::PerVertex)
+			.SetStride(sizeof(VertexData));
+		
+		std::vector<rhi::VertexAttributeInfo> vertexAttributeInfos;
+		vertexAttributeInfos.emplace_back(rhi::VertexAttributeInfo()
+			.SetBinding(0)
+			.SetFormat(rhi::Format::R32G32B32Sfloat)
+			.SetSemantic("WorldPos")
+			.SetOffset(0));
+		vertexAttributeInfos.emplace_back(rhi::VertexAttributeInfo()
+			.SetBinding(0)
+			.SetFormat(rhi::Format::R32G32B32Sfloat)
+			.SetSemantic("Color")
+			.SetOffset(sizeof(math::Vector3f)));
+
+		auto vertexInputInfo = rhi::PipelineVertexInputInfo()
+			.SetBindingCount(1).SetPBindings(&vertexBindingInfo)
+			.SetAttributes(vertexAttributeInfos);
+
 		auto inputAssemblyInfo = rhi::PipelineInputAssemblyInfo()
 			.SetTopology(rhi::PrimitiveTopology::TriangleList)
 			.SetPrimitivieRestart(false);
@@ -132,6 +171,7 @@ namespace engine {
 		
 		auto pipelineInfo = rhi::GraphicsPipelineCreateInfo()
 			.SetShaderStageInfo(shaderStageInfo)
+			.SetVertexInputInfo(vertexInputInfo)
 			.SetInputAssemblyInfo(inputAssemblyInfo)
 			.SetRasterizationInfo(rasterizationInfo)
 			.SetViewportInfo(viewportInfo)
@@ -220,12 +260,13 @@ namespace engine {
 
 		// Draw Call
 		commandBuffer->BindPipeline(pipeline);
+		commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
 
 		commandBuffer->Draw(3, 1, 0, 0);
 
 		commandBuffer->EndRenderPass();
 		commandBuffer->End();
-
+		
 		fence->Reset();
 		queue->SubmitCommandBuffers(1, &commandBuffer, fence);
 		fence->Wait();

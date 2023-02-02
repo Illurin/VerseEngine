@@ -3,7 +3,9 @@
 #include "Eigen/Dense"
 
 namespace engine {
+	namespace math {
 
-	namespace math = Eigen;
+		using namespace Eigen;
 
+	}
 }

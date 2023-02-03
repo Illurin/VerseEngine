@@ -55,7 +55,7 @@ namespace engine {
 			.SetPColorAttachments(&colorAttachmentDescription);
 		
 		renderPass = device->CreateRenderPass(renderPassInfo);
-		
+
 		struct VertexData {
 			math::Vector3f worldPos;
 			math::Vector3f color;
@@ -68,18 +68,18 @@ namespace engine {
 		verticesData[1].color = math::Vector3f(0.0f, 1.0f, 0.0f);
 		verticesData[2].worldPos = math::Vector3f(0.5f, -0.5f, 0.0f);
 		verticesData[2].color = math::Vector3f(0.0f, 0.0f, 1.0f);
-
+		
 		auto vertexBufferInfo = rhi::BufferCreateInfo()
 			.SetSize(sizeof(VertexData) * 3)
 			.SetUsage(rhi::BufferUsage::VertexBuffer);
-
+		
 		vertexBuffer = device->CreateBuffer(vertexBufferInfo);
 		
 		auto ptr = reinterpret_cast<VertexData*>(vertexBuffer->Map());
 		std::copy(verticesData.begin(), verticesData.end(), ptr);
 		vertexBuffer->Unmap();
 
-		std::vector<char> shaderSource;
+		std::vector<uint8_t> shaderSource;
 		auto shaderCompiler = instance->CreateShaderCompiler();
 		
 		shaderCompiler.Compile(StringToWString(Path("shader/hlsl/vertex_shader.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::vs_profile);

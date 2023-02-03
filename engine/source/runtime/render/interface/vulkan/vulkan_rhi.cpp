@@ -36,12 +36,14 @@ namespace engine {
 		PFN_vkGetInstanceProcAddr GetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
 
 		auto debugMessengerInfo = vk::DebugUtilsMessengerCreateInfoEXT()
-			.setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose 
-				| vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning 
-				| vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
-			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral 
-				| vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation 
-				| vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
+			.setMessageSeverity(
+				vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+				vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+				vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+			.setMessageType(
+				vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+				vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+				vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
 			.setPfnUserCallback(reinterpret_cast<PFN_vkDebugUtilsMessengerCallbackEXT>(VulkanUtil::DebugCallback))
 			.setPUserData(nullptr);
 

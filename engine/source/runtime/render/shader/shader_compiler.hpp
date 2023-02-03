@@ -92,7 +92,7 @@ namespace engine {
 		void Compile(const wchar_t* sourcePath, const wchar_t* entryPoint, const wchar_t* profile);
 
 		// get compile info
-		bool GetSourceObject(std::vector<char>& sourceObject) const;
+		bool GetSourceObject(std::vector<uint8_t>& sourceObject) const;
 		bool GetErrorInfo(std::string& errorInfo) const;
 
 		bool GenerateSourceObjectFile(const wchar_t* path) const;

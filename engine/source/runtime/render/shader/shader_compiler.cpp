@@ -136,7 +136,7 @@ namespace engine {
 		Compile(sourceCode.data(), sourceCodeSize, entryPoint, profile);
 	}
 
-	bool ShaderCompiler::GetSourceObject(std::vector<char>& sourceObject) const {
+	bool ShaderCompiler::GetSourceObject(std::vector<uint8_t>& sourceObject) const {
 		if (!dxcCompileResult) {
 			throw std::runtime_error("No shader is compiled");
 		}
@@ -152,7 +152,7 @@ namespace engine {
 		}
 
 		sourceObject.resize(dxcObjectInfo->GetBufferSize());
-		char* ptr = static_cast<char*>(dxcObjectInfo->GetBufferPointer());
+		auto ptr = static_cast<uint8_t*>(dxcObjectInfo->GetBufferPointer());
 		std::copy(ptr, ptr + dxcObjectInfo->GetBufferSize(), sourceObject.begin());
 
 		dxcObjectInfo->Release();
@@ -183,13 +183,13 @@ namespace engine {
 	}
 
 	bool ShaderCompiler::GenerateSourceObjectFile(const wchar_t* path) const {
-		std::vector<char> sourceObject;
+		std::vector<uint8_t> sourceObject;
 		if (!GetSourceObject(sourceObject)) {
 			return false;
 		}
 
 		std::ofstream outputFile(path, std::ios::trunc | std::ios::binary);
-		outputFile.write(sourceObject.data(), sourceObject.size());
+		outputFile.write(reinterpret_cast<char*>(sourceObject.data()), sourceObject.size());
 		outputFile.close();
 
 		return true;

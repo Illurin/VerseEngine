@@ -300,13 +300,13 @@ namespace engine {
 
 		struct ShaderModuleCreateInfo {
 			ShaderModuleCreateInfo& SetSourceCodeSize(uint32_t sourceCodeSize) { this->sourceCodeSize = sourceCodeSize; return *this; }
-			ShaderModuleCreateInfo& SetPSourceCode(char* pSourceCode) { this->pSourceCode = pSourceCode; return *this; }
-			ShaderModuleCreateInfo& SetSourceCode(std::vector<char>& sourceCode) { sourceCodeSize = static_cast<uint32_t>(sourceCode.size()); pSourceCode = sourceCode.data(); return *this; }
+			ShaderModuleCreateInfo& SetPSourceCode(uint8_t* pSourceCode) { this->pSourceCode = pSourceCode; return *this; }
+			ShaderModuleCreateInfo& SetSourceCode(std::vector<uint8_t>& sourceCode) { sourceCodeSize = static_cast<uint32_t>(sourceCode.size()); pSourceCode = sourceCode.data(); return *this; }
 			ShaderModuleCreateInfo& SetPEntryPoint(const char* pEntryPoint) { this->pEntryPoint = pEntryPoint; return *this; }
 			ShaderModuleCreateInfo& SetShaderStage(ShaderStage shaderStage) { this->shaderStage = shaderStage; return *this; }
 
 			uint32_t sourceCodeSize;
-			char* pSourceCode;
+			uint8_t* pSourceCode;
 			const char* pEntryPoint;
 			ShaderStage shaderStage;
 		};

@@ -20,8 +20,11 @@ namespace engine {
 		RHI_DEFINE_HANDLE(CommandBuffer)
 		RHI_DEFINE_HANDLE(Buffer)
 		RHI_DEFINE_HANDLE(Image)
+		RHI_DEFINE_HANDLE(Sampler)
+		RHI_DEFINE_HANDLE(DescriptorPool)
 		RHI_DEFINE_HANDLE(DescriptorSet)
 		RHI_DEFINE_HANDLE(DescriptorSetLayout)
+		RHI_DEFINE_HANDLE(PipelineLayout)
 		RHI_DEFINE_HANDLE(RenderPass)
 		RHI_DEFINE_HANDLE(ShaderModule)
 		RHI_DEFINE_HANDLE(Pipeline)
@@ -247,20 +250,91 @@ namespace engine {
 			uint32_t arrayLayerCount;
 		};
 
-		struct SamplerInfo {
+		struct SamplerCreateInfo {
+			SamplerCreateInfo& SetMinFilter(Filter minFilter) { this->minFilter = minFilter; return *this; }
+			SamplerCreateInfo& SetMagFilter(Filter magFilter) { this->magFilter = magFilter; return *this; }
+			SamplerCreateInfo& SetMipFilter(Filter mipFilter) { this->mipFilter = mipFilter; return *this; }
+			SamplerCreateInfo& SetAddressModeU(SamplerAddressMode addressModeU) { this->addressModeU = addressModeU; return *this; }
+			SamplerCreateInfo& SetAddressModeV(SamplerAddressMode addressModeV) { this->addressModeV = addressModeV; return *this; }
+			SamplerCreateInfo& SetAddressModeW(SamplerAddressMode addressModeW) { this->addressModeW = addressModeW; return *this; }
+			SamplerCreateInfo& SetMipLodBias(float mipLodBias) { this->mipLodBias = mipLodBias; return *this; }
+			SamplerCreateInfo& SetMinLod(float minLod) { this->minLod = minLod; return *this; }
+			SamplerCreateInfo& SetMaxLod(float maxLod) { this->maxLod = maxLod; return *this; }
+			SamplerCreateInfo& SetAnisotropyEnable(bool anisotropyEnable) { this->anisotropyEnable = anisotropyEnable; return *this; }
+			SamplerCreateInfo& SetMaxAnisotropy(float maxAnisotropy) { this->maxAnisotropy = maxAnisotropy; return *this; }
+			SamplerCreateInfo& SetCompareEnable(bool compareEnable) { this->compareEnable = compareEnable; return *this; }
+			SamplerCreateInfo& SetCompareOp(CompareOp compareOp) { this->compareOp = compareOp; return *this; }
+			SamplerCreateInfo& SetBorderColor(BorderColor borderColor) { this->borderColor = borderColor; return *this; }
+
+			Filter minFilter;
+			Filter magFilter;
+			Filter mipFilter;
+			SamplerAddressMode addressModeU;
+			SamplerAddressMode addressModeV;
+			SamplerAddressMode addressModeW;
+			float mipLodBias;
+			float minLod;
+			float maxLod;
+			bool anisotropyEnable;
+			float maxAnisotropy;
+			bool compareEnable;
+			CompareOp compareOp;
+			BorderColor borderColor;
+		};
+
+		struct DescriptorPoolSize {
+			DescriptorPoolSize& SetType(DescriptorType type) { this->type = type; return *this; }
+			DescriptorPoolSize& SetSize(uint32_t size) { this->size = size; return *this; }
+
+			DescriptorType type;
+			uint32_t size;
+		};
+
+		struct DescriptorPoolCreateInfo {
+			DescriptorPoolCreateInfo& SetMaxSetCount(uint32_t maxSetCount) { this->maxSetCount = maxSetCount; return *this; }
+			DescriptorPoolCreateInfo& SetPoolSizeCount(uint32_t poolSizeCount) { this->poolSizeCount = poolSizeCount; return *this; }
+			DescriptorPoolCreateInfo& SetPPoolSizes(DescriptorPoolSize* pPoolSizes) { this->pPoolSizes = pPoolSizes; return *this; }
+			DescriptorPoolCreateInfo& SetPoolSizes(std::vector<DescriptorPoolSize>& poolSizes) { poolSizeCount = static_cast<uint32_t>(poolSizes.size()); pPoolSizes = poolSizes.data(); return *this; }
+
+			uint32_t maxSetCount;
+			uint32_t poolSizeCount;
+			DescriptorPoolSize* pPoolSizes;
+		};
+
+		struct DescriptorSetAllocateInfo {
 
 		};
 
 		struct DescriptorSetLayoutBinding {
+			DescriptorSetLayoutBinding& SetBinding(uint32_t binding) { this->binding = binding; return *this; }
 			DescriptorSetLayoutBinding& SetDescriptorType(DescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
 			DescriptorSetLayoutBinding& SetDescriptorCount(uint32_t descriptorCount) { this->descriptorCount = descriptorCount; return *this; }
+			DescriptorSetLayoutBinding& SetPStaticSamplers(Sampler* pStaticSamplers) { this->pStaticSamplers = pStaticSamplers; return *this; }
+			DescriptorSetLayoutBinding& SetStaticSamplers(std::vector<Sampler>& staticSamplers) { descriptorCount = static_cast<uint32_t>(staticSamplers.size()); pStaticSamplers = staticSamplers.data(); return *this; }
 
 			uint32_t binding;
 			DescriptorType descriptorType;
 			uint32_t descriptorCount;
-			uint32_t shaderStageCount;
-			ShaderStage* pShaderStages;
-			SamplerInfo* pStaticSampler;
+			Sampler* pStaticSamplers;
+		};
+
+		struct DescriptorSetLayoutCreateInfo {
+			DescriptorSetLayoutCreateInfo& SetBindingCount(uint32_t bindingCount) { this->bindingCount = bindingCount; return *this; }
+			DescriptorSetLayoutCreateInfo& SetPBindings(DescriptorSetLayoutBinding* pBindings) { this->pBindings = pBindings; return *this; }
+			DescriptorSetLayoutCreateInfo& SetBindings(std::vector<DescriptorSetLayoutBinding>& bindings) { bindingCount = static_cast<uint32_t>(bindings.size()); pBindings = bindings.data(); return *this; }
+			DescriptorSetLayoutCreateInfo& SetShaderStage(ShaderStage shaderStage) { this->shaderStage = shaderStage; return *this; }
+
+			uint32_t bindingCount;
+			DescriptorSetLayoutBinding* pBindings;
+			ShaderStage shaderStage;
+		};
+
+		struct PipelineLayoutCreateInfo {
+			PipelineLayoutCreateInfo& SetDescriptorSetLayoutCount(uint32_t descriptorSetLayoutCount) { this->descriptorSetLayoutCount = descriptorSetLayoutCount; return *this; }
+			PipelineLayoutCreateInfo& SetPDescriptorSetLayouts(DescriptorSetLayout* pDescriptorSetLayouts) { this->pDescriptorSetLayouts = pDescriptorSetLayouts; return *this; }
+
+			uint32_t descriptorSetLayoutCount;
+			DescriptorSetLayout* pDescriptorSetLayouts;
 		};
 
 		struct AttachmentDescription {
@@ -372,7 +446,6 @@ namespace engine {
 			PipelineRasterizationInfo& SetCullMode(CullMode cullMode) { this->cullMode = cullMode; return *this; }
 			PipelineRasterizationInfo& SetPolygonMode(PolygonMode polygonMode) { this->polygonMode = polygonMode; return *this; }
 			PipelineRasterizationInfo& SetFrontFace(FrontFace frontFace) { this->frontFace = frontFace; return *this; }
-			PipelineRasterizationInfo& SetLineWidth(float lineWidth) { this->lineWidth = lineWidth; return *this; }
 			PipelineRasterizationInfo& SetSmoothLine(bool smoothLine) { this->smoothLine = smoothLine; return *this; }
 			PipelineRasterizationInfo& SetDepthBias(float depthBias) { this->depthBias = depthBias; return *this; }
 			PipelineRasterizationInfo& SetSlopeScaledDepthBias(float slopeScaledDepthBias) { this->slopeScaledDepthBias = slopeScaledDepthBias; return *this; }
@@ -381,7 +454,6 @@ namespace engine {
 			CullMode cullMode;
 			PolygonMode polygonMode;
 			FrontFace frontFace;
-			float lineWidth;
 			bool smoothLine;
 			float depthBias;
 			float slopeScaledDepthBias;

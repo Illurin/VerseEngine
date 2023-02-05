@@ -206,6 +206,153 @@ namespace engine {
 		return imageWrapper;
 	}
 
+	rhi::Sampler D3D12WrapperDevice::CreateSampler(const rhi::SamplerCreateInfo& info) const {
+		auto samplerWrapper = new D3D12WrapperSampler();
+		samplerWrapper->samplerInfo = info;
+		return samplerWrapper;
+	}
+
+	rhi::DescriptorPool D3D12WrapperDevice::CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo& info) const {
+		uint32_t cbvSrvUavDescriptorCount = 0;
+		uint32_t samplerDescriptorCount = 0;
+
+		for (uint32_t i = 0; i < info.poolSizeCount; i++) {
+			if (info.pPoolSizes[i].type == rhi::DescriptorType::Sampler) {
+				samplerDescriptorCount += info.pPoolSizes[i].size;
+			}
+			else {
+				cbvSrvUavDescriptorCount += info.pPoolSizes[i].size;
+			}
+		}
+
+		auto descriptorPool = new D3D12WrapperDescriptorPool();
+
+		if (cbvSrvUavDescriptorCount > 0) {
+			D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
+			descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			descriptorHeapDesc.NumDescriptors = cbvSrvUavDescriptorCount;
+
+			if (FAILED(device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorPool->cbvSrvUavHeap)))) {
+				throw std::runtime_error("Create descriptor heap failed");
+			}
+		}
+		
+		if (samplerDescriptorCount > 0) {
+			D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
+			descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+			descriptorHeapDesc.NumDescriptors = samplerDescriptorCount;
+
+			if (FAILED(device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorPool->samplerHeap)))) {
+				throw std::runtime_error("Create descriptor heap failed");
+			}
+		}
+
+		return descriptorPool;
+	}
+
+	rhi::DescriptorSetLayout D3D12WrapperDevice::CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo& info) const {
+		std::vector<rhi::DescriptorSetLayoutBinding> bindings(info.bindingCount);
+		std::copy(info.pBindings, info.pBindings + info.bindingCount, bindings.data());
+
+		auto descriptorSetLayoutWrapper = new D3D12WrapperDescriptorSetLayout();
+		descriptorSetLayoutWrapper->bindings = bindings;
+		descriptorSetLayoutWrapper->shaderVisibility = D3D12EnumShaderVisibility(info.shaderStage).Get();
+		return descriptorSetLayoutWrapper;
+	}
+
+	rhi::PipelineLayout D3D12WrapperDevice::CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo& info) const {
+		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
+		D3D12_DESCRIPTOR_RANGE1* pRanges = ranges.data();
+		std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs;
+		std::vector<D3D12_ROOT_PARAMETER1> parameters(info.descriptorSetLayoutCount);
+		for (uint32_t i = 0; i < info.descriptorSetLayoutCount; i++) {
+			auto descriptorSetLayout = static_cast<D3D12WrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i]);
+			UINT rangeCount = 0;
+			for (auto& binding : descriptorSetLayout->bindings) {
+				if (binding.pStaticSamplers) {
+					for (uint32_t j = 0; j < binding.descriptorCount; j++) {
+						auto& samplerInfo = static_cast<D3D12WrapperSampler*>(binding.pStaticSamplers[j])->samplerInfo;
+						D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+						samplerDesc.Filter = D3D12EnumFilter(
+							samplerInfo.minFilter,
+							samplerInfo.magFilter,
+							samplerInfo.mipFilter,
+							samplerInfo.compareEnable,
+							samplerInfo.anisotropyEnable).Get();
+						samplerDesc.AddressU = D3D12EnumTextureAddressMode(samplerInfo.addressModeU).Get();
+						samplerDesc.AddressV = D3D12EnumTextureAddressMode(samplerInfo.addressModeV).Get();
+						samplerDesc.AddressW = D3D12EnumTextureAddressMode(samplerInfo.addressModeW).Get();
+						samplerDesc.MipLODBias = samplerInfo.mipLodBias;
+						samplerDesc.MinLOD = samplerInfo.minLod;
+						samplerDesc.MaxLOD = samplerInfo.maxLod;
+						samplerDesc.MaxAnisotropy = static_cast<UINT>(samplerInfo.maxAnisotropy);
+						samplerDesc.ComparisonFunc = D3D12EnumComparisonFunc(samplerInfo.compareOp).Get();
+						samplerDesc.BorderColor = D3D12EnumStaticBorderColor(samplerInfo.borderColor).Get();
+						samplerDesc.ShaderRegister = binding.binding + j;
+						samplerDesc.RegisterSpace = i;
+						samplerDesc.ShaderVisibility = descriptorSetLayout->shaderVisibility;
+						staticSamplerDescs.emplace_back(samplerDesc);
+						/*switch (samplerInfo.borderColor) {
+						case rhi::BorderColor::TransparentBlack:
+							samplerDesc.BorderColor[0] = 0.0f;
+							samplerDesc.BorderColor[1] = 0.0f;
+							samplerDesc.BorderColor[2] = 0.0f;
+							samplerDesc.BorderColor[3] = 0.0f;
+							break;
+						case rhi::BorderColor::OpaqueBlack:
+							samplerDesc.BorderColor[0] = 0.0f;
+							samplerDesc.BorderColor[1] = 0.0f;
+							samplerDesc.BorderColor[2] = 0.0f;
+							samplerDesc.BorderColor[3] = 1.0f;
+							break;
+						case rhi::BorderColor::OpaqueWhite:
+							samplerDesc.BorderColor[0] = 1.0f;
+							samplerDesc.BorderColor[1] = 1.0f;
+							samplerDesc.BorderColor[2] = 1.0f;
+							samplerDesc.BorderColor[3] = 1.0f;
+							break;
+						}*/
+
+					}
+				}
+				else {
+					ranges.emplace_back(CD3DX12_DESCRIPTOR_RANGE1(
+						D3D12EnumDescriptorRangeType(binding.descriptorType).Get(),
+						static_cast<UINT>(binding.descriptorCount),
+						static_cast<UINT>(binding.binding),
+						static_cast<UINT>(i)));
+					rangeCount++;
+				}
+			}
+			CD3DX12_ROOT_PARAMETER1 parameter;
+			parameter.InitAsDescriptorTable(rangeCount, pRanges, descriptorSetLayout->shaderVisibility);
+			parameters[i] = parameter;
+		}
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.Init_1_1(info.descriptorSetLayoutCount, parameters.data(), static_cast<UINT>(staticSamplerDescs.size()), staticSamplerDescs.data());
+
+		ID3DBlob* rootSignatureBlob, * errorBlob;
+		if (FAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, &rootSignatureBlob, &errorBlob))) {
+			throw std::runtime_error("Serialize root signature failed");
+		}
+		if (errorBlob) {
+			OutputDebugStringA(static_cast<char*>(errorBlob->GetBufferPointer()));
+			errorBlob->Release();
+		}
+
+		ID3D12RootSignature* rootSignature;
+		if (FAILED(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(), rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature)))) {
+			throw std::runtime_error("Create root signature failed");
+		}
+
+		rootSignatureBlob->Release();
+
+		auto pipelineLayoutInfo = new D3D12WrapperPipelineLayout();
+		pipelineLayoutInfo->rootSignature = rootSignature;
+		return pipelineLayoutInfo;
+	}
+
 	rhi::RenderPass D3D12WrapperDevice::CreateRenderPass(const rhi::RenderPassCreateInfo& info) const {
 		auto renderPass = new D3D12WrapperRenderPass();
 		renderPass->colorAttachmentCount = info.colorAttachmentCount;
@@ -649,9 +796,9 @@ namespace engine {
 			D3D12_RENDER_PASS_RENDER_TARGET_DESC renderTargetDesc = {};
 			renderTargetDesc.cpuDescriptor = CD3DX12_CPU_DESCRIPTOR_HANDLE(
 				framebuffer->renderTargetHeap->GetCPUDescriptorHandleForHeapStart(), i, framebuffer->rtvHandleIncrementSize);
-			renderTargetDesc.BeginningAccess.Type = D3D12RenderPassBeginningAccessType(renderPass->pColorAttachments[i].loadOp).Get();
+			renderTargetDesc.BeginningAccess.Type = D3D12EnumRenderPassBeginningAccessType(renderPass->pColorAttachments[i].loadOp).Get();
 			renderTargetDesc.BeginningAccess.Clear = clearParameters;
-			renderTargetDesc.EndingAccess.Type = D3D12RenderPassEndingAccessType(renderPass->pColorAttachments[i].storeOp).Get();
+			renderTargetDesc.EndingAccess.Type = D3D12EnumRenderPassEndingAccessType(renderPass->pColorAttachments[i].storeOp).Get();
 			renderTargetDescs[i] = renderTargetDesc;
 		}
 
@@ -670,12 +817,12 @@ namespace engine {
 			);
 
 			depthStencilDesc.cpuDescriptor = framebuffer->depthStencilHeap->GetCPUDescriptorHandleForHeapStart();
-			depthStencilDesc.DepthBeginningAccess.Type = D3D12RenderPassBeginningAccessType(renderPass->pDepthStencilAttachment->loadOp).Get();
+			depthStencilDesc.DepthBeginningAccess.Type = D3D12EnumRenderPassBeginningAccessType(renderPass->pDepthStencilAttachment->loadOp).Get();
 			depthStencilDesc.DepthBeginningAccess.Clear = depthClearParameters;
-			depthStencilDesc.DepthEndingAccess.Type = D3D12RenderPassEndingAccessType(renderPass->pDepthStencilAttachment->storeOp).Get();
-			depthStencilDesc.StencilBeginningAccess.Type = D3D12RenderPassBeginningAccessType(renderPass->pDepthStencilAttachment->stencilLoadOp).Get();
+			depthStencilDesc.DepthEndingAccess.Type = D3D12EnumRenderPassEndingAccessType(renderPass->pDepthStencilAttachment->storeOp).Get();
+			depthStencilDesc.StencilBeginningAccess.Type = D3D12EnumRenderPassBeginningAccessType(renderPass->pDepthStencilAttachment->stencilLoadOp).Get();
 			depthStencilDesc.StencilBeginningAccess.Clear = stencilClearParameters;
-			depthStencilDesc.StencilEndingAccess.Type = D3D12RenderPassEndingAccessType(renderPass->pDepthStencilAttachment->stencilStoreOp).Get();
+			depthStencilDesc.StencilEndingAccess.Type = D3D12EnumRenderPassEndingAccessType(renderPass->pDepthStencilAttachment->stencilStoreOp).Get();
 		}
 
 		commandList->BeginRenderPass(
@@ -704,7 +851,7 @@ namespace engine {
 		commandList->SetGraphicsRootSignature(pipelineState->rootSignature);
 	}
 
-	void D3D12WrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) {
+	void D3D12WrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) {
 		vertexBindingInfo.vertexBufferViews.resize(bindingCount);
 		for (uint32_t i = 0; i < bindingCount; i++) {
 			auto vertexBuffer = static_cast<D3D12WrapperBuffer*>(pBuffers[i]);
@@ -855,6 +1002,25 @@ namespace engine {
 
 	void D3D12WrapperImage::Destroy() {
 		resource->Release();
+		delete this;
+	}
+
+	void D3D12WrapperSampler::Destroy() {
+		delete this;
+	}
+
+	void D3D12WrapperDescriptorPool::Destroy() {
+		if (cbvSrvUavHeap) cbvSrvUavHeap->Release();
+		if (samplerHeap) samplerHeap->Release();
+		delete this;
+	}
+
+	void D3D12WrapperDescriptorSetLayout::Destroy() {
+		delete this;
+	}
+
+	void D3D12WrapperPipelineLayout::Destroy() {
+		rootSignature->Release();
 		delete this;
 	}
 

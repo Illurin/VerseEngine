@@ -36,14 +36,12 @@ namespace engine {
 		PFN_vkGetInstanceProcAddr GetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
 
 		auto debugMessengerInfo = vk::DebugUtilsMessengerCreateInfoEXT()
-			.setMessageSeverity(
-				vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-				vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-				vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
-			.setMessageType(
-				vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-				vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-				vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
+			.setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+				                vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+				                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+				            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+				            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
 			.setPfnUserCallback(reinterpret_cast<PFN_vkDebugUtilsMessengerCallbackEXT>(VulkanUtil::DebugCallback))
 			.setPUserData(nullptr);
 
@@ -138,7 +136,8 @@ namespace engine {
 		}
 
 		auto features = vk::PhysicalDeviceFeatures()
-			.setGeometryShader(VK_TRUE);
+			.setGeometryShader(VK_TRUE)
+			.setFillModeNonSolid(VK_TRUE);
 
 		auto deviceExtensions = extensions.device;
 
@@ -257,6 +256,7 @@ namespace engine {
 		}
 		
 		auto swapchainWrapper = new VkWrapperSwapchain();
+		swapchainWrapper->instance = instance;
 		swapchainWrapper->device = device;
 		swapchainWrapper->surface = surface;
 		swapchainWrapper->swapchain = swapchain;
@@ -349,6 +349,114 @@ namespace engine {
 		imageWrapper->image = image;
 		imageWrapper->memory = memory;
 		return imageWrapper;
+	}
+
+	rhi::Sampler VkWrapperDevice::CreateSampler(const rhi::SamplerCreateInfo& info) const {
+		auto samplerInfo = vk::SamplerCreateInfo()
+			.setMinFilter(VkEnumFilter(info.minFilter).Get())
+			.setMagFilter(VkEnumFilter(info.magFilter).Get())
+			.setMipmapMode(VkEnumSamplerMipmapMode(info.mipFilter).Get())
+			.setAddressModeU(VkEnumSamplerAddressMode(info.addressModeU).Get())
+			.setAddressModeV(VkEnumSamplerAddressMode(info.addressModeV).Get())
+			.setAddressModeW(VkEnumSamplerAddressMode(info.addressModeW).Get())
+			.setMipLodBias(info.mipLodBias)
+			.setMinLod(info.minLod)
+			.setMaxLod(info.maxLod)
+			.setAnisotropyEnable(info.anisotropyEnable)
+			.setMaxAnisotropy(info.maxAnisotropy)
+			.setCompareEnable(info.compareEnable)
+			.setCompareOp(VkEnumCompareOp(info.compareOp).Get())
+			.setBorderColor(VkEnumBorderColor(info.borderColor).Get());
+		
+		auto sampler = device.createSampler(samplerInfo);
+		
+		if (!sampler) {
+			throw std::runtime_error("Create sampler failed");
+		}
+
+		auto samplerWrapper = new VkWrapperSampler();
+		samplerWrapper->device = device;
+		samplerWrapper->sampler = sampler;
+		return samplerWrapper;
+	}
+
+	rhi::DescriptorPool VkWrapperDevice::CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo& info) const {
+		std::vector<vk::DescriptorPoolSize> poolSizes(info.poolSizeCount);
+		for (uint32_t i = 0; i < info.poolSizeCount; i++) {
+			poolSizes[i].setType(VkEnumDescriptorType(info.pPoolSizes[i].type).Get());
+			poolSizes[i].setDescriptorCount(info.pPoolSizes[i].size);
+		}
+
+		auto descriptorPoolInfo = vk::DescriptorPoolCreateInfo()
+			.setMaxSets(info.maxSetCount)
+			.setPoolSizes(poolSizes);
+
+		auto descriptorPool = device.createDescriptorPool(descriptorPoolInfo);
+
+		if (!descriptorPool) {
+			throw std::runtime_error("Create descriptor pool failed");
+		}
+
+		auto descriptorPoolWrapper = new VkWrapperDescriptorPool();
+		descriptorPoolWrapper->device = device;
+		descriptorPoolWrapper->descriptorPool = descriptorPool;
+		return descriptorPoolWrapper;
+	}
+
+	rhi::DescriptorSetLayout VkWrapperDevice::CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo& info) const {
+		std::vector<vk::DescriptorSetLayoutBinding> bindings(info.bindingCount);
+		for (uint32_t i = 0; i < info.bindingCount; i++) {
+			auto& binding = info.pBindings[i];
+			bindings[i] = vk::DescriptorSetLayoutBinding()
+				.setBinding(binding.binding)
+				.setDescriptorCount(binding.descriptorCount)
+				.setDescriptorType(VkEnumDescriptorType(binding.descriptorType).Get())
+				.setStageFlags(VkEnumShaderStageFlags(info.shaderStage).Get());
+
+			if (binding.pStaticSamplers) {
+				std::vector<vk::Sampler> samplers(binding.descriptorCount);
+				for (uint32_t j = 0; j < binding.descriptorCount; j++) {
+					samplers[j] = static_cast<VkWrapperSampler*>(binding.pStaticSamplers[j])->sampler;
+				}
+				bindings[i].setPImmutableSamplers(samplers.data());
+			}
+		}
+
+		auto descriptorSetLayoutInfo = vk::DescriptorSetLayoutCreateInfo()
+			.setBindings(bindings);
+
+		auto descriptorSetLayout = device.createDescriptorSetLayout(descriptorSetLayoutInfo);
+
+		if (!descriptorSetLayout) {
+			throw std::runtime_error("Create descriptor set layout failed");
+		}
+		
+		auto descriptorSetLayoutWrapper = new VkWrapperDescriptorSetLayout();
+		descriptorSetLayoutWrapper->device = device;
+		descriptorSetLayoutWrapper->descriptorSetLayout = descriptorSetLayout;
+		return descriptorSetLayoutWrapper;
+	}
+
+	rhi::PipelineLayout VkWrapperDevice::CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo& info) const {
+		std::vector<vk::DescriptorSetLayout> setLayouts(info.descriptorSetLayoutCount);
+		for (uint32_t i = 0; i < info.descriptorSetLayoutCount; i++) {
+			auto descriptorSetLayout = static_cast<VkWrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i]);
+			setLayouts[i] = descriptorSetLayout->descriptorSetLayout;
+		}
+
+		auto pipelineLayoutInfo = vk::PipelineLayoutCreateInfo()
+			.setSetLayouts(setLayouts);
+
+		auto pipelineLayout = device.createPipelineLayout(pipelineLayoutInfo);
+
+		if (!pipelineLayout) {
+			throw std::runtime_error("Create pipeline layout failed");
+		}
+
+		auto pipelineLayoutWrapper = new VkWrapperPipelineLayout();
+		pipelineLayoutWrapper->device = device;
+		pipelineLayoutWrapper->pipelineLayout = pipelineLayout;
+		return pipelineLayoutWrapper;
 	}
 
 	rhi::RenderPass VkWrapperDevice::CreateRenderPass(const rhi::RenderPassCreateInfo& info) const {
@@ -479,7 +587,7 @@ namespace engine {
 			.setCullMode(VkEnumCullMode(info.rasterizationInfo.cullMode).Get())
 			.setPolygonMode(VkEnumPolygonMode(info.rasterizationInfo.polygonMode).Get())
 			.setFrontFace(VkEnumFrontFace(info.rasterizationInfo.frontFace).Get())
-			.setLineWidth(info.rasterizationInfo.lineWidth)
+			.setLineWidth(1.0f)
 			.setDepthBiasEnable(VK_TRUE)
 			.setDepthBiasConstantFactor(info.rasterizationInfo.depthBias)
 			.setDepthBiasSlopeFactor(info.rasterizationInfo.slopeScaledDepthBias)
@@ -810,7 +918,7 @@ namespace engine {
 		commandBuffer.bindPipeline(VkEnumPipelineBindPoint(pipeline_->pipelineType).Get(), pipeline_->pipeline);
 	}
 
-	void VkWrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) {
+	void VkWrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) {
 		std::vector<vk::Buffer> vertexBuffers(bindingCount);
 		std::vector<vk::DeviceSize> offsets(bindingCount);
 		for (uint32_t i = 0; i < bindingCount; i++) {
@@ -908,6 +1016,7 @@ namespace engine {
 
 	void VkWrapperSwapchain::Destroy() {
 		device.destroy(swapchain);
+		instance.destroy(surface);
 		for (auto& image : images) delete image;
 		delete this;
 	}
@@ -927,6 +1036,26 @@ namespace engine {
 	void VkWrapperImage::Destroy() {
 		device.destroy(image);
 		device.free(memory);
+		delete this;
+	}
+
+	void VkWrapperSampler::Destroy() {
+		device.destroy(sampler);
+		delete this;
+	}
+
+	void VkWrapperDescriptorPool::Destroy() {
+		device.destroy(descriptorPool);
+		delete this;
+	}
+
+	void VkWrapperDescriptorSetLayout::Destroy() {
+		device.destroy(descriptorSetLayout);
+		delete this;
+	}
+
+	void VkWrapperPipelineLayout::Destroy() {
+		device.destroy(pipelineLayout);
 		delete this;
 	}
 

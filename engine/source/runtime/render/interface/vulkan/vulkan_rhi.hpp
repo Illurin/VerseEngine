@@ -61,6 +61,10 @@ namespace engine {
 		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
 		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
 		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
+		rhi::Sampler CreateSampler(const rhi::SamplerCreateInfo&) const override;
+		rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
+		rhi::DescriptorSetLayout CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo&) const override;
+		rhi::PipelineLayout CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo&) const override;
 		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
 		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
 		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
@@ -100,6 +104,7 @@ namespace engine {
 		friend class VkWrapperDevice;
 		friend class VkWrapperQueue;
 
+		vk::Instance instance{ nullptr };
 		vk::Device device{ nullptr };
 
 	public:
@@ -157,7 +162,7 @@ namespace engine {
 		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
 		void EndRenderPass() override;
 		void BindPipeline(const rhi::Pipeline&) override;
-		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) override;
+		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) override;
 		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
 
 		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
@@ -204,6 +209,90 @@ namespace engine {
 	private:
 		vk::Image image{ nullptr };
 		vk::DeviceMemory memory{ nullptr };
+	};
+
+	//
+	// Vulkan handle wrapper for RHI Sampler
+	//
+	class VkWrapperSampler final : public rhi::Sampler_T {
+
+		friend class VkWrapperDevice;
+
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::Sampler sampler{ nullptr };
+	};
+
+	//
+	// Vulkan handle wrapper for RHI DescriptorPool
+	//
+	class VkWrapperDescriptorPool final : public rhi::DescriptorPool_T {
+
+		friend class VkWrapperDevice;
+
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::DescriptorPool descriptorPool{ nullptr };
+	};
+
+	//
+	// Vulkan handle wrapper for RHI DescriptorSet
+	//
+	class VkWrapperDescriptorSet final : public rhi::DescriptorSet_T {
+
+		friend class VkWrapperDevice;
+
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::DescriptorPool descriptorPool{ nullptr };
+		vk::DescriptorSet descriptorSet{ nullptr };
+	};
+
+	//
+	// Vulkan handle wrapper for RHI DescriptorSetLayout
+	//
+	class VkWrapperDescriptorSetLayout final : public rhi::DescriptorSetLayout_T {
+
+		friend class VkWrapperDevice;
+
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::DescriptorSetLayout descriptorSetLayout{ nullptr };
+		std::vector<vk::Sampler> samplers;
+	};
+
+	//
+	// Vulkan handle wrapper for RHI PipelineLayout
+	//
+	class VkWrapperPipelineLayout final : public rhi::PipelineLayout_T {
+
+		friend class VkWrapperDevice;
+		friend class VkWrapperPipeline;
+		friend class VkWrapperCommandBuffer;
+
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::PipelineLayout pipelineLayout{ nullptr };
 	};
 
 	//

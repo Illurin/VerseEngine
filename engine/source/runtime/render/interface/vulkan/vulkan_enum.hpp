@@ -127,7 +127,7 @@ namespace engine {
 	public:
 		VkEnumBufferUsage(rhi::BufferUsage bufferUsage) {
 			switch (bufferUsage) {
-			case rhi::BufferUsage::ConstantBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer; break;
+			case rhi::BufferUsage::UniformBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer; break;
 			case rhi::BufferUsage::StorageBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eStorageBuffer; break;
 			case rhi::BufferUsage::VertexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eVertexBuffer; break;
 			case rhi::BufferUsage::IndexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer; break;
@@ -244,7 +244,7 @@ namespace engine {
 			case rhi::DescriptorType::Sampler: descriptorType_ = vk::DescriptorType::eSampler; break;
 			case rhi::DescriptorType::SampledImage: descriptorType_ = vk::DescriptorType::eSampledImage; break;
 			case rhi::DescriptorType::StorageImage: descriptorType_ = vk::DescriptorType::eStorageImage; break;
-			case rhi::DescriptorType::ConstantBuffer: descriptorType_ = vk::DescriptorType::eUniformBuffer; break;
+			case rhi::DescriptorType::UniformBuffer: descriptorType_ = vk::DescriptorType::eUniformBuffer; break;
 			case rhi::DescriptorType::StorageBuffer: descriptorType_ = vk::DescriptorType::eStorageBuffer; break;
 			}
 		}
@@ -253,6 +253,69 @@ namespace engine {
 
 	private:
 		vk::DescriptorType descriptorType_{ 0 };
+	};
+
+	class VkEnumFilter final {
+	public:
+		VkEnumFilter(rhi::Filter filter) {
+			switch (filter) {
+			case rhi::Filter::Nearest: filter_ = vk::Filter::eNearest; break;
+			case rhi::Filter::Linear: filter_ = vk::Filter::eLinear; break;
+			}
+		}
+
+		vk::Filter Get() const { return filter_; }
+
+	private:
+		vk::Filter filter_{ 0 };
+	};
+
+	class VkEnumSamplerMipmapMode final {
+	public:
+		VkEnumSamplerMipmapMode(rhi::Filter filter) {
+			switch (filter) {
+			case rhi::Filter::Nearest: mipmapMode = vk::SamplerMipmapMode::eNearest; break;
+			case rhi::Filter::Linear: mipmapMode = vk::SamplerMipmapMode::eLinear; break;
+			}
+		}
+
+		vk::SamplerMipmapMode Get() const { return mipmapMode; }
+
+	private:
+		vk::SamplerMipmapMode mipmapMode{ 0 };
+	};
+
+	class VkEnumSamplerAddressMode final {
+	public:
+		VkEnumSamplerAddressMode(rhi::SamplerAddressMode addressMode) {
+			switch (addressMode) {
+			case rhi::SamplerAddressMode::Repeat: addressMode_ = vk::SamplerAddressMode::eRepeat; break;
+			case rhi::SamplerAddressMode::Mirror: addressMode_ = vk::SamplerAddressMode::eMirroredRepeat; break;
+			case rhi::SamplerAddressMode::Clamp: addressMode_ = vk::SamplerAddressMode::eClampToEdge; break;
+			case rhi::SamplerAddressMode::Border: addressMode_ = vk::SamplerAddressMode::eClampToBorder; break;
+			}
+		}
+
+		vk::SamplerAddressMode Get() const { return addressMode_; }
+
+	private:
+		vk::SamplerAddressMode addressMode_{ 0 };
+	};
+
+	class VkEnumBorderColor final {
+	public:
+		VkEnumBorderColor(rhi::BorderColor borderColor) {
+			switch (borderColor) {
+			case rhi::BorderColor::TransparentBlack: borderColor_ = vk::BorderColor::eFloatTransparentBlack; break;
+			case rhi::BorderColor::OpaqueBlack: borderColor_ = vk::BorderColor::eFloatOpaqueBlack; break;
+			case rhi::BorderColor::OpaqueWhite: borderColor_ = vk::BorderColor::eFloatOpaqueWhite; break;
+			}
+		}
+
+		vk::BorderColor Get() const { return borderColor_; }
+
+	private:
+		vk::BorderColor borderColor_{ 0 };
 	};
 
 	class VkEnumAttachmentLoadOp final {
@@ -295,6 +358,7 @@ namespace engine {
 			case rhi::ShaderStage::TessellationEvaluation: shaderStage_ = vk::ShaderStageFlagBits::eTessellationEvaluation; break;
 			case rhi::ShaderStage::Geometry: shaderStage_ = vk::ShaderStageFlagBits::eGeometry; break;
 			case rhi::ShaderStage::Fragment: shaderStage_ = vk::ShaderStageFlagBits::eFragment; break;
+			case rhi::ShaderStage::Compute: shaderStage_ = vk::ShaderStageFlagBits::eCompute; break;
 			}
 		}
 
@@ -302,6 +366,26 @@ namespace engine {
 
 	private:
 		vk::ShaderStageFlagBits shaderStage_{ 0 };
+	};
+
+	class VkEnumShaderStageFlags final {
+	public:
+		VkEnumShaderStageFlags(rhi::ShaderStage shaderStage) {
+			switch (shaderStage) {
+			case rhi::ShaderStage::All: shaderStage_ = vk::ShaderStageFlagBits::eAll; break;
+			case rhi::ShaderStage::Vertex: shaderStage_ = vk::ShaderStageFlagBits::eVertex; break;
+			case rhi::ShaderStage::TessellationControl: shaderStage_ = vk::ShaderStageFlagBits::eTessellationControl; break;
+			case rhi::ShaderStage::TessellationEvaluation: shaderStage_ = vk::ShaderStageFlagBits::eTessellationEvaluation; break;
+			case rhi::ShaderStage::Geometry: shaderStage_ = vk::ShaderStageFlagBits::eGeometry; break;
+			case rhi::ShaderStage::Fragment: shaderStage_ = vk::ShaderStageFlagBits::eFragment; break;
+			case rhi::ShaderStage::Compute: shaderStage_ = vk::ShaderStageFlagBits::eCompute; break;
+			}
+		}
+
+		vk::ShaderStageFlags Get() const { return shaderStage_; }
+
+	private:
+		vk::ShaderStageFlags shaderStage_{ 0 };
 	};
 
 	class VkEnumPipelineBindPoint final {

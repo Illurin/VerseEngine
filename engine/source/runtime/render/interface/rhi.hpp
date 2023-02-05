@@ -38,6 +38,10 @@ namespace engine {
 			virtual CommandPool CreateCommandPool(const CommandPoolCreateInfo&) const = 0;
 			virtual Buffer CreateBuffer(const BufferCreateInfo&) const = 0;
 			virtual Image CreateImage(const ImageCreateInfo&) const = 0;
+			virtual Sampler CreateSampler(const SamplerCreateInfo&) const = 0;
+			virtual DescriptorPool CreateDescriptorPool(const DescriptorPoolCreateInfo&) const = 0;
+			virtual DescriptorSetLayout CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo&) const = 0;
+			virtual PipelineLayout CreatePipelineLayout(const PipelineLayoutCreateInfo&) const = 0;
 			virtual RenderPass CreateRenderPass(const RenderPassCreateInfo&) const = 0;
 			virtual ShaderModule CreateShaderModule(const ShaderModuleCreateInfo&) const = 0;
 			virtual Pipeline CreateGraphicsPipeline(const GraphicsPipelineCreateInfo&) const = 0;
@@ -97,7 +101,7 @@ namespace engine {
 			virtual void BeginRenderPass(const RenderPassBeginInfo&) = 0;
 			virtual void EndRenderPass() = 0;
 			virtual void BindPipeline(const Pipeline&) = 0;
-			virtual void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, Buffer* pBuffers) = 0;
+			virtual void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const Buffer* pBuffers) = 0;
 			virtual void BindIndexBuffer(Buffer& buffer, uint64_t offset, IndexType indexType) = 0;
 
 			virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
@@ -127,10 +131,19 @@ namespace engine {
 		};
 
 		//
-		// The RenderPass handle is used to specify the specific information during the render pass.
-		// Framebuffer and Pipeline handle can be binded with RenderPass.
+		// The Sampler handle is used for sample textures in the fragment shader.
+		// It can be binded to descriptor set or used as a static sampler.
 		//
-		class RenderPass_T {
+		class Sampler_T {
+		public:
+			virtual void Destroy() = 0;
+		};
+
+		//
+		// The DescriptorPool handle represents for a space used to contain descriptors.
+		// If descriptor pool is destroyed, the descriptors in it will also be destroyed.
+		//
+		class DescriptorPool_T {
 		public:
 			virtual void Destroy() = 0;
 		};
@@ -145,10 +158,28 @@ namespace engine {
 		};
 
 		//
-		// The DescriptorSetLayout handle is used to describe how resources are used in shader stages.
-		// It must be binded to the Pipeline handle and be compatible with the descriptor sets.
+		// The DescriptorSetLayout handle is a template for creating the descriptor set.
+		// Combine multiple descriptor set layouts to create a pipeline layout.
 		//
 		class DescriptorSetLayout_T {
+		public:
+			virtual void Destroy() = 0;
+		};
+
+		//
+		// The PipelineLayout handle is used to describe how resources are used in shader stages.
+		// It must be binded to the Pipeline handle and compatible with the descriptor sets.
+		//
+		class PipelineLayout_T {
+		public:
+			virtual void Destroy() = 0;
+		};
+
+		//
+		// The RenderPass handle is used to specify the specific information during the render pass.
+		// Framebuffer and Pipeline handle can be binded with RenderPass.
+		//
+		class RenderPass_T {
 		public:
 			virtual void Destroy() = 0;
 		};

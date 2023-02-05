@@ -52,6 +52,10 @@ namespace engine {
 		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
 		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
 		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
+		rhi::Sampler CreateSampler(const rhi::SamplerCreateInfo&) const override;
+		rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
+		rhi::DescriptorSetLayout CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo&) const override;
+		rhi::PipelineLayout CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo&) const override;
 		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
 		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
 		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
@@ -146,7 +150,7 @@ namespace engine {
 		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
 		void EndRenderPass() override;
 		void BindPipeline(const rhi::Pipeline&) override;
-		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, rhi::Buffer* pBuffers) override;
+		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) override;
 		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
 
 		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
@@ -202,6 +206,80 @@ namespace engine {
 
 	private:
 		ID3D12Resource* resource{ nullptr };
+	};
+
+	//
+	// Direct3D12 handle wrapper for RHI Sampler
+	//
+	class D3D12WrapperSampler final : public rhi::Sampler_T {
+
+		friend class D3D12WrapperDevice;
+
+	public:
+		void Destroy() override;
+
+	private:
+		rhi::SamplerCreateInfo samplerInfo{ {} };
+	};
+
+	//
+	// Direct3D12 handle wrapper for RHI DescriptorPool
+	//
+	class D3D12WrapperDescriptorPool final : public rhi::DescriptorPool_T {
+
+		friend class D3D12WrapperDevice;
+
+	public:
+		void Destroy() override;
+
+	private:
+		ID3D12DescriptorHeap* cbvSrvUavHeap{ nullptr };
+		ID3D12DescriptorHeap* samplerHeap{ nullptr };
+	};
+
+	//
+	// Direct3D12 handle wrapper for RHI DescriptorSet
+	//
+	class D3D12WrapperDescriptorSet final : public rhi::DescriptorSet_T {
+
+		friend class D3D12WrapperDevice;
+
+	public:
+		void Destroy() override;
+
+	private:
+		
+	};
+
+	//
+	// Direct3D12 handle wrapper for RHI DescriptorSetLayout
+	//
+	class D3D12WrapperDescriptorSetLayout final : public rhi::DescriptorSetLayout_T {
+
+		friend class D3D12WrapperDevice;
+
+	public:
+		void Destroy() override;
+
+	private:
+		std::vector<rhi::DescriptorSetLayoutBinding> bindings;
+		D3D12_SHADER_VISIBILITY shaderVisibility{ D3D12_SHADER_VISIBILITY_ALL };
+	};
+
+	//
+	// Direct3D12 handle wrapper for RHI PipelineLayout
+	//
+	class D3D12WrapperPipelineLayout final : public rhi::PipelineLayout_T {
+
+		friend class D3D12WrapperDevice;
+		friend class D3D12WrapperPipeline;
+		friend class D3D12WrapperCommandBuffer;
+
+	public:
+		void Destroy() override;
+
+	private:
+		ID3D12RootSignature* rootSignature{ nullptr };
 	};
 
 	//

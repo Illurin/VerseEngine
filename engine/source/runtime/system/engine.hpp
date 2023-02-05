@@ -5,7 +5,7 @@
 #include "runtime/render/interface/rhi_instance.hpp"
 #include "runtime/math/math.hpp"
 #include "runtime/resource/asset_loader/image/image_loader.hpp"
-#include "runtime/resource/asset_loader/model/model_loader.hpp"
+#include "runtime/render/pass/default_pass.hpp"
 
 namespace engine {
 
@@ -44,15 +44,12 @@ namespace engine {
 		rhi::Device device{ nullptr };
 		rhi::Queue queue{ nullptr };
 		rhi::Swapchain swapchain{ nullptr };
-		rhi::RenderPass renderPass{ nullptr };
-		rhi::Pipeline pipeline{ nullptr };
 		rhi::CommandPool commandPool{ nullptr };
 		std::vector<rhi::CommandBuffer> commandBuffers;
-		std::vector<rhi::Framebuffer> framebuffers;
 		rhi::Fence fence{ nullptr };
 
 	private:
-		rhi::Buffer vertexBuffer{ nullptr };
+		std::unique_ptr<DefaultPass> defaultPass;
 	};
 
 }

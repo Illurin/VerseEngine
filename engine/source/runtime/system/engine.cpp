@@ -26,7 +26,7 @@ namespace engine {
 		device = instance->CreateDevice(deviceInfo);
 
 		queue = device->GetQueue(0);
-		
+
 		auto swapchainInfo = rhi::SwapchainCreateInfo()
 			.SetFormat(swapchainFormat)
 			.SetFrameCount(frameCount)
@@ -34,184 +34,38 @@ namespace engine {
 			.SetImageUsage(rhi::ImageUsage::ColorAttachment)
 			.SetPlatformInfo(platformInfo)
 			.SetQueue(queue);
-		
+
 		swapchain = device->CreateSwapchain(swapchainInfo);
-		
+
 		renderExtent = swapchain->GetImageExtent();
 		auto swapchainImages = swapchain->GetImages();
-		
-		auto colorAttachmentDescription = rhi::AttachmentDescription()
-			.SetFormat(swapchainFormat)
-			.SetSampleCount(rhi::SampleCount::Count1)
-			.SetLoadOp(rhi::AttachmentLoadOp::Clear)
-			.SetStoreOp(rhi::AttachmentStoreOp::Store)
-			.SetInitialLayout(rhi::ImageLayout::Undefined)
-			.SetPassLayout(rhi::ImageLayout::ColorAttachment)
-			.SetFinalLayout(rhi::ImageLayout::Present);
-		
-		auto renderPassInfo = rhi::RenderPassCreateInfo()
-			.SetPipelineType(rhi::PipelineType::Graphics)
-			.SetColorAttachmentCount(1)
-			.SetPColorAttachments(&colorAttachmentDescription);
-		
-		renderPass = device->CreateRenderPass(renderPassInfo);
 
-		struct VertexData {
-			math::Vector3f worldPos;
-			math::Vector3f color;
-		};
-
-		std::array<VertexData, 3> verticesData;
+		std::array<DefaultVertexData, 3> verticesData;
 		verticesData[0].worldPos = math::Vector3f(0.0f, 0.5f, 0.0f);
 		verticesData[0].color = math::Vector3f(1.0f, 0.0f, 0.0f);
 		verticesData[1].worldPos = math::Vector3f(-0.5f, -0.5f, 0.0f);
 		verticesData[1].color = math::Vector3f(0.0f, 1.0f, 0.0f);
 		verticesData[2].worldPos = math::Vector3f(0.5f, -0.5f, 0.0f);
 		verticesData[2].color = math::Vector3f(0.0f, 0.0f, 1.0f);
-		
-		auto vertexBufferInfo = rhi::BufferCreateInfo()
-			.SetSize(sizeof(VertexData) * 3)
-			.SetUsage(rhi::BufferUsage::VertexBuffer);
-		
-		vertexBuffer = device->CreateBuffer(vertexBufferInfo);
-		
-		auto ptr = reinterpret_cast<VertexData*>(vertexBuffer->Map());
-		std::copy(verticesData.begin(), verticesData.end(), ptr);
-		vertexBuffer->Unmap();
 
-		std::vector<uint8_t> shaderSource;
 		auto shaderCompiler = instance->CreateShaderCompiler();
-		
-		shaderCompiler.Compile(StringToWString(Path("shader/hlsl/vertex_shader.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::vs_profile);
-		shaderCompiler.GetSourceObject(shaderSource);
-		
-		auto shaderModuleInfo = rhi::ShaderModuleCreateInfo()
-			.SetSourceCode(shaderSource)
-			.SetPEntryPoint("main")
-			.SetShaderStage(rhi::ShaderStage::Vertex);
-		
-		auto vertexShaderModule = device->CreateShaderModule(shaderModuleInfo);
-		
-		shaderCompiler.Compile(StringToWString(Path("shader/hlsl/fragment_shader.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::ps_profile);
-		shaderCompiler.GetSourceObject(shaderSource);
-		
-		shaderModuleInfo = rhi::ShaderModuleCreateInfo()
-			.SetSourceCode(shaderSource)
-			.SetPEntryPoint("main")
-			.SetShaderStage(rhi::ShaderStage::Fragment);
-		
-		auto fragmentShaderModule = device->CreateShaderModule(shaderModuleInfo);
-		
-		std::array<rhi::ShaderModule, 2> shaderModules = { vertexShaderModule, fragmentShaderModule };
-		
-		auto shaderStageInfo = rhi::PipelineShaderStageInfo()
-			.SetShaderModuleCount(static_cast<uint32_t>(shaderModules.size())).SetPShaderModules(shaderModules.data());
-		
-		auto vertexBindingInfo = rhi::VertexBindingInfo()
-			.SetInputRate(rhi::VertexInputRate::PerVertex)
-			.SetStride(sizeof(VertexData));
-		
-		std::vector<rhi::VertexAttributeInfo> vertexAttributeInfos;
-		vertexAttributeInfos.emplace_back(rhi::VertexAttributeInfo()
-			.SetBinding(0)
-			.SetFormat(rhi::Format::R32G32B32Sfloat)
-			.SetSemantic("WorldPos")
-			.SetOffset(0));
-		vertexAttributeInfos.emplace_back(rhi::VertexAttributeInfo()
-			.SetBinding(0)
-			.SetFormat(rhi::Format::R32G32B32Sfloat)
-			.SetSemantic("Color")
-			.SetOffset(sizeof(math::Vector3f)));
 
-		auto vertexInputInfo = rhi::PipelineVertexInputInfo()
-			.SetBindingCount(1).SetPBindings(&vertexBindingInfo)
-			.SetAttributes(vertexAttributeInfos);
+		// render pass
+		DefaultPassCreateInfo defaultPassInfo;
+		defaultPassInfo.device = device;
+		defaultPassInfo.colorFormat = swapchainFormat;
+		defaultPassInfo.renderExtent = renderExtent;
+		defaultPassInfo.colorAttachments = swapchainImages;
+		defaultPassInfo.shaderCompiler = &shaderCompiler;
+		defaultPassInfo.vertexCount = static_cast<uint32_t>(verticesData.size());
+		defaultPassInfo.pVertexData = verticesData.data();
 
-		auto inputAssemblyInfo = rhi::PipelineInputAssemblyInfo()
-			.SetTopology(rhi::PrimitiveTopology::TriangleList)
-			.SetPrimitivieRestart(false);
-		
-		auto rasterizationInfo = rhi::PipelineRasterizationInfo()
-			.SetLineWidth(1.0f)
-			.SetSmoothLine(true)
-			.SetPolygonMode(rhi::PolygonMode::Solid)
-			.SetCullMode(rhi::CullMode::None)
-			.SetDepthClamp(false)
-			.SetDepthBias(0.0f)
-			.SetSlopeScaledDepthBias(0.0f);
-		
-		auto scissor = rhi::Rect2D()
-			.SetExtent(renderExtent)
-			.SetOffset(rhi::Offset2D().SetX(0).SetY(0));
-		
-		auto viewport = rhi::Viewport()
-			.SetWidth(static_cast<float>(renderExtent.width)).SetHeight(static_cast<float>(renderExtent.height))
-			.SetX(0.0f).SetY(0.0f)
-			.SetMinDepth(0.0f).SetMaxDepth(0.0f);
+		defaultPass = std::make_unique<DefaultPass>(defaultPassInfo);
 
-		auto viewportInfo = rhi::PipelineViewportInfo()
-			.SetPScissors(&scissor).SetScissorCount(1)
-			.SetPViewports(&viewport).SetViewportCount(1);
-		
-		auto depthStencilInfo = rhi::PipelineDepthStencilInfo()
-			.SetDepthTestEnable(false)
-			.SetDepthWriteEnable(false)
-			.SetStencilTestEnable(false);
-		
-		auto colorAttachmentInfo = rhi::ColorBlendAttachmentInfo()
-			.SetBlendEnable(false);
-		
-		auto colorBlendInfo = rhi::PipelineColorBlendInfo()
-			.SetPAttachments(&colorAttachmentInfo).SetAttachmentCount(1);
-		
-		auto multisampleInfo = rhi::PipelineMultisampleInfo()
-			.SetRasterizationSamples(rhi::SampleCount::Count1)
-			.SetSampleShadingEnable(false)
-			.SetAlphaToCoverageEnable(false);
-		
-		auto pipelineInfo = rhi::GraphicsPipelineCreateInfo()
-			.SetShaderStageInfo(shaderStageInfo)
-			.SetVertexInputInfo(vertexInputInfo)
-			.SetInputAssemblyInfo(inputAssemblyInfo)
-			.SetRasterizationInfo(rasterizationInfo)
-			.SetViewportInfo(viewportInfo)
-			.SetDepthStencilInfo(depthStencilInfo)
-			.SetColorBlendInfo(colorBlendInfo)
-			.SetMultisampleInfo(multisampleInfo)
-			.SetRenderPass(renderPass);
-		
-		pipeline = device->CreateGraphicsPipeline(pipelineInfo);
-		
-		vertexShaderModule->Destroy();
-		fragmentShaderModule->Destroy();
-		
 		auto commandPoolInfo = rhi::CommandPoolCreateInfo()
 			.SetQueue(queue);
-		
 		commandPool = device->CreateCommandPool(commandPoolInfo);
-		
 		commandBuffers = commandPool->AllocateCommandBuffers(frameCount);
-		
-		for (auto& swapchainImage : swapchainImages) {
-			auto imageViewInfo = rhi::ImageViewInfo()
-				.SetImage(swapchainImage)
-				.SetFormat(swapchainFormat)
-				.SetViewType(rhi::ImageViewType::Image2D)
-				.SetBaseMipLevel(0)
-				.SetMipLevelCount(1)
-				.SetBaseArrayLayer(0)
-				.SetArrayLayerCount(1);
-		
-			auto framebufferInfo = rhi::FramebufferCreateInfo()
-				.SetWidth(renderExtent.width)
-				.SetHeight(renderExtent.height)
-				.SetLayers(1)
-				.SetColorAttachmentCount(1)
-				.SetPColorAttachments(&imageViewInfo)
-				.SetRenderPass(renderPass);
-		
-			framebuffers.push_back(device->CreateFramebuffer(framebufferInfo));
-		}
 
 		fence = device->CreateFence(rhi::FenceCreateInfo());
 	}
@@ -223,10 +77,9 @@ namespace engine {
 	}
 
 	void Engine::Exit() {
-		for (auto& framebuffer : framebuffers) framebuffer->Destroy();
+		defaultPass.reset();
 		fence->Destroy();
 		swapchain->Destroy();
-		pipeline->Destroy();
 		commandPool->Destroy();
 		device->Destroy();
 		instance->Destroy();
@@ -250,21 +103,9 @@ namespace engine {
 		commandBuffer->Reset();
 		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
 		
-		auto clearColorValue = rhi::ClearColorValue().SetColorValue(std::array<float, 4>({ 0.0f, 0.0f, 0.0f, 0.0f }));
+		// render pass
+		defaultPass->Draw(commandBuffer, swapchainImageIndex);
 
-		auto renderPassBeginInfo = rhi::RenderPassBeginInfo()
-			.SetRenderPass(renderPass)
-			.SetFramebuffer(framebuffers[swapchainImageIndex])
-			.SetPClearColorValues(&clearColorValue);
-		commandBuffer->BeginRenderPass(renderPassBeginInfo);
-
-		// Draw Call
-		commandBuffer->BindPipeline(pipeline);
-		commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
-
-		commandBuffer->Draw(3, 1, 0, 0);
-
-		commandBuffer->EndRenderPass();
 		commandBuffer->End();
 		
 		fence->Reset();

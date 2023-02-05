@@ -79,7 +79,7 @@ namespace engine {
 		};
 
 		enum class BufferUsage {
-			ConstantBuffer,
+			UniformBuffer,
 			StorageBuffer,
 			VertexBuffer,
 			IndexBuffer,
@@ -136,8 +136,26 @@ namespace engine {
 			Sampler,
 			SampledImage,
 			StorageImage,
-			ConstantBuffer,
+			UniformBuffer,
 			StorageBuffer
+		};
+
+		enum class Filter {
+			Nearest,
+			Linear
+		};
+
+		enum class SamplerAddressMode {
+			Repeat,
+			Mirror,
+			Clamp,
+			Border
+		};
+
+		enum class BorderColor {
+			TransparentBlack,
+			OpaqueBlack,
+			OpaqueWhite
 		};
 
 		enum class AttachmentLoadOp {
@@ -152,11 +170,13 @@ namespace engine {
 		};
 
 		enum class ShaderStage {
+			All,
 			Vertex,
 			TessellationControl,
 			TessellationEvaluation,
 			Geometry,
-			Fragment
+			Fragment,
+			Compute
 		};
 
 		enum class PipelineType {

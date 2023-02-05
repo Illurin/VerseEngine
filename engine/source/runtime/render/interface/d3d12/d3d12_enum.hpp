@@ -156,7 +156,7 @@ namespace engine {
 
 		D3D12EnumResourceStates(rhi::BufferUsage bufferUsage) {
 			switch (bufferUsage) {
-			case rhi::BufferUsage::ConstantBuffer:
+			case rhi::BufferUsage::UniformBuffer:
 			case rhi::BufferUsage::VertexBuffer:
 			case rhi::BufferUsage::IndexBuffer: resourceStates = D3D12_RESOURCE_STATE_GENERIC_READ; break;
 			case rhi::BufferUsage::StorageBuffer: resourceStates = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
@@ -222,9 +222,9 @@ namespace engine {
 		D3D12_DSV_DIMENSION dsvDimension{ D3D12_DSV_DIMENSION_UNKNOWN };
 	};
 
-	class D3D12EnumSRVType final {
+	class D3D12EnumSRVDimension final {
 	public:
-		D3D12EnumSRVType(rhi::ImageViewType imageViewType) {
+		D3D12EnumSRVDimension(rhi::ImageViewType imageViewType) {
 			switch (imageViewType) {
 			case rhi::ImageViewType::Image1D: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURE1D; break;
 			case rhi::ImageViewType::Image2D: imageViewType_ = D3D12_SRV_DIMENSION_TEXTURE2D; break;
@@ -242,9 +242,107 @@ namespace engine {
 		D3D12_SRV_DIMENSION imageViewType_{ D3D12_SRV_DIMENSION_UNKNOWN };
 	};
 
-	class D3D12RenderPassBeginningAccessType final {
+	class D3D12EnumDescriptorRangeType final {
 	public:
-		D3D12RenderPassBeginningAccessType(rhi::AttachmentLoadOp attachmentLoadOp) {
+		D3D12EnumDescriptorRangeType(rhi::DescriptorType descriptorType) {
+			switch (descriptorType) {
+			case rhi::DescriptorType::UniformBuffer: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+			case rhi::DescriptorType::SampledImage: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+			case rhi::DescriptorType::StorageImage:
+			case rhi::DescriptorType::StorageBuffer: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
+			case rhi::DescriptorType::Sampler: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+			}
+		}
+
+		D3D12_DESCRIPTOR_RANGE_TYPE Get() const { return descriptorRangeType; }
+
+	private:
+		D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType{ D3D12_DESCRIPTOR_RANGE_TYPE_SRV };
+	};
+
+	class D3D12EnumFilter final {
+	public:
+		D3D12EnumFilter(rhi::Filter min, rhi::Filter mag, rhi::Filter mip, bool compare, bool anisotropy) {
+			if (anisotropy) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_ANISOTROPIC; return;
+				filter = D3D12_FILTER_ANISOTROPIC; return;
+			}
+			if (min == rhi::Filter::Nearest && mag == rhi::Filter::Nearest && mip == rhi::Filter::Nearest) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT; return;
+				filter = D3D12_FILTER_MIN_MAG_MIP_POINT; return;
+			}
+			if (min == rhi::Filter::Nearest && mag == rhi::Filter::Nearest && mip == rhi::Filter::Linear) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR; return;
+				filter = D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR; return;
+			}
+			if (min == rhi::Filter::Nearest && mag == rhi::Filter::Linear && mip == rhi::Filter::Nearest) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT; return;
+				filter = D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT; return;
+			}
+			if (min == rhi::Filter::Nearest && mag == rhi::Filter::Linear && mip == rhi::Filter::Linear) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR; return;
+				filter = D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR; return;
+			}
+			if (min == rhi::Filter::Linear && mag == rhi::Filter::Nearest && mip == rhi::Filter::Nearest) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT; return;
+				filter = D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT; return;
+			}
+			if (min == rhi::Filter::Linear && mag == rhi::Filter::Nearest && mip == rhi::Filter::Linear) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR; return;
+				filter = D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR; return;
+			}
+			if (min == rhi::Filter::Linear && mag == rhi::Filter::Linear && mip == rhi::Filter::Nearest) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; return;
+				filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT; return;
+			}
+			if (min == rhi::Filter::Linear && mag == rhi::Filter::Linear && mip == rhi::Filter::Linear) {
+				if (compare) filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR; return;
+				filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; return;
+			}
+		}
+
+		D3D12_FILTER Get() const { return filter; }
+
+	private:
+		D3D12_FILTER filter{ D3D12_FILTER_MIN_MAG_MIP_POINT };
+	};
+
+	class D3D12EnumTextureAddressMode final {
+	public:
+		D3D12EnumTextureAddressMode(rhi::SamplerAddressMode addressMode) {
+			switch (addressMode) {
+			case rhi::SamplerAddressMode::Repeat: addressMode_ = D3D12_TEXTURE_ADDRESS_MODE_WRAP; break;
+			case rhi::SamplerAddressMode::Mirror: addressMode_ = D3D12_TEXTURE_ADDRESS_MODE_MIRROR; break;
+			case rhi::SamplerAddressMode::Clamp: addressMode_ = D3D12_TEXTURE_ADDRESS_MODE_CLAMP; break;
+			case rhi::SamplerAddressMode::Border: addressMode_ = D3D12_TEXTURE_ADDRESS_MODE_BORDER; break;
+			}
+		}
+
+		D3D12_TEXTURE_ADDRESS_MODE Get() const { return addressMode_; }
+
+	private:
+		D3D12_TEXTURE_ADDRESS_MODE addressMode_{ D3D12_TEXTURE_ADDRESS_MODE_WRAP };
+	};
+
+	class D3D12EnumStaticBorderColor final {
+	public:
+		D3D12EnumStaticBorderColor(rhi::BorderColor borderColor) {
+			switch (borderColor) {
+			case rhi::BorderColor::TransparentBlack: borderColor_ = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK; break;
+			case rhi::BorderColor::OpaqueBlack: borderColor_ = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK; break;
+			case rhi::BorderColor::OpaqueWhite: borderColor_ = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE; break;
+			}
+		}
+
+		D3D12_STATIC_BORDER_COLOR Get() const { return borderColor_; }
+
+	private:
+		D3D12_STATIC_BORDER_COLOR borderColor_{ D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK };
+	};
+
+	class D3D12EnumRenderPassBeginningAccessType final {
+	public:
+		D3D12EnumRenderPassBeginningAccessType(rhi::AttachmentLoadOp attachmentLoadOp) {
 			switch (attachmentLoadOp) {
 			case rhi::AttachmentLoadOp::Load: acessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE; break;
 			case rhi::AttachmentLoadOp::Clear: acessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR; break;
@@ -258,9 +356,9 @@ namespace engine {
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE acessType{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD };
 	};
 
-	class D3D12RenderPassEndingAccessType final {
+	class D3D12EnumRenderPassEndingAccessType final {
 	public:
-		D3D12RenderPassEndingAccessType(rhi::AttachmentStoreOp attachmentStoreOp) {
+		D3D12EnumRenderPassEndingAccessType(rhi::AttachmentStoreOp attachmentStoreOp) {
 			switch (attachmentStoreOp) {
 			case rhi::AttachmentStoreOp::Store: acessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE; break;
 			case rhi::AttachmentStoreOp::DontCare: acessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS; break;
@@ -271,6 +369,26 @@ namespace engine {
 
 	private:
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE acessType{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD };
+	};
+
+	class D3D12EnumShaderVisibility final {
+	public:
+		D3D12EnumShaderVisibility(rhi::ShaderStage shaderStage) {
+			switch (shaderStage) {
+			case rhi::ShaderStage::All: shaderVisibility = D3D12_SHADER_VISIBILITY_ALL; break;
+			case rhi::ShaderStage::Vertex: shaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; break;
+			case rhi::ShaderStage::TessellationControl: shaderVisibility = D3D12_SHADER_VISIBILITY_HULL; break;
+			case rhi::ShaderStage::TessellationEvaluation: shaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN; break;
+			case rhi::ShaderStage::Geometry: shaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY; break;
+			case rhi::ShaderStage::Fragment: shaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; break;
+			case rhi::ShaderStage::Compute: shaderVisibility = D3D12_SHADER_VISIBILITY_ALL; break;
+			}
+		}
+
+		D3D12_SHADER_VISIBILITY Get() const { return shaderVisibility; }
+
+	private:
+		D3D12_SHADER_VISIBILITY shaderVisibility{ D3D12_SHADER_VISIBILITY_ALL };
 	};
 
 	class D3D12EnumInputClassification final {

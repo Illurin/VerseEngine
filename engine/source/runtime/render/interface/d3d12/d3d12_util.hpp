@@ -11,6 +11,7 @@
 
 #include <array>
 #include <vector>
+#include <queue>
 #include <stdexcept>
 #include <fstream>
 #include <string>

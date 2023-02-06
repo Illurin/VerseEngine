@@ -22,6 +22,7 @@ namespace engine {
 		vertexBuffer->Destroy();
 		descriptorPool->Destroy();
 		descriptorSetLayout->Destroy();
+		pipelineLayout->Destroy();
 		renderPass->Destroy();
 		pipeline->Destroy();
 		for (auto& framebuffer : framebuffers) framebuffer->Destroy();
@@ -45,11 +46,11 @@ namespace engine {
 		layoutBindings[0] = rhi::DescriptorSetLayoutBinding()
 			.SetBinding(0)
 			.SetDescriptorCount(1)
-			.SetDescriptorType(rhi::DescriptorType::UniformBuffer);
+			.SetDescriptorType(rhi::DescriptorType::UniformBuffer)
+			.SetShaderStage(rhi::ShaderStage::Vertex);
 
 		auto descriptorSetLayoutInfo = rhi::DescriptorSetLayoutCreateInfo()
-			.SetBindings(layoutBindings)
-			.SetShaderStage(rhi::ShaderStage::Vertex);
+			.SetBindings(layoutBindings);
 
 		descriptorSetLayout = device->CreateDescriptorSetLayout(descriptorSetLayoutInfo);
 	}
@@ -66,6 +67,14 @@ namespace engine {
 			.SetPoolSizes(poolSizes);
 		
 		descriptorPool = device->CreateDescriptorPool(descriptorPoolInfo);
+
+		auto descriptorSetAllocInfo = rhi::DescriptorSetAllocateInfo()
+			.SetDescriptorSetCount(1)
+			.SetPDescriptorSetLayouts(&descriptorSetLayout);
+
+		descriptorSets = descriptorPool->AllocateDescriptorSets(descriptorSetAllocInfo);
+
+
 	}
 
 	void DefaultPass::BuildRenderPass() {
@@ -87,6 +96,12 @@ namespace engine {
 	}
 
 	void DefaultPass::BuildPipeline() {
+		auto pipelineLayoutInfo = rhi::PipelineLayoutCreateInfo()
+			.SetDescriptorSetLayoutCount(1)
+			.SetPDescriptorSetLayouts(&descriptorSetLayout);
+
+		pipelineLayout = device->CreatePipelineLayout(pipelineLayoutInfo);
+
 		std::vector<uint8_t> shaderSource;
 
 		shaderCompiler->Compile(StringToWString(Path("shader/hlsl/vertex_shader.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::vs_profile);
@@ -184,6 +199,7 @@ namespace engine {
 			.SetDepthStencilInfo(depthStencilInfo)
 			.SetColorBlendInfo(colorBlendInfo)
 			.SetMultisampleInfo(multisampleInfo)
+			.SetPipelineLayout(pipelineLayout)
 			.SetRenderPass(renderPass);
 
 		pipeline = device->CreateGraphicsPipeline(pipelineInfo);

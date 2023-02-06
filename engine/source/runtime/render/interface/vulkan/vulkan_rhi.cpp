@@ -389,7 +389,8 @@ namespace engine {
 
 		auto descriptorPoolInfo = vk::DescriptorPoolCreateInfo()
 			.setMaxSets(info.maxSetCount)
-			.setPoolSizes(poolSizes);
+			.setPoolSizes(poolSizes)
+			.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
 
 		auto descriptorPool = device.createDescriptorPool(descriptorPoolInfo);
 
@@ -400,6 +401,7 @@ namespace engine {
 		auto descriptorPoolWrapper = new VkWrapperDescriptorPool();
 		descriptorPoolWrapper->device = device;
 		descriptorPoolWrapper->descriptorPool = descriptorPool;
+		descriptorPoolWrapper->descriptorSets.resize(info.maxSetCount);
 		return descriptorPoolWrapper;
 	}
 
@@ -409,16 +411,13 @@ namespace engine {
 			auto& binding = info.pBindings[i];
 			bindings[i] = vk::DescriptorSetLayoutBinding()
 				.setBinding(binding.binding)
-				.setDescriptorCount(binding.descriptorCount)
+				.setDescriptorCount(1)
 				.setDescriptorType(VkEnumDescriptorType(binding.descriptorType).Get())
-				.setStageFlags(VkEnumShaderStageFlags(info.shaderStage).Get());
+				.setStageFlags(VkEnumShaderStageFlags(binding.shaderStage).Get());
 
-			if (binding.pStaticSamplers) {
-				std::vector<vk::Sampler> samplers(binding.descriptorCount);
-				for (uint32_t j = 0; j < binding.descriptorCount; j++) {
-					samplers[j] = static_cast<VkWrapperSampler*>(binding.pStaticSamplers[j])->sampler;
-				}
-				bindings[i].setPImmutableSamplers(samplers.data());
+			if (binding.pStaticSampler) {
+				vk::Sampler sampler = static_cast<VkWrapperSampler*>(*binding.pStaticSampler)->sampler;
+				bindings[i].setPImmutableSamplers(&sampler);
 			}
 		}
 
@@ -668,9 +667,7 @@ namespace engine {
 			.setSampleShadingEnable(info.multisampleInfo.sampleShadingEnable)
 			.setMinSampleShading(info.multisampleInfo.minSampleShading)
 			.setRasterizationSamples(VkEnumSampleCount(info.multisampleInfo.rasterizationSamples).Get());
-
-		auto pipelineLayout = device.createPipelineLayout(vk::PipelineLayoutCreateInfo());
-
+		
 		auto pipelineInfo = vk::GraphicsPipelineCreateInfo()
 			.setStages(shaderStageInfos)
 			.setPVertexInputState(&vertexInputInfo)
@@ -681,7 +678,7 @@ namespace engine {
 			.setPDepthStencilState(&depthStencilInfo)
 			.setPColorBlendState(&colorBlendInfo)
 			.setPMultisampleState(&multisampleInfo)
-			.setLayout(pipelineLayout)
+			.setLayout(static_cast<VkWrapperPipelineLayout*>(info.pipelineLayout)->pipelineLayout)
 			.setRenderPass(static_cast<VkWrapperRenderPass*>(info.renderPass)->renderPass);
 		
 		auto pipeline = device.createGraphicsPipeline(nullptr, pipelineInfo).value;
@@ -690,8 +687,6 @@ namespace engine {
 			throw std::runtime_error("Create graphics pipeline failed");
 		}
 
-		device.destroy(pipelineLayout);
-		
 		auto pipelineWrapper = new VkWrapperPipeline();
 		pipelineWrapper->device = device;
 		pipelineWrapper->pipeline = pipeline;
@@ -846,6 +841,21 @@ namespace engine {
 
 	void VkWrapperCommandPool::Reset() {
 		device.resetCommandPool(commandPool);
+		for (auto& commandBuffer : commandBuffers) delete commandBuffer;
+		decltype(commandBuffers) temp;
+		temp.swap(commandBuffers);
+	}
+
+	void VkWrapperCommandPool::Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) {
+		std::vector<vk::CommandBuffer> freeCommandBuffers(commandBufferCount);
+		for (uint32_t i = 0; i < commandBufferCount; i++) {
+			auto commandBuffer = static_cast<VkWrapperCommandBuffer*>(pCommandBuffers[i]);
+			freeCommandBuffers[i] = commandBuffer->commandBuffer;
+			commandBuffers[commandBuffer->poolIndex] = nullptr;
+			delete commandBuffer;
+		}
+
+		device.free(commandPool, freeCommandBuffers);
 	}
 
 	std::vector<rhi::CommandBuffer> VkWrapperCommandPool::AllocateCommandBuffers(uint32_t bufferCount) {
@@ -866,9 +876,21 @@ namespace engine {
 			cmdWrapper->commandPool = commandPool;
 			cmdWrapper->commandBuffer = cmdBuffer[i];
 			cmdWrappers[i] = cmdWrapper;
-		}
 
-		commandBuffers.insert(commandBuffers.end(), cmdWrappers.begin(), cmdWrappers.end());
+			bool found = false;
+			for (uint32_t j = 0; j < commandBuffers.size(); j++) {
+				if (!commandBuffers[j]) {
+					commandBuffers[j] = cmdWrapper;
+					cmdWrapper->poolIndex = j;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				cmdWrapper->poolIndex = static_cast<uint32_t>(commandBuffers.size());
+				commandBuffers.emplace_back(cmdWrapper);
+			}
+		}
 		
 		return cmdWrappers;
 	}
@@ -971,6 +993,82 @@ namespace engine {
 	}
 
 
+	/* -------------------- VkWrapperDescriptorPool -------------------- */
+
+
+	void VkWrapperDescriptorPool::Reset() {
+		device.resetDescriptorPool(descriptorPool);
+		for (auto& descriptorSet : descriptorSets) {
+			delete descriptorSet;
+			descriptorSet = nullptr;
+		}
+	}
+
+	void VkWrapperDescriptorPool::Free(uint32_t descriptorCount, rhi::DescriptorSet* pDescriptorSets) {
+		std::vector<vk::DescriptorSet> freeDescriptorSets(descriptorCount);
+		for (uint32_t i = 0; i < descriptorCount; i++) {
+			auto descriptorSet = static_cast<VkWrapperDescriptorSet*>(pDescriptorSets[i]);
+			freeDescriptorSets[i] = descriptorSet->descriptorSet;
+			descriptorSets[descriptorSet->poolIndex] = nullptr;
+			delete descriptorSet;
+		}
+
+		device.free(descriptorPool, freeDescriptorSets);
+	}
+
+	std::vector<rhi::DescriptorSet> VkWrapperDescriptorPool::AllocateDescriptorSets(const rhi::DescriptorSetAllocateInfo& info) {
+		std::vector<vk::DescriptorSetLayout> descriptorSetLayouts(info.descriptorSetCount);
+		for (uint32_t i = 0; i < info.descriptorSetCount; i++) {
+			descriptorSetLayouts[i] = static_cast<VkWrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i])->descriptorSetLayout;
+		}
+		
+		auto descriptorSetAllocInfo = vk::DescriptorSetAllocateInfo()
+			.setDescriptorPool(descriptorPool)
+			.setSetLayouts(descriptorSetLayouts);
+
+		auto descriptorSets = device.allocateDescriptorSets(descriptorSetAllocInfo);
+
+		if (descriptorSets.empty()) {
+			throw std::runtime_error("Allocate descriptor sets failed");
+		}
+
+		std::vector<rhi::DescriptorSet> descriptorSetWrappers(info.descriptorSetCount);
+		for (uint32_t i = 0; i < info.descriptorSetCount; i++) {
+			auto descriptorSetWrapper = new VkWrapperDescriptorSet();
+			descriptorSetWrapper->device = device;
+			descriptorSetWrapper->descriptorSet = descriptorSets[i];
+			descriptorSetWrappers[i] = descriptorSetWrapper;
+
+			bool found = false;
+			for (uint32_t j = 0; j < this->descriptorSets.size(); j++) {
+				if (!this->descriptorSets[j]) {
+					this->descriptorSets[j] = descriptorSetWrapper;
+					descriptorSetWrapper->poolIndex = j;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				throw std::runtime_error("No enough pool space for descriptor sets");
+			}
+		}
+
+		return descriptorSetWrappers;
+	}
+
+
+	/* -------------------- VkWrapperDescriptorSet -------------------- */
+
+
+	void VkWrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) {
+
+	}
+
+	void VkWrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) {
+
+	}
+
+
 	/* -------------------- VkWrapperFence -------------------- */
 
 
@@ -1023,7 +1121,9 @@ namespace engine {
 
 	void VkWrapperCommandPool::Destroy() {
 		device.destroy(commandPool);
-		for (auto& cmdBuffer : commandBuffers) delete cmdBuffer;
+		for (auto& cmdBuffer : commandBuffers) {
+			if (cmdBuffer) delete cmdBuffer;
+		}
 		delete this;
 	}
 
@@ -1046,6 +1146,9 @@ namespace engine {
 
 	void VkWrapperDescriptorPool::Destroy() {
 		device.destroy(descriptorPool);
+		for (auto& descriptorSet : descriptorSets) {
+			if (descriptorSet) delete descriptorSet;
+		}
 		delete this;
 	}
 

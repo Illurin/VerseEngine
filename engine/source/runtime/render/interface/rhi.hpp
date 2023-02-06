@@ -76,13 +76,14 @@ namespace engine {
 
 		//
 		// The CommandPool handle is a container for storing and managing command buffers.
-		// If command pool is reset or destroyed, the command buffers in it will also be reset or destroyed.
+		// If command pool is destroyed or reset, the command buffers in it will also be destroyed.
 		//
 		class CommandPool_T {
 		public:
 			virtual void Destroy() = 0;
 
 			virtual void Reset() = 0;
+			virtual void Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) = 0;
 
 			virtual std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) = 0;
 		};
@@ -141,11 +142,16 @@ namespace engine {
 
 		//
 		// The DescriptorPool handle represents for a space used to contain descriptors.
-		// If descriptor pool is destroyed, the descriptors in it will also be destroyed.
+		// If descriptor pool is destroyed or reset, the descriptors in it will also be destroyed.
 		//
 		class DescriptorPool_T {
 		public:
 			virtual void Destroy() = 0;
+
+			virtual void Reset() = 0;
+			virtual void Free(uint32_t descriptorCount, rhi::DescriptorSet* pDescriptorSets) = 0;
+
+			virtual std::vector<DescriptorSet> AllocateDescriptorSets(const DescriptorSetAllocateInfo&) = 0;
 		};
 
 		//
@@ -154,7 +160,8 @@ namespace engine {
 		//
 		class DescriptorSet_T {
 		public:
-			virtual void Destroy() = 0;
+			virtual void Write(uint32_t dstSet, uint32_t dstBinding, DescriptorType, Buffer) = 0;
+			virtual void Write(uint32_t dstSet, uint32_t dstBinding, DescriptorType, ImageViewInfo) = 0;
 		};
 
 		//

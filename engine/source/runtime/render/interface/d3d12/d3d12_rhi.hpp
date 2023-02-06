@@ -125,6 +125,7 @@ namespace engine {
 		void Destroy() override;
 
 		void Reset() override;
+		void Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) override;
 
 		std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) override;
 
@@ -160,6 +161,7 @@ namespace engine {
 		void PrepareRenderingInfo();
 
 	private:
+		uint32_t poolIndex{ 0 };
 		ID3D12CommandAllocator* commandAllocator{ nullptr };
 		ID3D12GraphicsCommandList4* commandList{ nullptr };
 		D3D12WrapperPipeline* pipeline{ nullptr };
@@ -232,9 +234,19 @@ namespace engine {
 	public:
 		void Destroy() override;
 
+		void Reset() override;
+		void Free(uint32_t descriptorCount, rhi::DescriptorSet* pDescriptorSets) override;
+
+		std::vector<rhi::DescriptorSet> AllocateDescriptorSets(const rhi::DescriptorSetAllocateInfo& info) override;
+
 	private:
 		ID3D12DescriptorHeap* cbvSrvUavHeap{ nullptr };
 		ID3D12DescriptorHeap* samplerHeap{ nullptr };
+		UINT cbvSrvUavHeapSize{ 0 };
+		UINT samplerHeapSize{ 0 };
+		std::queue<UINT> cbvSrvUavHeapSpareSpace;
+		std::queue<UINT> samplerHeapSpareSpace;
+		std::vector<rhi::DescriptorSet> descriptorSets;
 	};
 
 	//
@@ -243,12 +255,16 @@ namespace engine {
 	class D3D12WrapperDescriptorSet final : public rhi::DescriptorSet_T {
 
 		friend class D3D12WrapperDevice;
+		friend class D3D12WrapperDescriptorPool;
 
 	public:
-		void Destroy() override;
+		void Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
+		void Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) override;
 
 	private:
-		
+		uint32_t poolIndex{ 0 };
+		std::vector<UINT> cbvSrvUavDescriptorIndices;
+		std::vector<UINT> samplerDescriptorIndices;
 	};
 
 	//
@@ -257,13 +273,13 @@ namespace engine {
 	class D3D12WrapperDescriptorSetLayout final : public rhi::DescriptorSetLayout_T {
 
 		friend class D3D12WrapperDevice;
+		friend class D3D12WrapperDescriptorPool;
 
 	public:
 		void Destroy() override;
 
 	private:
 		std::vector<rhi::DescriptorSetLayoutBinding> bindings;
-		D3D12_SHADER_VISIBILITY shaderVisibility{ D3D12_SHADER_VISIBILITY_ALL };
 	};
 
 	//
@@ -328,7 +344,6 @@ namespace engine {
 
 	private:
 		ID3D12PipelineState* pipeline{ nullptr };
-		ID3D12RootSignature* rootSignature{ nullptr };
 		std::vector<D3D12_RECT> scissors;
 		std::vector<D3D12_VIEWPORT> viewports;
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology{ D3D_PRIMITIVE_TOPOLOGY_UNDEFINED };

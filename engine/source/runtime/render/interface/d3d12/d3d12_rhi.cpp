@@ -213,39 +213,46 @@ namespace engine {
 	}
 
 	rhi::DescriptorPool D3D12WrapperDevice::CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo& info) const {
-		uint32_t cbvSrvUavDescriptorCount = 0;
-		uint32_t samplerDescriptorCount = 0;
-
+		auto descriptorPool = new D3D12WrapperDescriptorPool();
+		
 		for (uint32_t i = 0; i < info.poolSizeCount; i++) {
 			if (info.pPoolSizes[i].type == rhi::DescriptorType::Sampler) {
-				samplerDescriptorCount += info.pPoolSizes[i].size;
+				descriptorPool->samplerHeapSize += info.pPoolSizes[i].size;
 			}
 			else {
-				cbvSrvUavDescriptorCount += info.pPoolSizes[i].size;
+				descriptorPool->cbvSrvUavHeapSize += info.pPoolSizes[i].size;
 			}
 		}
 
-		auto descriptorPool = new D3D12WrapperDescriptorPool();
-
-		if (cbvSrvUavDescriptorCount > 0) {
+		if (descriptorPool->cbvSrvUavHeapSize > 0) {
 			D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
 			descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-			descriptorHeapDesc.NumDescriptors = cbvSrvUavDescriptorCount;
+			descriptorHeapDesc.NumDescriptors = descriptorPool->cbvSrvUavHeapSize;
 
 			if (FAILED(device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorPool->cbvSrvUavHeap)))) {
 				throw std::runtime_error("Create descriptor heap failed");
 			}
 		}
+
+		for (uint32_t i = 0; i < descriptorPool->cbvSrvUavHeapSize; i++) {
+			descriptorPool->cbvSrvUavHeapSpareSpace.emplace(i);
+		}
 		
-		if (samplerDescriptorCount > 0) {
+		if (descriptorPool->samplerHeapSize > 0) {
 			D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
 			descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-			descriptorHeapDesc.NumDescriptors = samplerDescriptorCount;
+			descriptorHeapDesc.NumDescriptors = descriptorPool->samplerHeapSize;
 
 			if (FAILED(device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorPool->samplerHeap)))) {
 				throw std::runtime_error("Create descriptor heap failed");
 			}
 		}
+
+		for (uint32_t i = 0; i < descriptorPool->samplerHeapSize; i++) {
+			descriptorPool->samplerHeapSpareSpace.emplace(i);
+		}
+
+		descriptorPool->descriptorSets.resize(info.maxSetCount);
 
 		return descriptorPool;
 	}
@@ -256,81 +263,74 @@ namespace engine {
 
 		auto descriptorSetLayoutWrapper = new D3D12WrapperDescriptorSetLayout();
 		descriptorSetLayoutWrapper->bindings = bindings;
-		descriptorSetLayoutWrapper->shaderVisibility = D3D12EnumShaderVisibility(info.shaderStage).Get();
 		return descriptorSetLayoutWrapper;
 	}
 
 	rhi::PipelineLayout D3D12WrapperDevice::CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo& info) const {
-		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
-		D3D12_DESCRIPTOR_RANGE1* pRanges = ranges.data();
 		std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs;
-		std::vector<D3D12_ROOT_PARAMETER1> parameters(info.descriptorSetLayoutCount);
+		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
+		std::vector<D3D12_ROOT_PARAMETER1> parameters;
 		for (uint32_t i = 0; i < info.descriptorSetLayoutCount; i++) {
 			auto descriptorSetLayout = static_cast<D3D12WrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i]);
-			UINT rangeCount = 0;
 			for (auto& binding : descriptorSetLayout->bindings) {
-				if (binding.pStaticSamplers) {
-					for (uint32_t j = 0; j < binding.descriptorCount; j++) {
-						auto& samplerInfo = static_cast<D3D12WrapperSampler*>(binding.pStaticSamplers[j])->samplerInfo;
-						D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-						samplerDesc.Filter = D3D12EnumFilter(
-							samplerInfo.minFilter,
-							samplerInfo.magFilter,
-							samplerInfo.mipFilter,
-							samplerInfo.compareEnable,
-							samplerInfo.anisotropyEnable).Get();
-						samplerDesc.AddressU = D3D12EnumTextureAddressMode(samplerInfo.addressModeU).Get();
-						samplerDesc.AddressV = D3D12EnumTextureAddressMode(samplerInfo.addressModeV).Get();
-						samplerDesc.AddressW = D3D12EnumTextureAddressMode(samplerInfo.addressModeW).Get();
-						samplerDesc.MipLODBias = samplerInfo.mipLodBias;
-						samplerDesc.MinLOD = samplerInfo.minLod;
-						samplerDesc.MaxLOD = samplerInfo.maxLod;
-						samplerDesc.MaxAnisotropy = static_cast<UINT>(samplerInfo.maxAnisotropy);
-						samplerDesc.ComparisonFunc = D3D12EnumComparisonFunc(samplerInfo.compareOp).Get();
-						samplerDesc.BorderColor = D3D12EnumStaticBorderColor(samplerInfo.borderColor).Get();
-						samplerDesc.ShaderRegister = binding.binding + j;
-						samplerDesc.RegisterSpace = i;
-						samplerDesc.ShaderVisibility = descriptorSetLayout->shaderVisibility;
-						staticSamplerDescs.emplace_back(samplerDesc);
-						/*switch (samplerInfo.borderColor) {
-						case rhi::BorderColor::TransparentBlack:
-							samplerDesc.BorderColor[0] = 0.0f;
-							samplerDesc.BorderColor[1] = 0.0f;
-							samplerDesc.BorderColor[2] = 0.0f;
-							samplerDesc.BorderColor[3] = 0.0f;
-							break;
-						case rhi::BorderColor::OpaqueBlack:
-							samplerDesc.BorderColor[0] = 0.0f;
-							samplerDesc.BorderColor[1] = 0.0f;
-							samplerDesc.BorderColor[2] = 0.0f;
-							samplerDesc.BorderColor[3] = 1.0f;
-							break;
-						case rhi::BorderColor::OpaqueWhite:
-							samplerDesc.BorderColor[0] = 1.0f;
-							samplerDesc.BorderColor[1] = 1.0f;
-							samplerDesc.BorderColor[2] = 1.0f;
-							samplerDesc.BorderColor[3] = 1.0f;
-							break;
-						}*/
-
-					}
+				if (binding.pStaticSampler) {
+					auto& samplerInfo = static_cast<D3D12WrapperSampler*>(*binding.pStaticSampler)->samplerInfo;
+					D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+					samplerDesc.Filter = D3D12EnumFilter(
+						samplerInfo.minFilter,
+						samplerInfo.magFilter,
+						samplerInfo.mipFilter,
+						samplerInfo.compareEnable,
+						samplerInfo.anisotropyEnable).Get();
+					samplerDesc.AddressU = D3D12EnumTextureAddressMode(samplerInfo.addressModeU).Get();
+					samplerDesc.AddressV = D3D12EnumTextureAddressMode(samplerInfo.addressModeV).Get();
+					samplerDesc.AddressW = D3D12EnumTextureAddressMode(samplerInfo.addressModeW).Get();
+					samplerDesc.MipLODBias = samplerInfo.mipLodBias;
+					samplerDesc.MinLOD = samplerInfo.minLod;
+					samplerDesc.MaxLOD = samplerInfo.maxLod;
+					samplerDesc.MaxAnisotropy = static_cast<UINT>(samplerInfo.maxAnisotropy);
+					samplerDesc.ComparisonFunc = D3D12EnumComparisonFunc(samplerInfo.compareOp).Get();
+					samplerDesc.BorderColor = D3D12EnumStaticBorderColor(samplerInfo.borderColor).Get();
+					samplerDesc.ShaderRegister = binding.binding;
+					samplerDesc.RegisterSpace = i;
+					samplerDesc.ShaderVisibility = D3D12EnumShaderVisibility(binding.shaderStage).Get();
+					staticSamplerDescs.emplace_back(samplerDesc);
+					/*switch (samplerInfo.borderColor) {
+					case rhi::BorderColor::TransparentBlack:
+						samplerDesc.BorderColor[0] = 0.0f;
+						samplerDesc.BorderColor[1] = 0.0f;
+						samplerDesc.BorderColor[2] = 0.0f;
+						samplerDesc.BorderColor[3] = 0.0f;
+						break;
+					case rhi::BorderColor::OpaqueBlack:
+						samplerDesc.BorderColor[0] = 0.0f;
+						samplerDesc.BorderColor[1] = 0.0f;
+						samplerDesc.BorderColor[2] = 0.0f;
+						samplerDesc.BorderColor[3] = 1.0f;
+						break;
+					case rhi::BorderColor::OpaqueWhite:
+						samplerDesc.BorderColor[0] = 1.0f;
+						samplerDesc.BorderColor[1] = 1.0f;
+						samplerDesc.BorderColor[2] = 1.0f;
+						samplerDesc.BorderColor[3] = 1.0f;
+						break;
+					}*/
 				}
 				else {
 					ranges.emplace_back(CD3DX12_DESCRIPTOR_RANGE1(
 						D3D12EnumDescriptorRangeType(binding.descriptorType).Get(),
-						static_cast<UINT>(binding.descriptorCount),
+						1,
 						static_cast<UINT>(binding.binding),
 						static_cast<UINT>(i)));
-					rangeCount++;
+					CD3DX12_ROOT_PARAMETER1 parameter;
+					parameter.InitAsDescriptorTable(1, &ranges.back(), D3D12EnumShaderVisibility(binding.shaderStage).Get());
+					parameters.emplace_back(parameter);
 				}
 			}
-			CD3DX12_ROOT_PARAMETER1 parameter;
-			parameter.InitAsDescriptorTable(rangeCount, pRanges, descriptorSetLayout->shaderVisibility);
-			parameters[i] = parameter;
 		}
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(info.descriptorSetLayoutCount, parameters.data(), static_cast<UINT>(staticSamplerDescs.size()), staticSamplerDescs.data());
+		rootSignatureDesc.Init_1_1(info.descriptorSetLayoutCount, parameters.data(), static_cast<UINT>(staticSamplerDescs.size()), staticSamplerDescs.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ID3DBlob* rootSignatureBlob, * errorBlob;
 		if (FAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, &rootSignatureBlob, &errorBlob))) {
@@ -491,22 +491,7 @@ namespace engine {
 			}
 		}
 		
-		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		ID3DBlob* rootSignatureBlob, * errorBlob;
-		if (FAILED(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignatureBlob, &errorBlob))) {
-			throw std::runtime_error("Serialize root signature failed");
-		}
-		if (errorBlob) {
-			OutputDebugStringA(static_cast<char*>(errorBlob->GetBufferPointer()));
-		}
-
-		ID3D12RootSignature* rootSignature;
-		if (FAILED(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(), rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature)))) {
-			throw std::runtime_error("Create root signature failed");
-		}
-		
-		pipelineDesc.rootSignature.value = rootSignature;
+		pipelineDesc.rootSignature.value = static_cast<D3D12WrapperPipelineLayout*>(info.pipelineLayout)->rootSignature;
 
 		D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
 		streamDesc.SizeInBytes = sizeof(pipelineDesc);
@@ -537,7 +522,6 @@ namespace engine {
 
 		auto pipelineWrapper = new D3D12WrapperPipeline();
 		pipelineWrapper->pipeline = pipeline;
-		pipelineWrapper->rootSignature = rootSignature;
 		pipelineWrapper->scissors = scissors;
 		pipelineWrapper->viewports = viewports;
 		pipelineWrapper->primitiveTopology = info.inputAssemblyInfo.topology == rhi::PrimitiveTopology::PatchList ?
@@ -699,7 +683,21 @@ namespace engine {
 
 	void D3D12WrapperCommandPool::Reset() {
 		for (auto& commandBuffer : commandBuffers) {
-			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->commandAllocator->Reset();
+			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->commandList->Release();
+			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->commandAllocator->Release();
+			delete commandBuffer;
+		}
+		decltype(commandBuffers) temp;
+		temp.swap(commandBuffers);
+	}
+
+	void D3D12WrapperCommandPool::Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) {
+		for (uint32_t i = 0; i < commandBufferCount; i++) {
+			auto commandBuffer = static_cast<D3D12WrapperCommandBuffer*>(pCommandBuffers[i]);
+			commandBuffer->commandList->Release();
+			commandBuffer->commandAllocator->Release();
+			commandBuffers[commandBuffer->poolIndex] = nullptr;
+			delete commandBuffer;
 		}
 	}
 
@@ -722,8 +720,21 @@ namespace engine {
 			cmdWrapper->commandAllocator = cmdAllocator;
 			cmdWrapper->commandList = commandList;
 			cmdWrappers[i] = cmdWrapper;
+
+			bool found = false;
+			for (uint32_t j = 0; j < commandBuffers.size(); j++) {
+				if (!commandBuffers[j]) {
+					commandBuffers[j] = cmdWrapper;
+					cmdWrapper->poolIndex = j;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				cmdWrapper->poolIndex = static_cast<uint32_t>(commandBuffers.size());
+				commandBuffers.emplace_back(cmdWrapper);
+			}
 		}
-		commandBuffers.insert(commandBuffers.end(), cmdWrappers.begin(), cmdWrappers.end());
 
 		return cmdWrappers;
 	}
@@ -848,7 +859,6 @@ namespace engine {
 		commandList->RSSetViewports(static_cast<UINT>(pipelineState->viewports.size()), pipelineState->viewports.data());
 		commandList->OMSetDepthBounds(pipelineState->depthStencilInfo.minDepthBounds, pipelineState->depthStencilInfo.maxDepthBounds);
 		commandList->IASetPrimitiveTopology(pipelineState->primitiveTopology);
-		commandList->SetGraphicsRootSignature(pipelineState->rootSignature);
 	}
 
 	void D3D12WrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) {
@@ -933,6 +943,93 @@ namespace engine {
 	}
 
 
+	/* -------------------- D3D12WrapperDescriptorPool -------------------- */
+
+
+	void D3D12WrapperDescriptorPool::Reset() {
+		{ decltype(cbvSrvUavHeapSpareSpace) temp; temp.swap(cbvSrvUavHeapSpareSpace); }
+		{ decltype(samplerHeapSpareSpace) temp; temp.swap(samplerHeapSpareSpace); }
+
+		for (uint32_t i = 0; i < cbvSrvUavHeapSize; i++) {
+			cbvSrvUavHeapSpareSpace.emplace(i);
+		}
+
+		for (uint32_t i = 0; i < samplerHeapSize; i++) {
+			samplerHeapSpareSpace.emplace(i);
+		}
+
+		for (auto& descriptorSet : descriptorSets) {
+			delete descriptorSet;
+			descriptorSet = nullptr;
+		}
+	}
+
+	void D3D12WrapperDescriptorPool::Free(uint32_t descriptorCount, rhi::DescriptorSet* pDescriptorSets) {
+		for (uint32_t i = 0; i < descriptorCount; i++) {
+			auto descriptorSet = static_cast<D3D12WrapperDescriptorSet*>(pDescriptorSets[i]);
+
+			for (auto& index : descriptorSet->cbvSrvUavDescriptorIndices) {
+				cbvSrvUavHeapSpareSpace.emplace(index);
+			}
+			for (auto& index : descriptorSet->samplerDescriptorIndices) {
+				samplerHeapSpareSpace.emplace(index);
+			}
+
+			descriptorSets[descriptorSet->poolIndex] = nullptr;
+			delete descriptorSet;
+		}
+	}
+
+	std::vector<rhi::DescriptorSet> D3D12WrapperDescriptorPool::AllocateDescriptorSets(const rhi::DescriptorSetAllocateInfo& info) {
+		std::vector<rhi::DescriptorSet> descriptorSetWrappers(info.descriptorSetCount);
+		for (uint32_t i = 0; i < info.descriptorSetCount; i++) {
+			auto descriptorSetWrapper = new D3D12WrapperDescriptorSet();
+			descriptorSetWrappers[i] = descriptorSetWrapper;
+
+			auto descriptorSetLayout = static_cast<D3D12WrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i]);
+
+			for (uint32_t j = 0; j < descriptorSetLayout->bindings.size(); j++) {
+				if (descriptorSetLayout->bindings[j].descriptorType == rhi::DescriptorType::Sampler) {
+					auto index = samplerHeapSpareSpace.front();
+					samplerHeapSpareSpace.pop();
+					descriptorSetWrapper->samplerDescriptorIndices.emplace_back(index);
+				}
+				else {
+					auto index = cbvSrvUavHeapSpareSpace.front();
+					cbvSrvUavHeapSpareSpace.pop();
+					descriptorSetWrapper->cbvSrvUavDescriptorIndices.emplace_back(index);
+				}
+			}
+			
+			bool found = false;
+			for (uint32_t j = 0; j < this->descriptorSets.size(); j++) {
+				if (!this->descriptorSets[j]) {
+					this->descriptorSets[j] = descriptorSetWrapper;
+					descriptorSetWrapper->poolIndex = j;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				throw std::runtime_error("No enough pool space for descriptor sets");
+			}
+		}
+		return descriptorSetWrappers;
+	}
+
+
+	/* -------------------- D3D12WrapperDescriptorSet -------------------- */
+
+
+	void D3D12WrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) {
+
+	}
+
+	void D3D12WrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) {
+
+	}
+
+
 	/* -------------------- D3D12WrapperFence -------------------- */
 
 
@@ -987,10 +1084,12 @@ namespace engine {
 
 	void D3D12WrapperCommandPool::Destroy() {
 		for (auto& commandBuffer : commandBuffers) {
-			auto cmdBuffer = static_cast<D3D12WrapperCommandBuffer*>(commandBuffer);
-			cmdBuffer->commandAllocator->Release();
-			cmdBuffer->commandList->Release();
-			delete commandBuffer;
+			if (commandBuffer) {
+				auto cmdBuffer = static_cast<D3D12WrapperCommandBuffer*>(commandBuffer);
+				cmdBuffer->commandAllocator->Release();
+				cmdBuffer->commandList->Release();
+				delete commandBuffer;
+			}
 		}
 		delete this;
 	}
@@ -1012,6 +1111,9 @@ namespace engine {
 	void D3D12WrapperDescriptorPool::Destroy() {
 		if (cbvSrvUavHeap) cbvSrvUavHeap->Release();
 		if (samplerHeap) samplerHeap->Release();
+		for (auto& descriptorSet : descriptorSets) {
+			if (descriptorSet) delete descriptorSet;
+		}
 		delete this;
 	}
 
@@ -1036,7 +1138,6 @@ namespace engine {
 
 	void D3D12WrapperPipeline::Destroy() {
 		pipeline->Release();
-		rootSignature->Release();
 		delete this;
 	}
 

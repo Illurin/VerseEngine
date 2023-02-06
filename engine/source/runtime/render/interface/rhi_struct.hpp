@@ -302,31 +302,33 @@ namespace engine {
 		};
 
 		struct DescriptorSetAllocateInfo {
+			DescriptorSetAllocateInfo& SetDescriptorSetCount(uint32_t descriptorSetCount) { this->descriptorSetCount = descriptorSetCount; return *this; }
+			DescriptorSetAllocateInfo& SetPDescriptorSetLayouts(DescriptorSetLayout* pDescriptorSetLayouts) { this->pDescriptorSetLayouts = pDescriptorSetLayouts; return *this; }
+			DescriptorSetAllocateInfo& SetDescriptorSetLayouts(std::vector<DescriptorSetLayout>& descriptorSetLayouts) { descriptorSetCount = static_cast<uint32_t>(descriptorSetLayouts.size()); pDescriptorSetLayouts = descriptorSetLayouts.data(); return *this; }
 
+			uint32_t descriptorSetCount;
+			DescriptorSetLayout* pDescriptorSetLayouts;
 		};
 
 		struct DescriptorSetLayoutBinding {
 			DescriptorSetLayoutBinding& SetBinding(uint32_t binding) { this->binding = binding; return *this; }
 			DescriptorSetLayoutBinding& SetDescriptorType(DescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
-			DescriptorSetLayoutBinding& SetDescriptorCount(uint32_t descriptorCount) { this->descriptorCount = descriptorCount; return *this; }
-			DescriptorSetLayoutBinding& SetPStaticSamplers(Sampler* pStaticSamplers) { this->pStaticSamplers = pStaticSamplers; return *this; }
-			DescriptorSetLayoutBinding& SetStaticSamplers(std::vector<Sampler>& staticSamplers) { descriptorCount = static_cast<uint32_t>(staticSamplers.size()); pStaticSamplers = staticSamplers.data(); return *this; }
+			DescriptorSetLayoutBinding& SetPStaticSampler(Sampler* pStaticSampler) { this->pStaticSampler = pStaticSampler; return *this; }
+			DescriptorSetLayoutBinding& SetShaderStage(ShaderStage shaderStage) { this->shaderStage = shaderStage; return *this; }
 
 			uint32_t binding;
 			DescriptorType descriptorType;
-			uint32_t descriptorCount;
-			Sampler* pStaticSamplers;
+			Sampler* pStaticSampler;
+			ShaderStage shaderStage;
 		};
 
 		struct DescriptorSetLayoutCreateInfo {
 			DescriptorSetLayoutCreateInfo& SetBindingCount(uint32_t bindingCount) { this->bindingCount = bindingCount; return *this; }
 			DescriptorSetLayoutCreateInfo& SetPBindings(DescriptorSetLayoutBinding* pBindings) { this->pBindings = pBindings; return *this; }
 			DescriptorSetLayoutCreateInfo& SetBindings(std::vector<DescriptorSetLayoutBinding>& bindings) { bindingCount = static_cast<uint32_t>(bindings.size()); pBindings = bindings.data(); return *this; }
-			DescriptorSetLayoutCreateInfo& SetShaderStage(ShaderStage shaderStage) { this->shaderStage = shaderStage; return *this; }
 
 			uint32_t bindingCount;
 			DescriptorSetLayoutBinding* pBindings;
-			ShaderStage shaderStage;
 		};
 
 		struct PipelineLayoutCreateInfo {
@@ -567,7 +569,7 @@ namespace engine {
 			GraphicsPipelineCreateInfo& SetDepthStencilInfo(PipelineDepthStencilInfo depthStencilInfo) { this->depthStencilInfo = depthStencilInfo; return *this; }
 			GraphicsPipelineCreateInfo& SetColorBlendInfo(PipelineColorBlendInfo colorBlendInfo) { this->colorBlendInfo = colorBlendInfo; return *this; }
 			GraphicsPipelineCreateInfo& SetMultisampleInfo(PipelineMultisampleInfo multisampleInfo) { this->multisampleInfo = multisampleInfo; return *this; }
-			GraphicsPipelineCreateInfo& SetPipelineLayoutInfo(PipelineLayoutInfo pipelineLayoutInfo) { this->pipelineLayoutInfo = pipelineLayoutInfo; return *this; }
+			GraphicsPipelineCreateInfo& SetPipelineLayout(PipelineLayout pipelineLayout) { this->pipelineLayout = pipelineLayout; return *this; }
 			GraphicsPipelineCreateInfo& SetRenderPass(RenderPass renderPass) { this->renderPass = renderPass; return *this; }
 
 			PipelineShaderStageInfo shaderStageInfo;
@@ -579,7 +581,7 @@ namespace engine {
 			PipelineDepthStencilInfo depthStencilInfo;
 			PipelineColorBlendInfo colorBlendInfo;
 			PipelineMultisampleInfo multisampleInfo;
-			PipelineLayoutInfo pipelineLayoutInfo;
+			PipelineLayout pipelineLayout;
 			RenderPass renderPass;
 		};
 

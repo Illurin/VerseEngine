@@ -46,7 +46,9 @@ namespace engine {
 	private:
 		rhi::Buffer vertexBuffer{ nullptr };
 		rhi::DescriptorPool descriptorPool{ nullptr };
+		std::vector<rhi::DescriptorSet> descriptorSets;
 		rhi::DescriptorSetLayout descriptorSetLayout{ nullptr };
+		rhi::PipelineLayout pipelineLayout{ nullptr };
 		rhi::RenderPass renderPass{ nullptr };
 		rhi::Pipeline pipeline{ nullptr };
 		std::vector<rhi::Framebuffer> framebuffers;

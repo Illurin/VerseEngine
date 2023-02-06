@@ -136,6 +136,7 @@ namespace engine {
 		void Destroy() override;
 
 		void Reset() override;
+		void Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) override;
 		
 		std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) override;
 
@@ -169,6 +170,7 @@ namespace engine {
 		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
 
 	private:
+		uint32_t poolIndex{ 0 };
 		vk::CommandBuffer commandBuffer{ nullptr };
 	};
 
@@ -239,8 +241,14 @@ namespace engine {
 	public:
 		void Destroy() override;
 
+		void Reset() override;
+		void Free(uint32_t descriptorCount, rhi::DescriptorSet* pDescriptorSets) override;
+
+		std::vector<rhi::DescriptorSet> AllocateDescriptorSets(const rhi::DescriptorSetAllocateInfo& info) override;
+
 	private:
 		vk::DescriptorPool descriptorPool{ nullptr };
+		std::vector<rhi::DescriptorSet> descriptorSets;
 	};
 
 	//
@@ -249,14 +257,16 @@ namespace engine {
 	class VkWrapperDescriptorSet final : public rhi::DescriptorSet_T {
 
 		friend class VkWrapperDevice;
+		friend class VkWrapperDescriptorPool;
 
 		vk::Device device{ nullptr };
 
 	public:
-		void Destroy() override;
+		void Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
+		void Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) override;
 
 	private:
-		vk::DescriptorPool descriptorPool{ nullptr };
+		uint32_t poolIndex{ 0 };
 		vk::DescriptorSet descriptorSet{ nullptr };
 	};
 
@@ -266,6 +276,7 @@ namespace engine {
 	class VkWrapperDescriptorSetLayout final : public rhi::DescriptorSetLayout_T {
 
 		friend class VkWrapperDevice;
+		friend class VkWrapperDescriptorPool;
 
 		vk::Device device{ nullptr };
 

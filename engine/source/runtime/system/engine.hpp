@@ -5,7 +5,7 @@
 #include "runtime/render/interface/rhi_instance.hpp"
 #include "runtime/math/math.hpp"
 #include "runtime/resource/asset_loader/image/image_loader.hpp"
-#include "runtime/render/pass/default_pass.hpp"
+#include "runtime/render/render_pass.hpp"
 
 namespace engine {
 
@@ -49,7 +49,7 @@ namespace engine {
 		rhi::Fence fence{ nullptr };
 
 	private:
-		std::unique_ptr<DefaultPass> defaultPass;
+		DebugPass defaultPass;
 	};
 
 }

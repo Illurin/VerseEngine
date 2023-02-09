@@ -56,8 +56,10 @@ namespace engine {
 		//
 		class Queue_T {
 		public:
-			virtual void SubmitCommandBuffers(uint32_t commandBufferCount, CommandBuffer* commandBuffers, rhi::Fence fence) = 0;
-			virtual void PresentSwapchain(Swapchain swapchain, uint32_t imageIndex) = 0;
+			virtual void Submit(uint32_t commandBufferCount, CommandBuffer* commandBuffers, rhi::Fence fence) = 0;
+			virtual void Present(Swapchain swapchain, uint32_t imageIndex) = 0;
+
+			virtual uint32_t AcquireNextImage(Swapchain) = 0;
 		};
 		
 		//
@@ -70,8 +72,6 @@ namespace engine {
 
 			virtual rhi::Extent2D GetImageExtent() const = 0;
 			virtual std::vector<rhi::Image> GetImages() const = 0;
-
-			virtual uint32_t AcquireNextImage(Fence) = 0;
 		};
 
 		//
@@ -101,12 +101,16 @@ namespace engine {
 			
 			virtual void BeginRenderPass(const RenderPassBeginInfo&) = 0;
 			virtual void EndRenderPass() = 0;
-			virtual void BindPipeline(const Pipeline&) = 0;
+			virtual void BindPipeline(Pipeline&) = 0;
 			virtual void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const Buffer* pBuffers) = 0;
 			virtual void BindIndexBuffer(Buffer& buffer, uint64_t offset, IndexType indexType) = 0;
+			virtual void BindDescriptorSets(PipelineType pipelineType, PipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const DescriptorSet* pDescriptorSets) = 0;
 
 			virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 			virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) = 0;
+
+			virtual void ResourceBarrier(const ImageMemoryBarrierInfo&) = 0;
+			virtual void CopyBufferToImage(const BufferCopyRegion&, const ImageCopyRegion&) = 0;
 		};
 
 		//
@@ -129,6 +133,9 @@ namespace engine {
 		class Image_T {
 		public:
 			virtual void Destroy() = 0;
+
+			virtual rhi::Extent3D GetExtent() const = 0;
+			virtual rhi::ImageCopyableFootprint GetCopyableFootprint() const = 0;
 		};
 
 		//
@@ -160,8 +167,9 @@ namespace engine {
 		//
 		class DescriptorSet_T {
 		public:
-			virtual void Write(uint32_t dstSet, uint32_t dstBinding, DescriptorType, Buffer) = 0;
-			virtual void Write(uint32_t dstSet, uint32_t dstBinding, DescriptorType, ImageViewInfo) = 0;
+			virtual void Write(uint32_t dstBinding, DescriptorType, Buffer) = 0;
+			virtual void Write(uint32_t dstBinding, DescriptorType, ImageViewInfo) = 0;
+			virtual void Write(uint32_t dstBinding, DescriptorType, Sampler) = 0;
 		};
 
 		//

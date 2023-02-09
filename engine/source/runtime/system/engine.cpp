@@ -12,7 +12,7 @@ namespace engine {
 			.SetPApiName("Vulkan")
 			.SetPApplicationName("Test application")
 			.SetApplicationVersion(1);
-
+		
 		instance = rhi::CreateInstance(instanceInfo);
 
 		auto queueInfo = rhi::QueueCreateInfo()
@@ -40,27 +40,16 @@ namespace engine {
 		renderExtent = swapchain->GetImageExtent();
 		auto swapchainImages = swapchain->GetImages();
 
-		std::array<DefaultVertexData, 3> verticesData;
-		verticesData[0].worldPos = math::Vector3f(0.0f, 0.5f, 0.0f);
-		verticesData[0].color = math::Vector3f(1.0f, 0.0f, 0.0f);
-		verticesData[1].worldPos = math::Vector3f(-0.5f, -0.5f, 0.0f);
-		verticesData[1].color = math::Vector3f(0.0f, 1.0f, 0.0f);
-		verticesData[2].worldPos = math::Vector3f(0.5f, -0.5f, 0.0f);
-		verticesData[2].color = math::Vector3f(0.0f, 0.0f, 1.0f);
-
 		auto shaderCompiler = instance->CreateShaderCompiler();
 
 		// render pass
-		DefaultPassCreateInfo defaultPassInfo;
+		DebugPassInfo defaultPassInfo;
 		defaultPassInfo.device = device;
 		defaultPassInfo.colorFormat = swapchainFormat;
 		defaultPassInfo.renderExtent = renderExtent;
 		defaultPassInfo.colorAttachments = swapchainImages;
 		defaultPassInfo.shaderCompiler = &shaderCompiler;
-		defaultPassInfo.vertexCount = static_cast<uint32_t>(verticesData.size());
-		defaultPassInfo.pVertexData = verticesData.data();
-
-		defaultPass = std::make_unique<DefaultPass>(defaultPassInfo);
+		defaultPass.Init(defaultPassInfo);
 
 		auto commandPoolInfo = rhi::CommandPoolCreateInfo()
 			.SetQueue(queue);
@@ -77,7 +66,7 @@ namespace engine {
 	}
 
 	void Engine::Exit() {
-		defaultPass.reset();
+		defaultPass.Destroy();
 		fence->Destroy();
 		swapchain->Destroy();
 		commandPool->Destroy();
@@ -95,23 +84,22 @@ namespace engine {
 	}
 
 	void Engine::RendererTick() {
-		fence->Reset();
-		uint32_t swapchainImageIndex = swapchain->AcquireNextImage(fence);
+		uint32_t swapchainImageIndex = queue->AcquireNextImage(swapchain);
 		auto& commandBuffer = commandBuffers[swapchainImageIndex];
-		fence->Wait();
 		
 		commandBuffer->Reset();
 		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
-		
+
 		// render pass
-		defaultPass->Draw(commandBuffer, swapchainImageIndex);
+		defaultPass.PreparePassData(commandBuffer);
+		defaultPass.Draw(swapchainImageIndex, commandBuffer);
 
 		commandBuffer->End();
 		
 		fence->Reset();
-		queue->SubmitCommandBuffers(1, &commandBuffer, fence);
+		queue->Submit(1, &commandBuffer, fence);
 		fence->Wait();
-		queue->PresentSwapchain(swapchain, swapchainImageIndex);
+		queue->Present(swapchain, swapchainImageIndex);
 	}
 
 	void Engine::CalculateDeltaTime() {

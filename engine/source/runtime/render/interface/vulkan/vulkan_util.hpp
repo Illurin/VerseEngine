@@ -25,30 +25,6 @@ public:
 		vk::MemoryPropertyFlags requirementMask,
 		uint32_t& typeIndex);
 
-	static void CreateBuffer(
-		vk::PhysicalDevice physicalDevice,
-		vk::Device device,
-		vk::DeviceSize size,
-		vk::BufferUsageFlags usage,
-		vk::Buffer& buffer,
-		vk::DeviceMemory& memory);
-
-	static void CreateImage(
-		vk::PhysicalDevice physicalDevice,
-		vk::Device device,
-		uint32_t width,
-		uint32_t height,
-		uint32_t mipLevels,
-		vk::Format format,
-		vk::ImageUsageFlags usage,
-		vk::Image& image,
-		vk::DeviceMemory& memory);
-
-	static vk::ShaderModule CreateShaderModule(vk::Device device, const char* path);
-
-	static vk::CommandBuffer BeginSingleTimeCommand(vk::Device device, vk::CommandPool cmdPool);
-	static void EndSingleTimeCommand(vk::Device device, vk::CommandPool cmdPool, vk::CommandBuffer cmd, vk::Queue queue);
-
 	static bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayers);
 
 #ifdef _DEBUG

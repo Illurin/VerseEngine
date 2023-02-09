@@ -154,17 +154,6 @@ namespace engine {
 			}
 		}
 
-		D3D12EnumResourceStates(rhi::BufferUsage bufferUsage) {
-			switch (bufferUsage) {
-			case rhi::BufferUsage::UniformBuffer:
-			case rhi::BufferUsage::VertexBuffer:
-			case rhi::BufferUsage::IndexBuffer: resourceStates = D3D12_RESOURCE_STATE_GENERIC_READ; break;
-			case rhi::BufferUsage::StorageBuffer: resourceStates = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			case rhi::BufferUsage::TransferSrc: resourceStates = D3D12_RESOURCE_STATE_COPY_SOURCE; break;
-			case rhi::BufferUsage::TransferDst: resourceStates = D3D12_RESOURCE_STATE_COPY_DEST; break;
-			}
-		}
-
 		D3D12_RESOURCE_STATES Get() const { return resourceStates; }
 
 	private:
@@ -242,6 +231,86 @@ namespace engine {
 		D3D12_SRV_DIMENSION imageViewType_{ D3D12_SRV_DIMENSION_UNKNOWN };
 	};
 
+	class D3D12EnumShaderComponentRMapping final {
+	public:
+		D3D12EnumShaderComponentRMapping(rhi::ComponentSwizzle componentSwizzle) {
+			switch (componentSwizzle) {
+			case rhi::ComponentSwizzle::Identity: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0; break;
+			case rhi::ComponentSwizzle::Zero: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_0; break;
+			case rhi::ComponentSwizzle::One: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1; break;
+			case rhi::ComponentSwizzle::R: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0; break;
+			case rhi::ComponentSwizzle::G: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1; break;
+			case rhi::ComponentSwizzle::B: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2; break;
+			case rhi::ComponentSwizzle::A: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3; break;
+			}
+		}
+
+		D3D12_SHADER_COMPONENT_MAPPING Get() const { return shaderComponentMapping; }
+
+	private:
+		D3D12_SHADER_COMPONENT_MAPPING shaderComponentMapping{ D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0 };
+	};
+
+	class D3D12EnumShaderComponentGMapping final {
+	public:
+		D3D12EnumShaderComponentGMapping(rhi::ComponentSwizzle componentSwizzle) {
+			switch (componentSwizzle) {
+			case rhi::ComponentSwizzle::Identity: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1; break;
+			case rhi::ComponentSwizzle::Zero: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_0; break;
+			case rhi::ComponentSwizzle::One: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1; break;
+			case rhi::ComponentSwizzle::R: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0; break;
+			case rhi::ComponentSwizzle::G: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1; break;
+			case rhi::ComponentSwizzle::B: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2; break;
+			case rhi::ComponentSwizzle::A: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3; break;
+			}
+		}
+
+		D3D12_SHADER_COMPONENT_MAPPING Get() const { return shaderComponentMapping; }
+
+	private:
+		D3D12_SHADER_COMPONENT_MAPPING shaderComponentMapping{ D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1 };
+	};
+
+	class D3D12EnumShaderComponentBMapping final {
+	public:
+		D3D12EnumShaderComponentBMapping(rhi::ComponentSwizzle componentSwizzle) {
+			switch (componentSwizzle) {
+			case rhi::ComponentSwizzle::Identity: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2; break;
+			case rhi::ComponentSwizzle::Zero: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_0; break;
+			case rhi::ComponentSwizzle::One: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1; break;
+			case rhi::ComponentSwizzle::R: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0; break;
+			case rhi::ComponentSwizzle::G: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1; break;
+			case rhi::ComponentSwizzle::B: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2; break;
+			case rhi::ComponentSwizzle::A: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3; break;
+			}
+		}
+
+		D3D12_SHADER_COMPONENT_MAPPING Get() const { return shaderComponentMapping; }
+
+	private:
+		D3D12_SHADER_COMPONENT_MAPPING shaderComponentMapping{ D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2 };
+	};
+
+	class D3D12EnumShaderComponentAMapping final {
+	public:
+		D3D12EnumShaderComponentAMapping(rhi::ComponentSwizzle componentSwizzle) {
+			switch (componentSwizzle) {
+			case rhi::ComponentSwizzle::Identity: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3; break;
+			case rhi::ComponentSwizzle::Zero: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_0; break;
+			case rhi::ComponentSwizzle::One: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1; break;
+			case rhi::ComponentSwizzle::R: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0; break;
+			case rhi::ComponentSwizzle::G: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1; break;
+			case rhi::ComponentSwizzle::B: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2; break;
+			case rhi::ComponentSwizzle::A: shaderComponentMapping = D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3; break;
+			}
+		}
+
+		D3D12_SHADER_COMPONENT_MAPPING Get() const { return shaderComponentMapping; }
+
+	private:
+		D3D12_SHADER_COMPONENT_MAPPING shaderComponentMapping{ D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3 };
+	};
+
 	class D3D12EnumDescriptorRangeType final {
 	public:
 		D3D12EnumDescriptorRangeType(rhi::DescriptorType descriptorType) {
@@ -258,6 +327,24 @@ namespace engine {
 
 	private:
 		D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType{ D3D12_DESCRIPTOR_RANGE_TYPE_SRV };
+	};
+
+	class D3D12EnumDescriptorHeapType final {
+	public:
+		D3D12EnumDescriptorHeapType(rhi::DescriptorType descriptorType) {
+			switch (descriptorType) {
+			case rhi::DescriptorType::UniformBuffer:
+			case rhi::DescriptorType::SampledImage:
+			case rhi::DescriptorType::StorageImage:
+			case rhi::DescriptorType::StorageBuffer: descriptorHeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+			case rhi::DescriptorType::Sampler: descriptorHeapType = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER; break;
+			}
+		}
+
+		D3D12_DESCRIPTOR_HEAP_TYPE Get() const { return descriptorHeapType; }
+
+	private:
+		D3D12_DESCRIPTOR_HEAP_TYPE descriptorHeapType{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
 	};
 
 	class D3D12EnumFilter final {

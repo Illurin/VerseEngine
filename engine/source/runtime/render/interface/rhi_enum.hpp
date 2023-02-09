@@ -84,7 +84,11 @@ namespace engine {
 			VertexBuffer,
 			IndexBuffer,
 			TransferSrc,
-			TransferDst
+			TransferDst,
+			StorageBufferAndTransferSrc,
+			UniformBufferAndTransferDst,
+			VertexBufferAndTransferDst,
+			IndexBufferAndTransferDst
 		};
 
 		enum class ImageUsage {
@@ -92,7 +96,14 @@ namespace engine {
 			DepthStencilAttachment,
 			Sampled,
 			TransferSrc,
-			TransferDst
+			TransferDst,
+			ColorAttachmentAndSampled,
+			DepthStencilAttachmentAndSampled,
+			ColorAttachmentAndTransferSrc,
+			DepthStencilAttachmentAndTransferSrc,
+			ColorAttachmentAndTransferDst,
+			DepthStencilAttachmentAndTransferDst,
+			SampledAndTransferDst
 		};
 
 		enum class ImageLayout {
@@ -130,6 +141,13 @@ namespace engine {
 			G,
 			B,
 			A
+		};
+
+		enum class ImageAspect {
+			Color,
+			Depth,
+			Stencil,
+			DepthStencil
 		};
 
 		enum class DescriptorType {

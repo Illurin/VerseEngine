@@ -168,10 +168,17 @@ namespace engine {
 
 		deviceWrapper->queues.resize(info.queueCreateInfoCount);
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
+			auto semaphore = device.createSemaphore(vk::SemaphoreCreateInfo());
+
+			if (!semaphore) {
+				throw std::runtime_error("Create semaphore failed");
+			}
+
 			auto queue = new VkWrapperQueue();
 			queue->device = device;
 			queue->queue = device.getQueue(deviceQueueInfos[i].queueFamilyIndex, 0);
 			queue->queueFamilyIndex = deviceQueueInfos[i].queueFamilyIndex;
+			queue->semaphore = semaphore;
 			deviceWrapper->queues[i] = queue;
 		}
 
@@ -319,7 +326,7 @@ namespace engine {
 			.setImageType(VkEnumImageType(info.imageType).Get())
 			.setExtent(vk::Extent3D(info.extent.width, info.extent.height, info.extent.depth))
 			.setUsage(VkEnumImageUsage(info.usage).Get())
-			.setInitialLayout(VkEnumImageLayout(info.initialLayout).Get())
+			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setTiling(vk::ImageTiling::eOptimal)
 			.setArrayLayers(info.arrayLayers)
 			.setMipLevels(info.mipLevels)
@@ -348,6 +355,7 @@ namespace engine {
 		imageWrapper->device = device;
 		imageWrapper->image = image;
 		imageWrapper->memory = memory;
+		imageWrapper->extent = info.extent;
 		return imageWrapper;
 	}
 
@@ -711,11 +719,11 @@ namespace engine {
 					VkEnumComponentSwizzle(colorAttachment.componentMapping.b).Get(),
 					VkEnumComponentSwizzle(colorAttachment.componentMapping.a).Get()))
 				.setSubresourceRange(vk::ImageSubresourceRange(
-					vk::ImageAspectFlagBits::eColor,
-					colorAttachment.baseMipLevel,
-					colorAttachment.mipLevelCount,
-					colorAttachment.baseArrayLayer,
-					colorAttachment.arrayLayerCount));
+					VkEnumImageAspect(colorAttachment.subresourceRange.imageAspect).Get(),
+					colorAttachment.subresourceRange.baseMipLevel,
+					colorAttachment.subresourceRange.mipLevelCount,
+					colorAttachment.subresourceRange.baseArrayLayer,
+					colorAttachment.subresourceRange.arrayLayerCount));
 
 			auto imageView = device.createImageView(imageViewInfo);
 
@@ -738,11 +746,11 @@ namespace engine {
 					VkEnumComponentSwizzle(info.pDepthStencilAttachment->componentMapping.b).Get(),
 					VkEnumComponentSwizzle(info.pDepthStencilAttachment->componentMapping.a).Get()))
 				.setSubresourceRange(vk::ImageSubresourceRange(
-					vk::ImageAspectFlagBits::eDepth,
-					info.pDepthStencilAttachment->baseMipLevel,
-					info.pDepthStencilAttachment->mipLevelCount,
-					info.pDepthStencilAttachment->baseArrayLayer,
-					info.pDepthStencilAttachment->arrayLayerCount));
+					VkEnumImageAspect(info.pDepthStencilAttachment->subresourceRange.imageAspect).Get(),
+					info.pDepthStencilAttachment->subresourceRange.baseMipLevel,
+					info.pDepthStencilAttachment->subresourceRange.mipLevelCount,
+					info.pDepthStencilAttachment->subresourceRange.baseArrayLayer,
+					info.pDepthStencilAttachment->subresourceRange.arrayLayerCount));
 
 			auto depthStencilAttachment = device.createImageView(imageViewInfo);
 
@@ -794,19 +802,30 @@ namespace engine {
 	/* -------------------- VkWrapperQueue -------------------- */
 
 
-	void VkWrapperQueue::SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
+	void VkWrapperQueue::Submit(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
 		std::vector<vk::CommandBuffer> submitCommandBuffers(commandBufferCount);
 		for (uint32_t i = 0; i < commandBufferCount; i++) {
 			submitCommandBuffers[i] = static_cast<VkWrapperCommandBuffer*>(commandBuffers[i])->commandBuffer;
 		}
 
+		std::array<vk::PipelineStageFlags, 1> dstStageMask = {
+			vk::PipelineStageFlagBits::eBottomOfPipe
+		};
+
 		auto submitInfo = vk::SubmitInfo()
 			.setCommandBuffers(submitCommandBuffers);
+		
+		if (waitForSemaphore) {
+			submitInfo
+				.setWaitSemaphores(semaphore)
+				.setWaitDstStageMask(dstStageMask);
+			waitForSemaphore = false;
+		}
 
 		queue.submit(submitInfo, static_cast<VkWrapperFence*>(fence)->fence);
 	}
 
-	void VkWrapperQueue::PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) {
+	void VkWrapperQueue::Present(rhi::Swapchain swapchain, uint32_t imageIndex) {
 		std::array<uint32_t, 1> imageIndices = { imageIndex };
 		std::array<vk::SwapchainKHR, 1> presentSwapchains = { static_cast<VkWrapperSwapchain*>(swapchain)->swapchain };
 
@@ -815,6 +834,14 @@ namespace engine {
 			.setSwapchains(presentSwapchains);
 		
 		auto result = queue.presentKHR(presentInfo);
+	}
+
+	uint32_t VkWrapperQueue::AcquireNextImage(rhi::Swapchain swapchain) {
+		auto swapchain_ = static_cast<VkWrapperSwapchain*>(swapchain);
+		auto result = device.acquireNextImageKHR(swapchain_->swapchain, UINT64_MAX, semaphore, nullptr);
+		swapchain_->currentImageIndex = result.value;
+		waitForSemaphore = true;
+		return result.value;
 	}
 
 
@@ -827,12 +854,6 @@ namespace engine {
 
 	std::vector<rhi::Image> VkWrapperSwapchain::GetImages() const {
 		return images;
-	}
-
-	uint32_t VkWrapperSwapchain::AcquireNextImage(rhi::Fence fence) {
-		auto result = device.acquireNextImageKHR(swapchain, UINT64_MAX, nullptr, static_cast<VkWrapperFence*>(fence)->fence);
-		currentImageIndex = result.value;
-		return currentImageIndex;
 	}
 	
 
@@ -935,7 +956,7 @@ namespace engine {
 		commandBuffer.endRenderPass();
 	}
 
-	void VkWrapperCommandBuffer::BindPipeline(const rhi::Pipeline& pipeline) {
+	void VkWrapperCommandBuffer::BindPipeline(rhi::Pipeline& pipeline) {
 		auto pipeline_ = static_cast<VkWrapperPipeline*>(pipeline);
 		commandBuffer.bindPipeline(VkEnumPipelineBindPoint(pipeline_->pipelineType).Get(), pipeline_->pipeline);
 	}
@@ -956,12 +977,66 @@ namespace engine {
 		commandBuffer.bindIndexBuffer(indexBuffer, offset, VkEnumIndexType(indexType).Get());
 	}
 
+	void VkWrapperCommandBuffer::BindDescriptorSets(rhi::PipelineType pipelineType, rhi::PipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const rhi::DescriptorSet* pDescriptorSets) {
+		std::vector<vk::DescriptorSet> descriptorSets(descriptorSetCount);
+		for (uint32_t i = 0; i < descriptorSetCount; i++) {
+			descriptorSets[i] = static_cast<VkWrapperDescriptorSet*>(pDescriptorSets[i])->descriptorSet;
+		}
+		
+		commandBuffer.bindDescriptorSets(VkEnumPipelineBindPoint(pipelineType).Get(), 
+			                             static_cast<VkWrapperPipelineLayout*>(layout)->pipelineLayout,
+			                             firstSet,
+			                             descriptorSetCount,
+			                             descriptorSets.data(),
+			                             0,
+			                             nullptr);
+	}
+
 	void VkWrapperCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
 		commandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
 	void VkWrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
 		commandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+	}
+
+	void VkWrapperCommandBuffer::ResourceBarrier(const rhi::ImageMemoryBarrierInfo& info) {
+		auto barrier = vk::ImageMemoryBarrier()
+			.setImage(static_cast<VkWrapperImage*>(info.image)->image)
+			.setOldLayout(VkEnumImageLayout(info.oldLayout).Get())
+			.setNewLayout(VkEnumImageLayout(info.newLayout).Get())
+			.setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+			.setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+			.setSubresourceRange(vk::ImageSubresourceRange()
+				.setAspectMask(VkEnumImageAspect(info.subresourceRange.imageAspect).Get())
+				.setBaseArrayLayer(info.subresourceRange.baseArrayLayer)
+				.setBaseMipLevel(info.subresourceRange.baseMipLevel)
+				.setLayerCount(info.subresourceRange.arrayLayerCount)
+				.setLevelCount(info.subresourceRange.mipLevelCount));
+
+		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+			                          vk::PipelineStageFlagBits::eBottomOfPipe,
+			                          vk::DependencyFlags(),
+			                          0, nullptr,
+			                          0, nullptr,
+			                          1, &barrier);
+	}
+
+	void VkWrapperCommandBuffer::CopyBufferToImage(const rhi::BufferCopyRegion& bufferRegion, const rhi::ImageCopyRegion& imageRegion) {
+		auto bufferImageCopy = vk::BufferImageCopy()
+			.setBufferOffset(bufferRegion.offset)
+			.setImageOffset(vk::Offset3D(imageRegion.offset.x, imageRegion.offset.y, imageRegion.offset.z))
+			.setImageExtent(vk::Extent3D(imageRegion.extent.width, imageRegion.extent.height, imageRegion.extent.depth))
+			.setImageSubresource(vk::ImageSubresourceLayers()
+				.setAspectMask(VkEnumImageAspect(imageRegion.subresourceIndex.imageAspect).Get())
+				.setMipLevel(imageRegion.subresourceIndex.mipLevel)
+				.setBaseArrayLayer(imageRegion.subresourceIndex.arrayLayer)
+				.setLayerCount(1));
+
+		commandBuffer.copyBufferToImage(static_cast<VkWrapperBuffer*>(bufferRegion.buffer)->buffer,
+			                            static_cast<VkWrapperImage*>(imageRegion.image)->image,
+			                            vk::ImageLayout::eTransferDstOptimal,
+			                            bufferImageCopy);
 	}
 
 
@@ -993,12 +1068,34 @@ namespace engine {
 	}
 
 
+	/* -------------------- VkWrapperImage -------------------- */
+
+
+	rhi::Extent3D VkWrapperImage::GetExtent() const {
+		return extent;
+	}
+
+	rhi::ImageCopyableFootprint VkWrapperImage::GetCopyableFootprint() const {
+		auto memoryReqs = device.getImageMemoryRequirements(image);
+		
+		auto footprint = rhi::ImageCopyableFootprint()
+			.SetOffset(0)
+			.SetRowPitch(0)
+			.SetSize(memoryReqs.size);
+
+		return footprint;
+	}
+
+
 	/* -------------------- VkWrapperDescriptorPool -------------------- */
 
 
 	void VkWrapperDescriptorPool::Reset() {
 		device.resetDescriptorPool(descriptorPool);
 		for (auto& descriptorSet : descriptorSets) {
+			auto descriptorSet_ = static_cast<VkWrapperDescriptorSet*>(descriptorSet);
+			if (descriptorSet_->imageView) device.destroy(descriptorSet_->imageView);
+
 			delete descriptorSet;
 			descriptorSet = nullptr;
 		}
@@ -1008,6 +1105,8 @@ namespace engine {
 		std::vector<vk::DescriptorSet> freeDescriptorSets(descriptorCount);
 		for (uint32_t i = 0; i < descriptorCount; i++) {
 			auto descriptorSet = static_cast<VkWrapperDescriptorSet*>(pDescriptorSets[i]);
+			if (descriptorSet->imageView) device.destroy(descriptorSet->imageView);
+
 			freeDescriptorSets[i] = descriptorSet->descriptorSet;
 			descriptorSets[descriptorSet->poolIndex] = nullptr;
 			delete descriptorSet;
@@ -1060,12 +1159,79 @@ namespace engine {
 	/* -------------------- VkWrapperDescriptorSet -------------------- */
 
 
-	void VkWrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) {
+	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::Buffer buffer) {
+		auto descriptorBufferInfo = vk::DescriptorBufferInfo()
+			.setBuffer(static_cast<VkWrapperBuffer*>(buffer)->buffer)
+			.setOffset(0)
+			.setRange(VK_WHOLE_SIZE);
+		
+		auto writeDescriptorSet = vk::WriteDescriptorSet()
+			.setDstSet(descriptorSet)
+			.setDstBinding(dstBinding)
+			.setDstArrayElement(0)
+			.setDescriptorCount(1)
+			.setDescriptorType(VkEnumDescriptorType(descriptorType).Get())
+			.setPBufferInfo(&descriptorBufferInfo);
 
+		device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	}
 
-	void VkWrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) {
+	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageViewInfo imageViewInfo) {
+		if (imageView) {
+			device.destroy(imageView);
+			imageView = nullptr;
+		}
+		
+		auto imageViewCreateInfo = vk::ImageViewCreateInfo()
+			.setImage(static_cast<VkWrapperImage*>(imageViewInfo.image)->image)
+			.setFormat(VkEnumFormat(imageViewInfo.format).Get())
+			.setViewType(VkEnumImageViewType(imageViewInfo.viewType).Get())
+			.setComponents(vk::ComponentMapping(
+				VkEnumComponentSwizzle(imageViewInfo.componentMapping.r).Get(),
+				VkEnumComponentSwizzle(imageViewInfo.componentMapping.g).Get(),
+				VkEnumComponentSwizzle(imageViewInfo.componentMapping.b).Get(),
+				VkEnumComponentSwizzle(imageViewInfo.componentMapping.a).Get()))
+			.setSubresourceRange(vk::ImageSubresourceRange(
+				VkEnumImageAspect(imageViewInfo.subresourceRange.imageAspect).Get(),
+				imageViewInfo.subresourceRange.baseMipLevel,
+				imageViewInfo.subresourceRange.mipLevelCount,
+				imageViewInfo.subresourceRange.baseArrayLayer,
+				imageViewInfo.subresourceRange.arrayLayerCount));
 
+		imageView = device.createImageView(imageViewCreateInfo);
+
+		if (!imageView) {
+			throw std::runtime_error("Create image view failed");
+		}
+		
+		auto descriptorImageInfo = vk::DescriptorImageInfo()
+			.setImageView(imageView)
+			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
+		auto writeDescriptorSet = vk::WriteDescriptorSet()
+			.setDstSet(descriptorSet)
+			.setDstBinding(dstBinding)
+			.setDstArrayElement(0)
+			.setDescriptorCount(1)
+			.setDescriptorType(VkEnumDescriptorType(descriptorType).Get())
+			.setPImageInfo(&descriptorImageInfo);
+
+		device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	}
+
+	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::Sampler sampler) {
+		auto descriptorImageInfo = vk::DescriptorImageInfo()
+			.setSampler(static_cast<VkWrapperSampler*>(sampler)->sampler);
+
+		auto writeDescriptorSet = vk::WriteDescriptorSet()
+			.setDstSet(descriptorSet)
+			.setDstBinding(dstBinding)
+			.setDstArrayElement(0)
+			.setDescriptorCount(1)
+			.setDescriptorType(VkEnumDescriptorType(descriptorType).Get())
+			.setPImageInfo(&descriptorImageInfo);
+
+		device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	}
 
 
@@ -1107,8 +1273,11 @@ namespace engine {
 	}
 
 	void VkWrapperDevice::Destroy() {
+		for (auto& queue : queues) {
+			device.destroy(static_cast<VkWrapperQueue*>(queue)->semaphore);
+			delete queue;
+		}
 		device.destroy();
-		for (auto& queue : queues) delete queue;
 		delete this;
 	}
 
@@ -1147,6 +1316,7 @@ namespace engine {
 	void VkWrapperDescriptorPool::Destroy() {
 		device.destroy(descriptorPool);
 		for (auto& descriptorSet : descriptorSets) {
+			device.destroy(static_cast<VkWrapperDescriptorSet*>(descriptorSet)->imageView);
 			if (descriptorSet) delete descriptorSet;
 		}
 		delete this;

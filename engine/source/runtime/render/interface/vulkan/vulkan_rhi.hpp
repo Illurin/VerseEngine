@@ -88,12 +88,16 @@ namespace engine {
 		vk::Device device{ nullptr };
 
 	public:
-		void SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) override;
-		void PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) override;
+		void Submit(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) override;
+		void Present(rhi::Swapchain swapchain, uint32_t imageIndex) override;
+
+		uint32_t AcquireNextImage(rhi::Swapchain) override;
 
 	private:
 		vk::Queue queue{ nullptr };
 		uint32_t queueFamilyIndex{ 0 };
+		vk::Semaphore semaphore{ nullptr };
+		bool waitForSemaphore{ false };
 	};
 
 	//
@@ -113,13 +117,11 @@ namespace engine {
 		rhi::Extent2D GetImageExtent() const override;
 		std::vector<rhi::Image> GetImages() const override;
 
-		uint32_t AcquireNextImage(rhi::Fence) override;
-
 	private:
 		vk::SurfaceKHR surface{ nullptr };
 		vk::SwapchainKHR swapchain{ nullptr };
 		std::vector<rhi::Image> images;
-		rhi::Extent2D imageExtent{ 0, 0 };
+		rhi::Extent2D imageExtent{};
 		uint32_t currentImageIndex{ 0 };
 	};
 
@@ -162,12 +164,16 @@ namespace engine {
 
 		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
 		void EndRenderPass() override;
-		void BindPipeline(const rhi::Pipeline&) override;
+		void BindPipeline(rhi::Pipeline&) override;
 		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) override;
 		void BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) override;
+		void BindDescriptorSets(rhi::PipelineType pipelineType, rhi::PipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const rhi::DescriptorSet* pDescriptorSets) override;
 
 		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
 		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
+
+		void ResourceBarrier(const rhi::ImageMemoryBarrierInfo&) override;
+		void CopyBufferToImage(const rhi::BufferCopyRegion&, const rhi::ImageCopyRegion&) override;
 
 	private:
 		uint32_t poolIndex{ 0 };
@@ -181,6 +187,7 @@ namespace engine {
 
 		friend class VkWrapperDevice;
 		friend class VkWrapperCommandBuffer;
+		friend class VkWrapperDescriptorSet;
 
 		vk::Device device{ nullptr };
 
@@ -202,15 +209,21 @@ namespace engine {
 	class VkWrapperImage final : public rhi::Image_T {
 
 		friend class VkWrapperDevice;
+		friend class VkWrapperCommandBuffer;
+		friend class VkWrapperDescriptorSet;
 
 		vk::Device device{ nullptr };
 
 	public:
 		void Destroy() override;
 
+		rhi::Extent3D GetExtent() const;
+		rhi::ImageCopyableFootprint GetCopyableFootprint() const;
+
 	private:
 		vk::Image image{ nullptr };
 		vk::DeviceMemory memory{ nullptr };
+		rhi::Extent3D extent{};
 	};
 
 	//
@@ -219,6 +232,7 @@ namespace engine {
 	class VkWrapperSampler final : public rhi::Sampler_T {
 
 		friend class VkWrapperDevice;
+		friend class VkWrapperDescriptorSet;
 
 		vk::Device device{ nullptr };
 
@@ -258,16 +272,19 @@ namespace engine {
 
 		friend class VkWrapperDevice;
 		friend class VkWrapperDescriptorPool;
+		friend class VkWrapperCommandBuffer;
 
 		vk::Device device{ nullptr };
 
 	public:
-		void Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
-		void Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) override;
+		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
+		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) override;
+		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Sampler) override;
 
 	private:
 		uint32_t poolIndex{ 0 };
 		vk::DescriptorSet descriptorSet{ nullptr };
+		vk::ImageView imageView{ nullptr };
 	};
 
 	//

@@ -59,7 +59,7 @@ namespace engine {
 			throw std::runtime_error("Create device failed");
 		}
 		adapter->Release();
-		
+
 		std::vector<rhi::Queue> queues(info.queueCreateInfoCount);
 		for (uint32_t i = 0; i < info.queueCreateInfoCount; i++) {
 			D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -69,10 +69,16 @@ namespace engine {
 			if (FAILED(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queue)))) {
 				throw std::runtime_error("Create command queue failed");
 			}
-			
+
+			decltype(D3D12WrapperQueue::fence) fence;
+			if (FAILED(device->CreateFence(FALSE, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)))) {
+				throw std::runtime_error("Create fence failed");
+			}
+
 			auto queueWrapper = new D3D12WrapperQueue();
 			queueWrapper->queue = queue;
 			queueWrapper->commandListType = D3D12EnumCommandListType(info.pQueueCreateInfos[i].queueType).Get();
+			queueWrapper->fence = fence;
 			queues[i] = queueWrapper;
 		}
 
@@ -81,6 +87,7 @@ namespace engine {
 		deviceWrapper->device = device;
 		deviceWrapper->queues = queues;
 		device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &deviceWrapper->feature.sampleQuality, sizeof(UINT));
+
 		return deviceWrapper;
 	}
 
@@ -127,20 +134,21 @@ namespace engine {
 			throw std::runtime_error("Update swapchain failed");
 		}
 
+		swapchainOld->Release();
+
 		swapchain->GetDesc1(&swapchainDesc);
 
 		std::vector<rhi::Image> swapchainImages(info.frameCount);
 		for (uint32_t i = 0; i < info.frameCount; i++) {
 			decltype(D3D12WrapperImage::resource) resource;
 			swapchain->GetBuffer(static_cast<UINT>(i), IID_PPV_ARGS(&resource));
-			
+
 			auto imageWrapper = new D3D12WrapperImage();
 			imageWrapper->resource = resource;
 			swapchainImages[i] = imageWrapper;
 		}
 
 		auto swapchainWrapper = new D3D12WrapperSwapchain();
-		swapchainWrapper->queue = static_cast<D3D12WrapperQueue*>(info.queue)->queue;
 		swapchainWrapper->swapchain = swapchain;
 		swapchainWrapper->images = swapchainImages;
 		swapchainWrapper->imageExtent = rhi::Extent2D().SetWidth(swapchainDesc.Width).SetHeight(swapchainDesc.Height);
@@ -158,12 +166,16 @@ namespace engine {
 		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 		auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(info.size);
 
+		if (info.usage == rhi::BufferUsage::UniformBuffer || info.usage == rhi::BufferUsage::StorageBuffer) {
+			resourceDesc.Width = (resourceDesc.Width + 255) & ~255;
+		}
+
 		decltype(D3D12WrapperBuffer::resource) resource;
 		if (FAILED(device->CreateCommittedResource(
 			&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			D3D12EnumResourceStates(info.usage).Get(),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&resource)))) {
 			throw std::runtime_error("Create buffer failed");
@@ -171,31 +183,29 @@ namespace engine {
 		
 		auto bufferWrapper = new D3D12WrapperBuffer();
 		bufferWrapper->resource = resource;
-		bufferWrapper->bufferSize = static_cast<UINT>(info.size);
 		return bufferWrapper;
 	}
 
 	rhi::Image D3D12WrapperDevice::CreateImage(const rhi::ImageCreateInfo& info) const {
-		D3D12_RESOURCE_DESC resourceDesc;
+		D3D12_RESOURCE_DESC resourceDesc = {};
 		resourceDesc.Format = D3D12EnumFormat(info.format).Get();
 		resourceDesc.Dimension = D3D12EnumImageType(info.imageType).Get();
 		resourceDesc.Width = info.extent.width;
 		resourceDesc.Height = info.extent.height;
 		resourceDesc.DepthOrArraySize = info.extent.depth;
-		resourceDesc.Alignment = 0;
 		resourceDesc.MipLevels = info.mipLevels;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		resourceDesc.SampleDesc.Count = D3D12EnumSampleCount(info.sampleCount).Get();
 		resourceDesc.SampleDesc.Quality = info.sampleCount == rhi::SampleCount::Count1 ? 0 : feature.sampleQuality;
 
 		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-
+		
 		decltype(D3D12WrapperImage::resource) resource;
 		if (FAILED(device->CreateCommittedResource(
 			&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			D3D12EnumResourceStates(info.initialLayout).Get(),
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&resource)))) {
 			throw std::runtime_error("Create image failed");
@@ -214,13 +224,15 @@ namespace engine {
 
 	rhi::DescriptorPool D3D12WrapperDevice::CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo& info) const {
 		auto descriptorPool = new D3D12WrapperDescriptorPool();
-		
+		descriptorPool->device = device;
+
 		for (uint32_t i = 0; i < info.poolSizeCount; i++) {
-			if (info.pPoolSizes[i].type == rhi::DescriptorType::Sampler) {
-				descriptorPool->samplerHeapSize += info.pPoolSizes[i].size;
-			}
-			else {
+			auto heapType = D3D12EnumDescriptorHeapType(info.pPoolSizes[i].type).Get();
+			if (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) {
 				descriptorPool->cbvSrvUavHeapSize += info.pPoolSizes[i].size;
+			}
+			else if (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) {
+				descriptorPool->samplerHeapSize += info.pPoolSizes[i].size;
 			}
 		}
 
@@ -235,7 +247,10 @@ namespace engine {
 		}
 
 		for (uint32_t i = 0; i < descriptorPool->cbvSrvUavHeapSize; i++) {
-			descriptorPool->cbvSrvUavHeapSpareSpace.emplace(i);
+			descriptorPool->cbvSrvUavHeapSpareSpace.emplace(CD3DX12_CPU_DESCRIPTOR_HANDLE(
+				descriptorPool->cbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart(),
+				i,
+				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 		}
 		
 		if (descriptorPool->samplerHeapSize > 0) {
@@ -249,7 +264,10 @@ namespace engine {
 		}
 
 		for (uint32_t i = 0; i < descriptorPool->samplerHeapSize; i++) {
-			descriptorPool->samplerHeapSpareSpace.emplace(i);
+			descriptorPool->samplerHeapSpareSpace.emplace(CD3DX12_CPU_DESCRIPTOR_HANDLE(
+				descriptorPool->samplerHeap->GetCPUDescriptorHandleForHeapStart(),
+				i,
+				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)));
 		}
 
 		descriptorPool->descriptorSets.resize(info.maxSetCount);
@@ -258,7 +276,7 @@ namespace engine {
 	}
 
 	rhi::DescriptorSetLayout D3D12WrapperDevice::CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo& info) const {
-		std::vector<rhi::DescriptorSetLayoutBinding> bindings(info.bindingCount);
+		std::vector<rhi::DescriptorSetLayoutBindingInfo> bindings(info.bindingCount);
 		std::copy(info.pBindings, info.pBindings + info.bindingCount, bindings.data());
 
 		auto descriptorSetLayoutWrapper = new D3D12WrapperDescriptorSetLayout();
@@ -267,10 +285,25 @@ namespace engine {
 	}
 
 	rhi::PipelineLayout D3D12WrapperDevice::CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo& info) const {
-		std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs;
-		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
-		std::vector<D3D12_ROOT_PARAMETER1> parameters;
+		uint32_t bindingCount = 0;
 		for (uint32_t i = 0; i < info.descriptorSetLayoutCount; i++) {
+			for (auto& binding : static_cast<D3D12WrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i])->bindings) {
+				if (!binding.pStaticSampler) {
+					bindingCount++;
+				}
+			}
+		}
+
+		std::vector<D3D12WrapperPipelineLayout::Set> sets(info.descriptorSetLayoutCount);
+		std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs;
+		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges(bindingCount);
+		std::vector<D3D12_ROOT_PARAMETER1> parameters(bindingCount);
+
+		uint32_t bindingIndex = 0;
+
+		for (uint32_t i = 0; i < info.descriptorSetLayoutCount; i++) {
+			sets[i].baseIndex = bindingIndex;
+
 			auto descriptorSetLayout = static_cast<D3D12WrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i]);
 			for (auto& binding : descriptorSetLayout->bindings) {
 				if (binding.pStaticSampler) {
@@ -295,42 +328,23 @@ namespace engine {
 					samplerDesc.RegisterSpace = i;
 					samplerDesc.ShaderVisibility = D3D12EnumShaderVisibility(binding.shaderStage).Get();
 					staticSamplerDescs.emplace_back(samplerDesc);
-					/*switch (samplerInfo.borderColor) {
-					case rhi::BorderColor::TransparentBlack:
-						samplerDesc.BorderColor[0] = 0.0f;
-						samplerDesc.BorderColor[1] = 0.0f;
-						samplerDesc.BorderColor[2] = 0.0f;
-						samplerDesc.BorderColor[3] = 0.0f;
-						break;
-					case rhi::BorderColor::OpaqueBlack:
-						samplerDesc.BorderColor[0] = 0.0f;
-						samplerDesc.BorderColor[1] = 0.0f;
-						samplerDesc.BorderColor[2] = 0.0f;
-						samplerDesc.BorderColor[3] = 1.0f;
-						break;
-					case rhi::BorderColor::OpaqueWhite:
-						samplerDesc.BorderColor[0] = 1.0f;
-						samplerDesc.BorderColor[1] = 1.0f;
-						samplerDesc.BorderColor[2] = 1.0f;
-						samplerDesc.BorderColor[3] = 1.0f;
-						break;
-					}*/
 				}
 				else {
-					ranges.emplace_back(CD3DX12_DESCRIPTOR_RANGE1(
+					ranges[bindingIndex] = CD3DX12_DESCRIPTOR_RANGE1(
 						D3D12EnumDescriptorRangeType(binding.descriptorType).Get(),
 						1,
 						static_cast<UINT>(binding.binding),
-						static_cast<UINT>(i)));
+						static_cast<UINT>(i));
 					CD3DX12_ROOT_PARAMETER1 parameter;
-					parameter.InitAsDescriptorTable(1, &ranges.back(), D3D12EnumShaderVisibility(binding.shaderStage).Get());
-					parameters.emplace_back(parameter);
+					parameter.InitAsDescriptorTable(1, &ranges[bindingIndex], D3D12EnumShaderVisibility(binding.shaderStage).Get());
+					parameters[bindingIndex] = parameter;
+					bindingIndex++;
 				}
 			}
 		}
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(info.descriptorSetLayoutCount, parameters.data(), static_cast<UINT>(staticSamplerDescs.size()), staticSamplerDescs.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		rootSignatureDesc.Init_1_1(bindingCount, parameters.data(), static_cast<UINT>(staticSamplerDescs.size()), staticSamplerDescs.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ID3DBlob* rootSignatureBlob, * errorBlob;
 		if (FAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, &rootSignatureBlob, &errorBlob))) {
@@ -350,6 +364,7 @@ namespace engine {
 
 		auto pipelineLayoutInfo = new D3D12WrapperPipelineLayout();
 		pipelineLayoutInfo->rootSignature = rootSignature;
+		pipelineLayoutInfo->sets = sets;
 		return pipelineLayoutInfo;
 	}
 
@@ -492,7 +507,7 @@ namespace engine {
 		}
 		
 		pipelineDesc.rootSignature.value = static_cast<D3D12WrapperPipelineLayout*>(info.pipelineLayout)->rootSignature;
-
+		
 		D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
 		streamDesc.SizeInBytes = sizeof(pipelineDesc);
 		streamDesc.pPipelineStateSubobjectStream = &pipelineDesc;
@@ -522,6 +537,7 @@ namespace engine {
 
 		auto pipelineWrapper = new D3D12WrapperPipeline();
 		pipelineWrapper->pipeline = pipeline;
+		pipelineWrapper->rootSignature = static_cast<D3D12WrapperPipelineLayout*>(info.pipelineLayout)->rootSignature;
 		pipelineWrapper->scissors = scissors;
 		pipelineWrapper->viewports = viewports;
 		pipelineWrapper->primitiveTopology = info.inputAssemblyInfo.topology == rhi::PrimitiveTopology::PatchList ?
@@ -550,7 +566,7 @@ namespace engine {
 		if (FAILED(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&framebuffer->renderTargetHeap)))) {
 			throw std::runtime_error("Create descriptor heap failed");
 		}
-
+		
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(framebuffer->renderTargetHeap->GetCPUDescriptorHandleForHeapStart());
 		for (uint32_t i = 0; i < info.colorAttachmentCount; i++) {
 			auto& colorAttachment = info.pColorAttachments[i];
@@ -560,27 +576,29 @@ namespace engine {
 			rtvDesc.Format = D3D12EnumFormat(colorAttachment.format).Get();
 			rtvDesc.ViewDimension = D3D12EnumRTVDimension(colorAttachment.viewType).Get();
 
+			auto& subresourceRange = colorAttachment.subresourceRange;
+
 			switch (colorAttachment.viewType) {
 			case rhi::ImageViewType::Image1D:
-				rtvDesc.Texture1D.MipSlice = colorAttachment.baseMipLevel;
+				rtvDesc.Texture1D.MipSlice = subresourceRange.baseMipLevel;
 				break;
 			case rhi::ImageViewType::Image2D:
-				rtvDesc.Texture2D.MipSlice = colorAttachment.baseMipLevel;
+				rtvDesc.Texture2D.MipSlice = subresourceRange.baseMipLevel;
 				break;
 			case rhi::ImageViewType::Image3D:
-				rtvDesc.Texture3D.MipSlice = colorAttachment.baseMipLevel;
-				rtvDesc.Texture3D.FirstWSlice = colorAttachment.baseArrayLayer;
-				rtvDesc.Texture3D.WSize = colorAttachment.arrayLayerCount;
+				rtvDesc.Texture3D.MipSlice = subresourceRange.baseMipLevel;
+				rtvDesc.Texture3D.FirstWSlice = subresourceRange.baseArrayLayer;
+				rtvDesc.Texture3D.WSize = subresourceRange.arrayLayerCount;
 				break;
 			case rhi::ImageViewType::ImageArray1D:
-				rtvDesc.Texture1DArray.MipSlice = colorAttachment.baseMipLevel;
-				rtvDesc.Texture1DArray.FirstArraySlice = colorAttachment.baseArrayLayer;
-				rtvDesc.Texture1DArray.ArraySize = colorAttachment.arrayLayerCount;
+				rtvDesc.Texture1DArray.MipSlice = subresourceRange.baseMipLevel;
+				rtvDesc.Texture1DArray.FirstArraySlice = subresourceRange.baseArrayLayer;
+				rtvDesc.Texture1DArray.ArraySize = subresourceRange.arrayLayerCount;
 				break;
 			case rhi::ImageViewType::ImageArray2D:
-				rtvDesc.Texture2DArray.MipSlice = colorAttachment.baseMipLevel;
-				rtvDesc.Texture2DArray.FirstArraySlice = colorAttachment.baseArrayLayer;
-				rtvDesc.Texture2DArray.ArraySize = colorAttachment.arrayLayerCount;
+				rtvDesc.Texture2DArray.MipSlice = subresourceRange.baseMipLevel;
+				rtvDesc.Texture2DArray.FirstArraySlice = subresourceRange.baseArrayLayer;
+				rtvDesc.Texture2DArray.ArraySize = subresourceRange.arrayLayerCount;
 				break;
 			}
 
@@ -605,22 +623,24 @@ namespace engine {
 			dsvDesc.Format = D3D12EnumFormat(info.pDepthStencilAttachment->format).Get();
 			dsvDesc.ViewDimension = D3D12EnumDSVDimension(info.pDepthStencilAttachment->viewType).Get();
 			
+			auto& subresourceRange = info.pDepthStencilAttachment->subresourceRange;
+
 			switch (info.pDepthStencilAttachment->viewType) {
 			case rhi::ImageViewType::Image1D:
-				dsvDesc.Texture1D.MipSlice = info.pDepthStencilAttachment->baseMipLevel;
+				dsvDesc.Texture1D.MipSlice = subresourceRange.baseMipLevel;
 				break;
 			case rhi::ImageViewType::Image2D:
-				dsvDesc.Texture2D.MipSlice = info.pDepthStencilAttachment->baseMipLevel;
+				dsvDesc.Texture2D.MipSlice = subresourceRange.baseMipLevel;
 				break;
 			case rhi::ImageViewType::ImageArray1D:
-				dsvDesc.Texture1DArray.MipSlice = info.pDepthStencilAttachment->baseMipLevel;
-				dsvDesc.Texture1DArray.FirstArraySlice = info.pDepthStencilAttachment->baseArrayLayer;
-				dsvDesc.Texture1DArray.ArraySize = info.pDepthStencilAttachment->arrayLayerCount;
+				dsvDesc.Texture1DArray.MipSlice = subresourceRange.baseMipLevel;
+				dsvDesc.Texture1DArray.FirstArraySlice = subresourceRange.baseArrayLayer;
+				dsvDesc.Texture1DArray.ArraySize = subresourceRange.arrayLayerCount;
 				break;
 			case rhi::ImageViewType::ImageArray2D:
-				dsvDesc.Texture2DArray.MipSlice = info.pDepthStencilAttachment->baseMipLevel;
-				dsvDesc.Texture2DArray.FirstArraySlice = info.pDepthStencilAttachment->baseArrayLayer;
-				dsvDesc.Texture2DArray.ArraySize = info.pDepthStencilAttachment->arrayLayerCount;
+				dsvDesc.Texture2DArray.MipSlice = subresourceRange.baseMipLevel;
+				dsvDesc.Texture2DArray.FirstArraySlice = subresourceRange.baseArrayLayer;
+				dsvDesc.Texture2DArray.ArraySize = subresourceRange.arrayLayerCount;
 				break;
 			}
 
@@ -632,7 +652,7 @@ namespace engine {
 
 	rhi::Fence D3D12WrapperDevice::CreateFence(const rhi::FenceCreateInfo& info) const {
 		decltype(D3D12WrapperFence::fence) fence;
-		if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)))) {
+		if (FAILED(device->CreateFence(FALSE, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)))) {
 			throw std::runtime_error("Create fence failed");
 		}
 
@@ -645,7 +665,7 @@ namespace engine {
 	/* -------------------- D3D12WrapperQueue -------------------- */
 
 
-	void D3D12WrapperQueue::SubmitCommandBuffers(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
+	void D3D12WrapperQueue::Submit(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) {
 		std::vector<ID3D12CommandList*> submitCommandBuffers(commandBufferCount);
 		for (uint32_t i = 0; i < commandBufferCount; i++) {
 			submitCommandBuffers[i] = static_cast<D3D12WrapperCommandBuffer*>(commandBuffers[i])->commandList;
@@ -655,8 +675,29 @@ namespace engine {
 		queue->Signal(static_cast<D3D12WrapperFence*>(fence)->fence, TRUE);
 	}
 
-	void D3D12WrapperQueue::PresentSwapchain(rhi::Swapchain swapchain, uint32_t imageIndex) {
+	void D3D12WrapperQueue::Present(rhi::Swapchain swapchain, uint32_t imageIndex) {
 		static_cast<D3D12WrapperSwapchain*>(swapchain)->swapchain->Present(0, 0);
+
+		queue->Signal(fence, TRUE);
+
+		if (!fence->GetCompletedValue()) {
+			HANDLE eventHandle = CreateEventEx(nullptr, nullptr, FALSE, EVENT_ALL_ACCESS);
+			fence->SetEventOnCompletion(TRUE, eventHandle);
+
+			if (!eventHandle) {
+				throw std::runtime_error("Create event failed");
+			}
+
+			WaitForSingleObject(eventHandle, INFINITE);
+			CloseHandle(eventHandle);
+		}
+	}
+
+	uint32_t D3D12WrapperQueue::AcquireNextImage(rhi::Swapchain swapchain) {
+		auto swapchain_ = static_cast<D3D12WrapperSwapchain*>(swapchain);
+		auto result = swapchain_->swapchain->GetCurrentBackBufferIndex();
+		swapchain_->currentImageIndex = result;
+		return result;
 	}
 
 
@@ -671,21 +712,13 @@ namespace engine {
 		return images;
 	}
 
-	uint32_t D3D12WrapperSwapchain::AcquireNextImage(rhi::Fence fence) {
-		currentImageIndex = swapchain->GetCurrentBackBufferIndex();
-		queue->Signal(static_cast<D3D12WrapperFence*>(fence)->fence, TRUE);
-		return currentImageIndex;
-	}
-
 
 	/* -------------------- D3D12WrapperCommandPool -------------------- */
 
 
 	void D3D12WrapperCommandPool::Reset() {
 		for (auto& commandBuffer : commandBuffers) {
-			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->commandList->Release();
-			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->commandAllocator->Release();
-			delete commandBuffer;
+			static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->Destroy();
 		}
 		decltype(commandBuffers) temp;
 		temp.swap(commandBuffers);
@@ -694,10 +727,8 @@ namespace engine {
 	void D3D12WrapperCommandPool::Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) {
 		for (uint32_t i = 0; i < commandBufferCount; i++) {
 			auto commandBuffer = static_cast<D3D12WrapperCommandBuffer*>(pCommandBuffers[i]);
-			commandBuffer->commandList->Release();
-			commandBuffer->commandAllocator->Release();
 			commandBuffers[commandBuffer->poolIndex] = nullptr;
-			delete commandBuffer;
+			commandBuffer->Destroy();
 		}
 	}
 
@@ -716,9 +747,29 @@ namespace engine {
 
 			commandList->Close();
 
+			D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
+			descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			descriptorHeapDesc.NumDescriptors = D3D12_RESERVED_CBV_SRV_UAV_HEAP_SIZE;
+			descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+			ID3D12DescriptorHeap* cbvSrvUavHeap;
+			if (FAILED(device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&cbvSrvUavHeap)))) {
+				throw std::runtime_error("Create descriptor heap failed");
+			}
+
+			descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+			descriptorHeapDesc.NumDescriptors = D3D12_RESERVED_SAMPLER_HEAP_SIZE;
+
+			ID3D12DescriptorHeap* samplerHeap;
+			if (FAILED(device->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&samplerHeap)))) {
+				throw std::runtime_error("Create descriptor heap failed");
+			}
+
 			auto cmdWrapper = new D3D12WrapperCommandBuffer();
+			cmdWrapper->device = device;
 			cmdWrapper->commandAllocator = cmdAllocator;
 			cmdWrapper->commandList = commandList;
+			cmdWrapper->descriptorHeaps = { cbvSrvUavHeap, samplerHeap };
 			cmdWrappers[i] = cmdWrapper;
 
 			bool found = false;
@@ -745,10 +796,17 @@ namespace engine {
 
 	void D3D12WrapperCommandBuffer::Reset() {
 		commandAllocator->Reset();
+		descriptorHeapOffset = { 0, 0 };
 	}
 
 	void D3D12WrapperCommandBuffer::Begin(const rhi::CommandBufferBeginInfo& info) {
 		commandList->Reset(commandAllocator, nullptr);
+
+		std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
+			this->descriptorHeaps.cbvSrvUav,
+			this->descriptorHeaps.sampler
+		};
+		commandList->SetDescriptorHeaps(2, descriptorHeaps.data());
 	}
 
 	void D3D12WrapperCommandBuffer::End() {
@@ -851,7 +909,7 @@ namespace engine {
 		temp.swap(renderPassResourceBarriers);
 	}
 
-	void D3D12WrapperCommandBuffer::BindPipeline(const rhi::Pipeline& pipeline) {
+	void D3D12WrapperCommandBuffer::BindPipeline(rhi::Pipeline& pipeline) {
 		this->pipeline = static_cast<D3D12WrapperPipeline*>(pipeline);
 		auto pipelineState = static_cast<D3D12WrapperPipeline*>(pipeline);
 		commandList->SetPipelineState(pipelineState->pipeline);
@@ -859,6 +917,7 @@ namespace engine {
 		commandList->RSSetViewports(static_cast<UINT>(pipelineState->viewports.size()), pipelineState->viewports.data());
 		commandList->OMSetDepthBounds(pipelineState->depthStencilInfo.minDepthBounds, pipelineState->depthStencilInfo.maxDepthBounds);
 		commandList->IASetPrimitiveTopology(pipelineState->primitiveTopology);
+		commandList->SetGraphicsRootSignature(pipelineState->rootSignature);
 	}
 
 	void D3D12WrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) {
@@ -866,7 +925,7 @@ namespace engine {
 		for (uint32_t i = 0; i < bindingCount; i++) {
 			auto vertexBuffer = static_cast<D3D12WrapperBuffer*>(pBuffers[i]);
 			vertexBindingInfo.vertexBufferViews[i].BufferLocation = vertexBuffer->resource->GetGPUVirtualAddress();
-			vertexBindingInfo.vertexBufferViews[i].SizeInBytes = vertexBuffer->bufferSize;
+			vertexBindingInfo.vertexBufferViews[i].SizeInBytes = static_cast<UINT>(vertexBuffer->resource->GetDesc().Width);
 		}
 		vertexBindingInfo.firstBinding = firstBinding;
 		vertexBindingInfo.bindingCount = bindingCount;
@@ -877,9 +936,47 @@ namespace engine {
 		auto indexBuffer = static_cast<D3D12WrapperBuffer*>(buffer);
 		D3D12_INDEX_BUFFER_VIEW indexBufferView = {};
 		indexBufferView.BufferLocation = indexBuffer->resource->GetGPUVirtualAddress();
-		indexBufferView.SizeInBytes = indexBuffer->bufferSize;
+		indexBufferView.SizeInBytes = static_cast<UINT>(indexBuffer->resource->GetDesc().Width);
 		indexBufferView.Format = D3D12EnumIndexType(indexType).Get();
 		commandList->IASetIndexBuffer(&indexBufferView);
+	}
+
+	void D3D12WrapperCommandBuffer::BindDescriptorSets(rhi::PipelineType pipelineType, rhi::PipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const rhi::DescriptorSet* pDescriptorSets) {
+		for (uint32_t i = 0; i < descriptorSetCount; i++) {
+			auto descriptorSet = static_cast<D3D12WrapperDescriptorSet*>(pDescriptorSets[i]);
+			for (uint32_t j = 0; j < descriptorSet->bindings.size(); j++) {
+				auto& binding = descriptorSet->bindings[j];
+				D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle{ 0 };
+
+				if (binding.heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) {
+					auto copySrc = binding.cpuHandle;
+					auto copyDst = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeaps.cbvSrvUav->GetCPUDescriptorHandleForHeapStart(),
+						                                         descriptorHeapOffset.cbvSrvUav,
+						                                         device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+					device->CopyDescriptors(1, &copyDst, nullptr, 1, &copySrc, nullptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+					gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(descriptorHeaps.cbvSrvUav->GetGPUDescriptorHandleForHeapStart(),
+						                                      descriptorHeapOffset.cbvSrvUav,
+						                                      device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+					descriptorHeapOffset.cbvSrvUav++;
+				}
+				else if (binding.heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) {
+					auto copySrc = binding.cpuHandle;
+					auto copyDst = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeaps.sampler->GetCPUDescriptorHandleForHeapStart(),
+						                                         descriptorHeapOffset.sampler,
+						                                         device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER));
+					device->CopyDescriptors(1, &copyDst, nullptr, 1, &copySrc, nullptr, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+					gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(descriptorHeaps.sampler->GetGPUDescriptorHandleForHeapStart(),
+						                                      descriptorHeapOffset.sampler,
+						                                      device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER));
+					descriptorHeapOffset.sampler++;
+				}
+
+				auto pipelineLayout = static_cast<D3D12WrapperPipelineLayout*>(layout);
+				commandList->SetGraphicsRootDescriptorTable(pipelineLayout->sets[firstSet + i].baseIndex + binding.binding, gpuHandle);
+			}
+		}
 	}
 
 	void D3D12WrapperCommandBuffer::PrepareRenderingInfo() {
@@ -904,6 +1001,65 @@ namespace engine {
 	void D3D12WrapperCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
 		PrepareRenderingInfo();
 		commandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+	}
+
+	void D3D12WrapperCommandBuffer::ResourceBarrier(const rhi::ImageMemoryBarrierInfo& info) {
+		auto imageDesc = static_cast<D3D12WrapperImage*>(info.image)->resource->GetDesc();
+
+		std::vector<D3D12_RESOURCE_BARRIER> barriers;
+
+		if (info.subresourceRange.baseMipLevel == 0 &&
+			info.subresourceRange.baseArrayLayer == 0 &&
+			info.subresourceRange.mipLevelCount >= imageDesc.MipLevels &&
+			info.subresourceRange.arrayLayerCount >= imageDesc.DepthOrArraySize) {
+			barriers.emplace_back(CD3DX12_RESOURCE_BARRIER::Transition(static_cast<D3D12WrapperImage*>(info.image)->resource,
+				                                                       D3D12EnumResourceStates(info.oldLayout).Get(),
+				                                                       D3D12EnumResourceStates(info.newLayout).Get(),
+				                                                       D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES));
+		}
+		else {
+			auto beginSubresource = D3D12CalcSubresource(info.subresourceRange.baseMipLevel,
+				                                         info.subresourceRange.baseArrayLayer,
+				                                         0,
+				                                         imageDesc.MipLevels,
+				                                         imageDesc.DepthOrArraySize);
+
+			auto endSubresource = D3D12CalcSubresource(info.subresourceRange.mipLevelCount - 1,
+				                                       info.subresourceRange.arrayLayerCount - 1,
+				                                       0,
+				                                       imageDesc.MipLevels,
+				                                       imageDesc.DepthOrArraySize);
+
+			for (auto i = beginSubresource; i <= endSubresource; i++) {
+				barriers.emplace_back(CD3DX12_RESOURCE_BARRIER::Transition(static_cast<D3D12WrapperImage*>(info.image)->resource,
+					                                                       D3D12EnumResourceStates(info.oldLayout).Get(),
+					                                                       D3D12EnumResourceStates(info.newLayout).Get(),
+					                                                       i));
+			}
+		}
+
+		commandList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+	}
+
+	void D3D12WrapperCommandBuffer::CopyBufferToImage(const rhi::BufferCopyRegion& bufferRegion, const rhi::ImageCopyRegion& imageRegion) {
+		auto imageResource = static_cast<D3D12WrapperImage*>(imageRegion.image)->resource;
+		auto imageDesc = imageResource->GetDesc();
+		auto subresource = D3D12CalcSubresource(imageRegion.subresourceIndex.mipLevel,
+			                                    imageRegion.subresourceIndex.arrayLayer,
+			                                    0,
+			                                    imageDesc.MipLevels,
+			                                    imageDesc.DepthOrArraySize);
+
+		imageDesc.Width = imageRegion.extent.width;
+		imageDesc.Height = imageRegion.extent.height;
+		imageDesc.DepthOrArraySize = imageRegion.extent.depth;
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
+		device->GetCopyableFootprints(&imageDesc, subresource, 1, bufferRegion.offset, &footprint, nullptr, nullptr, nullptr);
+
+		CD3DX12_TEXTURE_COPY_LOCATION dst(imageResource, subresource);
+		CD3DX12_TEXTURE_COPY_LOCATION src(static_cast<D3D12WrapperBuffer*>(bufferRegion.buffer)->resource, footprint);
+		commandList->CopyTextureRegion(&dst, imageRegion.offset.x, imageRegion.offset.y, imageRegion.offset.z, &src, nullptr);
 	}
 
 
@@ -943,6 +1099,36 @@ namespace engine {
 	}
 
 
+	/* -------------------- D3D12WrapperImage -------------------- */
+
+
+	rhi::Extent3D D3D12WrapperImage::GetExtent() const {
+		auto desc = resource->GetDesc();
+		return rhi::Extent3D()
+			.SetWidth(static_cast<uint32_t>(desc.Width))
+			.SetHeight(static_cast<uint32_t>(desc.Height))
+			.SetDepth(static_cast<uint32_t>(desc.DepthOrArraySize));
+	}
+
+	rhi::ImageCopyableFootprint D3D12WrapperImage::GetCopyableFootprint() const {
+		auto desc = resource->GetDesc();
+		auto subresource = static_cast<UINT>(desc.MipLevels) * desc.DepthOrArraySize;
+
+		rhi::ImageCopyableFootprint result;
+
+		ID3D12Device* device = nullptr;
+		resource->GetDevice(IID_PPV_ARGS(&device));
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
+		device->GetCopyableFootprints(&desc, 0, subresource, 0, &footprint, nullptr, nullptr, &result.size);
+		device->Release();
+
+		result.offset = footprint.Offset;
+		result.rowPitch = footprint.Footprint.RowPitch;
+
+		return result;
+	}
+
+
 	/* -------------------- D3D12WrapperDescriptorPool -------------------- */
 
 
@@ -951,15 +1137,21 @@ namespace engine {
 		{ decltype(samplerHeapSpareSpace) temp; temp.swap(samplerHeapSpareSpace); }
 
 		for (uint32_t i = 0; i < cbvSrvUavHeapSize; i++) {
-			cbvSrvUavHeapSpareSpace.emplace(i);
+			cbvSrvUavHeapSpareSpace.emplace(CD3DX12_CPU_DESCRIPTOR_HANDLE(
+				cbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart(),
+				i,
+				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 		}
 
 		for (uint32_t i = 0; i < samplerHeapSize; i++) {
-			samplerHeapSpareSpace.emplace(i);
+			samplerHeapSpareSpace.emplace(CD3DX12_CPU_DESCRIPTOR_HANDLE(
+				samplerHeap->GetCPUDescriptorHandleForHeapStart(),
+				i,
+				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)));
 		}
 
 		for (auto& descriptorSet : descriptorSets) {
-			delete descriptorSet;
+			static_cast<D3D12WrapperDescriptorSet*>(descriptorSet)->Destroy();
 			descriptorSet = nullptr;
 		}
 	}
@@ -968,15 +1160,17 @@ namespace engine {
 		for (uint32_t i = 0; i < descriptorCount; i++) {
 			auto descriptorSet = static_cast<D3D12WrapperDescriptorSet*>(pDescriptorSets[i]);
 
-			for (auto& index : descriptorSet->cbvSrvUavDescriptorIndices) {
-				cbvSrvUavHeapSpareSpace.emplace(index);
-			}
-			for (auto& index : descriptorSet->samplerDescriptorIndices) {
-				samplerHeapSpareSpace.emplace(index);
+			for (auto& binding : descriptorSet->bindings) {
+				if (binding.heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) {
+					cbvSrvUavHeapSpareSpace.emplace(binding.cpuHandle);
+				}
+				else if (binding.heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) {
+					samplerHeapSpareSpace.emplace(binding.cpuHandle);
+				}
 			}
 
 			descriptorSets[descriptorSet->poolIndex] = nullptr;
-			delete descriptorSet;
+			static_cast<D3D12WrapperDescriptorSet*>(descriptorSet)->Destroy();
 		}
 	}
 
@@ -984,21 +1178,28 @@ namespace engine {
 		std::vector<rhi::DescriptorSet> descriptorSetWrappers(info.descriptorSetCount);
 		for (uint32_t i = 0; i < info.descriptorSetCount; i++) {
 			auto descriptorSetWrapper = new D3D12WrapperDescriptorSet();
+			descriptorSetWrapper->device = device;
 			descriptorSetWrappers[i] = descriptorSetWrapper;
 
 			auto descriptorSetLayout = static_cast<D3D12WrapperDescriptorSetLayout*>(info.pDescriptorSetLayouts[i]);
 
 			for (uint32_t j = 0; j < descriptorSetLayout->bindings.size(); j++) {
-				if (descriptorSetLayout->bindings[j].descriptorType == rhi::DescriptorType::Sampler) {
-					auto index = samplerHeapSpareSpace.front();
-					samplerHeapSpareSpace.pop();
-					descriptorSetWrapper->samplerDescriptorIndices.emplace_back(index);
-				}
-				else {
-					auto index = cbvSrvUavHeapSpareSpace.front();
+				if (descriptorSetLayout->bindings[j].pStaticSampler) continue;
+
+				D3D12WrapperDescriptorSet::Binding binding;
+				binding.binding = descriptorSetLayout->bindings[j].binding;
+				binding.heapType = D3D12EnumDescriptorHeapType(descriptorSetLayout->bindings[j].descriptorType).Get();
+
+				if (binding.heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) {
+					binding.cpuHandle = cbvSrvUavHeapSpareSpace.front();
 					cbvSrvUavHeapSpareSpace.pop();
-					descriptorSetWrapper->cbvSrvUavDescriptorIndices.emplace_back(index);
 				}
+				else if (binding.heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) {
+					binding.cpuHandle = samplerHeapSpareSpace.front();
+					samplerHeapSpareSpace.pop();
+				}
+
+				descriptorSetWrapper->bindings.emplace_back(binding);
 			}
 			
 			bool found = false;
@@ -1021,12 +1222,120 @@ namespace engine {
 	/* -------------------- D3D12WrapperDescriptorSet -------------------- */
 
 
-	void D3D12WrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) {
-
+	D3D12_CPU_DESCRIPTOR_HANDLE D3D12WrapperDescriptorSet::GetDstBindingHandle(uint32_t dstBinding) const {
+		D3D12_CPU_DESCRIPTOR_HANDLE handle{ 0 };
+		for (auto& binding : bindings) {
+			if (dstBinding == binding.binding) {
+				handle = binding.cpuHandle;
+				break;
+			}
+		}
+		if (!handle.ptr) {
+			throw std::runtime_error("Cannot find destination descriptor set");
+		}
+		return handle;
 	}
 
-	void D3D12WrapperDescriptorSet::Write(uint32_t dstSet, uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) {
+	void D3D12WrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::Buffer buffer) {
+		auto& resource = static_cast<D3D12WrapperBuffer*>(buffer)->resource;
+		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+		cbvDesc.BufferLocation = resource->GetGPUVirtualAddress();
+		cbvDesc.SizeInBytes = static_cast<UINT>(resource->GetDesc().Width);
 
+		device->CreateConstantBufferView(&cbvDesc, GetDstBindingHandle(dstBinding));
+	}
+
+	void D3D12WrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageViewInfo imageViewInfo) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = D3D12EnumFormat(imageViewInfo.format).Get();
+		srvDesc.ViewDimension = D3D12EnumSRVDimension(imageViewInfo.viewType).Get();
+		srvDesc.Shader4ComponentMapping = D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(
+			D3D12EnumShaderComponentRMapping(imageViewInfo.componentMapping.r).Get(),
+			D3D12EnumShaderComponentGMapping(imageViewInfo.componentMapping.g).Get(),
+			D3D12EnumShaderComponentBMapping(imageViewInfo.componentMapping.b).Get(),
+			D3D12EnumShaderComponentAMapping(imageViewInfo.componentMapping.a).Get());
+		
+		auto& subresourceRange = imageViewInfo.subresourceRange;
+
+		switch (imageViewInfo.viewType) {
+		case rhi::ImageViewType::Image1D:
+			srvDesc.Texture1D.MostDetailedMip = subresourceRange.baseMipLevel;
+			srvDesc.Texture1D.MipLevels = subresourceRange.mipLevelCount;
+			break;
+		case rhi::ImageViewType::Image2D:
+			srvDesc.Texture2D.MostDetailedMip = subresourceRange.baseMipLevel;
+			srvDesc.Texture2D.MipLevels = subresourceRange.mipLevelCount;
+			break;
+		case rhi::ImageViewType::Image3D:
+			srvDesc.Texture3D.MostDetailedMip = subresourceRange.baseMipLevel;
+			srvDesc.Texture3D.MipLevels = subresourceRange.mipLevelCount;
+			break;
+		case rhi::ImageViewType::ImageCube:
+			srvDesc.TextureCube.MostDetailedMip = subresourceRange.baseMipLevel;
+			srvDesc.TextureCube.MipLevels = subresourceRange.mipLevelCount;
+			break;
+		case rhi::ImageViewType::ImageArray1D:
+			srvDesc.Texture1DArray.FirstArraySlice = subresourceRange.baseArrayLayer;
+			srvDesc.Texture1DArray.ArraySize = subresourceRange.arrayLayerCount;
+			srvDesc.Texture1DArray.MostDetailedMip = subresourceRange.baseMipLevel;
+			srvDesc.Texture1DArray.MipLevels = subresourceRange.mipLevelCount;
+			break;
+		case rhi::ImageViewType::ImageArray2D:
+			srvDesc.Texture2DArray.FirstArraySlice = subresourceRange.baseArrayLayer;
+			srvDesc.Texture2DArray.ArraySize = subresourceRange.arrayLayerCount;
+			srvDesc.Texture2DArray.MostDetailedMip = subresourceRange.baseMipLevel;
+			srvDesc.Texture2DArray.MipLevels = subresourceRange.mipLevelCount;
+			break;
+		case rhi::ImageViewType::ImageArrayCube:
+			srvDesc.TextureCubeArray.First2DArrayFace = subresourceRange.baseArrayLayer;
+			srvDesc.TextureCubeArray.NumCubes = subresourceRange.baseArrayLayer;
+			srvDesc.TextureCubeArray.MostDetailedMip = subresourceRange.baseMipLevel;
+			srvDesc.TextureCubeArray.MipLevels = subresourceRange.mipLevelCount;
+			break;
+		}
+
+		device->CreateShaderResourceView(static_cast<D3D12WrapperImage*>(imageViewInfo.image)->resource, &srvDesc, GetDstBindingHandle(dstBinding));
+	}
+
+	void D3D12WrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::Sampler sampler) {
+		auto& samplerInfo = static_cast<D3D12WrapperSampler*>(sampler)->samplerInfo;
+		D3D12_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D12EnumFilter(
+			samplerInfo.minFilter,
+			samplerInfo.magFilter,
+			samplerInfo.mipFilter,
+			samplerInfo.compareEnable,
+			samplerInfo.anisotropyEnable).Get();
+		samplerDesc.AddressU = D3D12EnumTextureAddressMode(samplerInfo.addressModeU).Get();
+		samplerDesc.AddressV = D3D12EnumTextureAddressMode(samplerInfo.addressModeV).Get();
+		samplerDesc.AddressW = D3D12EnumTextureAddressMode(samplerInfo.addressModeW).Get();
+		samplerDesc.MipLODBias = samplerInfo.mipLodBias;
+		samplerDesc.MinLOD = samplerInfo.minLod;
+		samplerDesc.MaxLOD = samplerInfo.maxLod;
+		samplerDesc.MaxAnisotropy = static_cast<UINT>(samplerInfo.maxAnisotropy);
+		samplerDesc.ComparisonFunc = D3D12EnumComparisonFunc(samplerInfo.compareOp).Get();
+		switch (samplerInfo.borderColor) {
+		case rhi::BorderColor::TransparentBlack:
+			samplerDesc.BorderColor[0] = 0.0f;
+			samplerDesc.BorderColor[1] = 0.0f;
+			samplerDesc.BorderColor[2] = 0.0f;
+			samplerDesc.BorderColor[3] = 0.0f;
+			break;
+		case rhi::BorderColor::OpaqueBlack:
+			samplerDesc.BorderColor[0] = 0.0f;
+			samplerDesc.BorderColor[1] = 0.0f;
+			samplerDesc.BorderColor[2] = 0.0f;
+			samplerDesc.BorderColor[3] = 1.0f;
+			break;
+		case rhi::BorderColor::OpaqueWhite:
+			samplerDesc.BorderColor[0] = 1.0f;
+			samplerDesc.BorderColor[1] = 1.0f;
+			samplerDesc.BorderColor[2] = 1.0f;
+			samplerDesc.BorderColor[3] = 1.0f;
+			break;
+		}
+
+		device->CreateSampler(&samplerDesc, GetDstBindingHandle(dstBinding));
 	}
 
 
@@ -1070,14 +1379,18 @@ namespace engine {
 	void D3D12WrapperDevice::Destroy() {
 		for (auto& queue : queues) {
 			static_cast<D3D12WrapperQueue*>(queue)->queue->Release();
+			static_cast<D3D12WrapperQueue*>(queue)->fence->Release();
 			delete queue;
 		}
+		
 		device->Release();
 		delete this;
 	}
 
 	void D3D12WrapperSwapchain::Destroy() {
-		for (auto& image : images) delete image;
+		for (auto& image : images) {
+			image->Destroy();
+		}
 		swapchain->Release();
 		delete this;
 	}
@@ -1085,12 +1398,17 @@ namespace engine {
 	void D3D12WrapperCommandPool::Destroy() {
 		for (auto& commandBuffer : commandBuffers) {
 			if (commandBuffer) {
-				auto cmdBuffer = static_cast<D3D12WrapperCommandBuffer*>(commandBuffer);
-				cmdBuffer->commandAllocator->Release();
-				cmdBuffer->commandList->Release();
-				delete commandBuffer;
+				static_cast<D3D12WrapperCommandBuffer*>(commandBuffer)->Destroy();
 			}
 		}
+		delete this;
+	}
+
+	void D3D12WrapperCommandBuffer::Destroy() {
+		commandAllocator->Release();
+		commandList->Release();
+		descriptorHeaps.cbvSrvUav->Release();
+		descriptorHeaps.sampler->Release();
 		delete this;
 	}
 
@@ -1114,6 +1432,10 @@ namespace engine {
 		for (auto& descriptorSet : descriptorSets) {
 			if (descriptorSet) delete descriptorSet;
 		}
+		delete this;
+	}
+
+	void D3D12WrapperDescriptorSet::Destroy() {
 		delete this;
 	}
 

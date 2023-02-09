@@ -15,53 +15,53 @@ namespace engine {
 
 	struct ShaderCompileArgument {
 		// compilation config
-		static constexpr const wchar_t* backward_compatibility_mode = L"-Gec";
-		static constexpr const wchar_t* strict_mode = L"-Ges";
-		static constexpr const wchar_t* avoid_flow_control_constructs = L"-Gfa";
-		static constexpr const wchar_t* prefer_flow_control_constructs = L"-Gfp";
-		static constexpr const wchar_t* force_IEEE_strictness = L"-Gis";
-		static constexpr const wchar_t* enable_16_bit_types = L"-enable-16bit-types";
-		static constexpr const wchar_t* pack_optimized = L"-pack-optimized";
-		static constexpr const wchar_t* pack_prefix_stable = L"-pack-prefix-stable";
-		static constexpr const wchar_t* recompile = L"-recompile";
-		static constexpr const wchar_t* matrix_column_major = L"-Zpc";
-		static constexpr const wchar_t* matrix_row_major = L"-Zpr";
+		static constexpr auto backward_compatibility_mode = L"-Gec";
+		static constexpr auto strict_mode = L"-Ges";
+		static constexpr auto avoid_flow_control_constructs = L"-Gfa";
+		static constexpr auto prefer_flow_control_constructs = L"-Gfp";
+		static constexpr auto force_IEEE_strictness = L"-Gis";
+		static constexpr auto enable_16_bit_types = L"-enable-16bit-types";
+		static constexpr auto pack_optimized = L"-pack-optimized";
+		static constexpr auto pack_prefix_stable = L"-pack-prefix-stable";
+		static constexpr auto recompile = L"-recompile";
+		static constexpr auto matrix_column_major = L"-Zpc";
+		static constexpr auto matrix_row_major = L"-Zpr";
 
 		// debug config
-		static constexpr const wchar_t* no_warnings = L"-no-warnings";
-		static constexpr const wchar_t* disable_validation = L"-Vd";
-		static constexpr const wchar_t* treat_warnings_as_errors = L"-WX";
-		static constexpr const wchar_t* enable_debug_info = L"-Zi";
-		static constexpr const wchar_t* embed_debug = L"-Qembed_debug";
+		static constexpr auto no_warnings = L"-no-warnings";
+		static constexpr auto disable_validation = L"-Vd";
+		static constexpr auto treat_warnings_as_errors = L"-WX";
+		static constexpr auto enable_debug_info = L"-Zi";
+		static constexpr auto embed_debug = L"-Qembed_debug";
 
 		// optimization config
-		static constexpr const wchar_t* disable_optimizations = L"-Od";
-		static constexpr const wchar_t* optimization_level_0 = L"-O0";
-		static constexpr const wchar_t* optimization_level_1 = L"-O1";
-		static constexpr const wchar_t* optimization_level_2 = L"-O2";
-		static constexpr const wchar_t* optimization_level_3 = L"-O3";
+		static constexpr auto disable_optimizations = L"-Od";
+		static constexpr auto optimization_level_0 = L"-O0";
+		static constexpr auto optimization_level_1 = L"-O1";
+		static constexpr auto optimization_level_2 = L"-O2";
+		static constexpr auto optimization_level_3 = L"-O3";
 
 		// spir-v code gen
-		static constexpr const wchar_t* spirv = L"-spirv";
-		static constexpr const wchar_t* spirv_debug = L"-fspv-debug=vulkan-with-source";
-		static constexpr const wchar_t* spirv_flatten_resource_arrays = L"-fspv-flatten-resource-arrays";
-		static constexpr const wchar_t* spirv_reduce_load_size = L"-fspv-reduce-load-size";
-		static constexpr const wchar_t* spirv_reflect = L"-fspv-reflect";
-		static constexpr const wchar_t* spirv_auto_shift_bindings = L"-fvk-auto-shift-bindings";
-		static constexpr const wchar_t* spirv_support_nonzero_base_instance = L"-fvk-support-nonzero-base-instance";
-		static constexpr const wchar_t* spirv_invert_y = L"-fvk-invert-y";
-		static constexpr const wchar_t* spirv_use_dx_position_w = L"-fvk-use-dx-position-w";
-		static constexpr const wchar_t* spirv_use_dx_layout = L"-fvk-use-dx-layout";
-		static constexpr const wchar_t* spirv_use_gl_layout = L"-fvk-use-gl-layout";
-		static constexpr const wchar_t* spirv_use_scalar_layout = L"-fvk-use-scalar-layout";
+		static constexpr auto spirv = L"-spirv";
+		static constexpr auto spirv_debug = L"-fspv-debug=vulkan-with-source";
+		static constexpr auto spirv_flatten_resource_arrays = L"-fspv-flatten-resource-arrays";
+		static constexpr auto spirv_reduce_load_size = L"-fspv-reduce-load-size";
+		static constexpr auto spirv_reflect = L"-fspv-reflect";
+		static constexpr auto spirv_auto_shift_bindings = L"-fvk-auto-shift-bindings";
+		static constexpr auto spirv_support_nonzero_base_instance = L"-fvk-support-nonzero-base-instance";
+		static constexpr auto spirv_invert_y = L"-fvk-invert-y";
+		static constexpr auto spirv_use_dx_position_w = L"-fvk-use-dx-position-w";
+		static constexpr auto spirv_use_dx_layout = L"-fvk-use-dx-layout";
+		static constexpr auto spirv_use_gl_layout = L"-fvk-use-gl-layout";
+		static constexpr auto spirv_use_scalar_layout = L"-fvk-use-scalar-layout";
 
 		// compile profile
-		static constexpr const wchar_t* vs_profile = L"vs_6_6";
-		static constexpr const wchar_t* hs_profile = L"hs_6_6";
-		static constexpr const wchar_t* ds_profile = L"ds_6_6";
-		static constexpr const wchar_t* gs_profile = L"gs_6_6";
-		static constexpr const wchar_t* ps_profile = L"ps_6_6";
-		static constexpr const wchar_t* cs_profile = L"cs_6_6";
+		static constexpr auto vs_profile = L"vs_6_6";
+		static constexpr auto hs_profile = L"hs_6_6";
+		static constexpr auto ds_profile = L"ds_6_6";
+		static constexpr auto gs_profile = L"gs_6_6";
+		static constexpr auto ps_profile = L"ps_6_6";
+		static constexpr auto cs_profile = L"cs_6_6";
 	};
 
 	class ShaderCompiler {

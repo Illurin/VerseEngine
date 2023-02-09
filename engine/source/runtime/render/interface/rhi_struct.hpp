@@ -203,7 +203,6 @@ namespace engine {
 			ImageCreateInfo& SetImageType(ImageType imageType) { this->imageType = imageType; return *this; }
 			ImageCreateInfo& SetExtent(Extent3D extent) { this->extent = extent; return *this; }
 			ImageCreateInfo& SetUsage(ImageUsage usage) { this->usage = usage; return *this; }
-			ImageCreateInfo& SetInitialLayout(ImageLayout initialLayout) { this->initialLayout = initialLayout; return *this; }
 			ImageCreateInfo& SetMipLevels(uint32_t mipLevels) { this->mipLevels = mipLevels; return *this; }
 			ImageCreateInfo& SetArrayLayers(uint32_t arrayLayers) { this->arrayLayers = arrayLayers; return *this; }
 			ImageCreateInfo& SetSampleCount(SampleCount sampleCount) { this->sampleCount = sampleCount; return *this; }
@@ -212,10 +211,43 @@ namespace engine {
 			ImageType imageType;
 			Extent3D extent;
 			ImageUsage usage;
-			ImageLayout initialLayout;
 			uint32_t mipLevels;
 			uint32_t arrayLayers;
 			SampleCount sampleCount;
+		};
+
+		struct ImageCopyableFootprint {
+			ImageCopyableFootprint& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
+			ImageCopyableFootprint& SetSize(uint64_t size) { this->size = size; return *this; }
+			ImageCopyableFootprint& SetRowPitch(uint64_t rowPitch) { this->rowPitch = rowPitch; return *this; }
+
+			uint64_t offset;
+			uint64_t size;
+			uint64_t rowPitch;
+		};
+
+		struct ImageSubresourceRange {
+			ImageSubresourceRange& SetImageAspect(ImageAspect imageAspect) { this->imageAspect = imageAspect; return *this; }
+			ImageSubresourceRange& SetBaseMipLevel(uint32_t baseMipLevel) { this->baseMipLevel = baseMipLevel; return *this; }
+			ImageSubresourceRange& SetMipLevelCount(uint32_t mipLevelCount) { this->mipLevelCount = mipLevelCount; return *this; }
+			ImageSubresourceRange& SetBaseArrayLayer(uint32_t baseArrayLayer) { this->baseArrayLayer = baseArrayLayer; return *this; }
+			ImageSubresourceRange& SetArrayLayerCount(uint32_t arrayLayerCount) { this->arrayLayerCount = arrayLayerCount; return *this; }
+
+			ImageAspect imageAspect;
+			uint32_t baseMipLevel;
+			uint32_t mipLevelCount;
+			uint32_t baseArrayLayer;
+			uint32_t arrayLayerCount;
+		};
+
+		struct ImageSubresource {
+			ImageSubresource& SetImageAspect(ImageAspect imageAspect) { this->imageAspect = imageAspect; return *this; }
+			ImageSubresource& SetMipLevel(uint32_t mipLevel) { this->mipLevel = mipLevel; return *this; }
+			ImageSubresource& SetArrayLayer(uint32_t arrayLayer) { this->arrayLayer = arrayLayer; return *this; }
+
+			ImageAspect imageAspect;
+			uint32_t mipLevel;
+			uint32_t arrayLayer;
 		};
 
 		struct BufferViewInfo {
@@ -235,19 +267,13 @@ namespace engine {
 			ImageViewInfo& SetViewType(ImageViewType viewType) { this->viewType = viewType; return *this; }
 			ImageViewInfo& SetFormat(Format format) { this->format = format; return *this; }
 			ImageViewInfo& SetComponentMapping(ComponentMapping componentMapping) { this->componentMapping = componentMapping; return *this; }
-			ImageViewInfo& SetBaseMipLevel(uint32_t baseMipLevel) { this->baseMipLevel = baseMipLevel; return *this; }
-			ImageViewInfo& SetMipLevelCount(uint32_t mipLevelCount) { this->mipLevelCount = mipLevelCount; return *this; }
-			ImageViewInfo& SetBaseArrayLayer(uint32_t baseArrayLayer) { this->baseArrayLayer = baseArrayLayer; return *this; }
-			ImageViewInfo& SetArrayLayerCount(uint32_t arrayLayerCount) { this->arrayLayerCount = arrayLayerCount; return *this; }
+			ImageViewInfo& SetSubresourceRange(ImageSubresourceRange subresourceRange) { this->subresourceRange = subresourceRange; return *this; }
 
 			Image image;
 			ImageViewType viewType;
 			Format format;
 			ComponentMapping componentMapping;
-			uint32_t baseMipLevel;
-			uint32_t mipLevelCount;
-			uint32_t baseArrayLayer;
-			uint32_t arrayLayerCount;
+			ImageSubresourceRange subresourceRange;
 		};
 
 		struct SamplerCreateInfo {
@@ -310,11 +336,11 @@ namespace engine {
 			DescriptorSetLayout* pDescriptorSetLayouts;
 		};
 
-		struct DescriptorSetLayoutBinding {
-			DescriptorSetLayoutBinding& SetBinding(uint32_t binding) { this->binding = binding; return *this; }
-			DescriptorSetLayoutBinding& SetDescriptorType(DescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
-			DescriptorSetLayoutBinding& SetPStaticSampler(Sampler* pStaticSampler) { this->pStaticSampler = pStaticSampler; return *this; }
-			DescriptorSetLayoutBinding& SetShaderStage(ShaderStage shaderStage) { this->shaderStage = shaderStage; return *this; }
+		struct DescriptorSetLayoutBindingInfo {
+			DescriptorSetLayoutBindingInfo& SetBinding(uint32_t binding) { this->binding = binding; return *this; }
+			DescriptorSetLayoutBindingInfo& SetDescriptorType(DescriptorType descriptorType) { this->descriptorType = descriptorType; return *this; }
+			DescriptorSetLayoutBindingInfo& SetPStaticSampler(Sampler* pStaticSampler) { this->pStaticSampler = pStaticSampler; return *this; }
+			DescriptorSetLayoutBindingInfo& SetShaderStage(ShaderStage shaderStage) { this->shaderStage = shaderStage; return *this; }
 
 			uint32_t binding;
 			DescriptorType descriptorType;
@@ -324,11 +350,11 @@ namespace engine {
 
 		struct DescriptorSetLayoutCreateInfo {
 			DescriptorSetLayoutCreateInfo& SetBindingCount(uint32_t bindingCount) { this->bindingCount = bindingCount; return *this; }
-			DescriptorSetLayoutCreateInfo& SetPBindings(DescriptorSetLayoutBinding* pBindings) { this->pBindings = pBindings; return *this; }
-			DescriptorSetLayoutCreateInfo& SetBindings(std::vector<DescriptorSetLayoutBinding>& bindings) { bindingCount = static_cast<uint32_t>(bindings.size()); pBindings = bindings.data(); return *this; }
+			DescriptorSetLayoutCreateInfo& SetPBindings(DescriptorSetLayoutBindingInfo* pBindings) { this->pBindings = pBindings; return *this; }
+			DescriptorSetLayoutCreateInfo& SetBindings(std::vector<DescriptorSetLayoutBindingInfo>& bindings) { bindingCount = static_cast<uint32_t>(bindings.size()); pBindings = bindings.data(); return *this; }
 
 			uint32_t bindingCount;
-			DescriptorSetLayoutBinding* pBindings;
+			DescriptorSetLayoutBindingInfo* pBindings;
 		};
 
 		struct PipelineLayoutCreateInfo {
@@ -555,10 +581,6 @@ namespace engine {
 			SampleCount rasterizationSamples;
 		};
 
-		struct PipelineLayoutInfo {
-
-		};
-
 		struct GraphicsPipelineCreateInfo {
 			GraphicsPipelineCreateInfo& SetShaderStageInfo(PipelineShaderStageInfo shaderStageInfo) { this->shaderStageInfo = shaderStageInfo; return *this; }
 			GraphicsPipelineCreateInfo& SetVertexInputInfo(PipelineVertexInputInfo vertexInputInfo) { this->vertexInputInfo = vertexInputInfo; return *this; }
@@ -619,6 +641,38 @@ namespace engine {
 		struct FenceCreateInfo {};
 
 		struct CommandBufferBeginInfo {};
+
+		struct ImageMemoryBarrierInfo {
+			ImageMemoryBarrierInfo& SetImage(Image image) { this->image = image; return *this; }
+			ImageMemoryBarrierInfo& SetOldLayout(ImageLayout oldLayout) { this->oldLayout = oldLayout; return *this; }
+			ImageMemoryBarrierInfo& SetNewLayout(ImageLayout newLayout) { this->newLayout = newLayout; return *this; }
+			ImageMemoryBarrierInfo& SetSubresourceRange(ImageSubresourceRange subresourceRange) { this->subresourceRange = subresourceRange; return *this; }
+
+			Image image;
+			ImageLayout oldLayout;
+			ImageLayout newLayout;
+			ImageSubresourceRange subresourceRange;
+		};
+
+		struct BufferCopyRegion {
+			BufferCopyRegion& SetBuffer(Buffer buffer) { this->buffer = buffer; return *this; }
+			BufferCopyRegion& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
+
+			Buffer buffer;
+			uint64_t offset;
+		};
+
+		struct ImageCopyRegion {
+			ImageCopyRegion& SetImage(Image image) { this->image = image; return *this; }
+			ImageCopyRegion& SetOffset(Offset3D offset) { this->offset = offset; return *this; }
+			ImageCopyRegion& SetExtent(Extent3D extent) { this->extent = extent; return *this; }
+			ImageCopyRegion& SetSubresourceIndex(ImageSubresource subresourceIndex) { this->subresourceIndex = subresourceIndex; return *this; }
+
+			Image image;
+			Offset3D offset;
+			Extent3D extent;
+			ImageSubresource subresourceIndex;
+		};
 
 	}
 }

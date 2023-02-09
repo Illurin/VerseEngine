@@ -32,7 +32,7 @@ namespace engine {
 		public:
 			WindowSystem(HINSTANCE hInstance, LPWSTR lpCmdLine, int nCmdShow) 
 				: hInstance(hInstance), nCmdShow(nCmdShow) {}
-			~WindowSystem() {}
+			~WindowSystem() = default;
 
 			void InitWindow(const WindowCreateInfo&);
 			bool MessageLoop() const;

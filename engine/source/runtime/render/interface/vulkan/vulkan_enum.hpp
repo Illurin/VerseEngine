@@ -133,13 +133,17 @@ namespace engine {
 			case rhi::BufferUsage::IndexBuffer: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer; break;
 			case rhi::BufferUsage::TransferSrc: bufferUsage_ = vk::BufferUsageFlagBits::eTransferSrc; break;
 			case rhi::BufferUsage::TransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eTransferDst; break;
+			case rhi::BufferUsage::StorageBufferAndTransferSrc: bufferUsage_ = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc; break;
+			case rhi::BufferUsage::UniformBufferAndTransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst; break;
+			case rhi::BufferUsage::VertexBufferAndTransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst; break;
+			case rhi::BufferUsage::IndexBufferAndTransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst; break;
 			}
 		}
 
-		vk::BufferUsageFlagBits Get() const { return bufferUsage_; }
+		vk::BufferUsageFlags Get() const { return bufferUsage_; }
 
 	private:
-		vk::BufferUsageFlagBits bufferUsage_{ 0 };
+		vk::BufferUsageFlags bufferUsage_{ 0 };
 	};
 
 	class VkEnumImageUsage final {
@@ -151,13 +155,20 @@ namespace engine {
 			case rhi::ImageUsage::Sampled: imageUsage_ = vk::ImageUsageFlagBits::eSampled; break;
 			case rhi::ImageUsage::TransferSrc: imageUsage_ = vk::ImageUsageFlagBits::eTransferSrc; break;
 			case rhi::ImageUsage::TransferDst: imageUsage_ = vk::ImageUsageFlagBits::eTransferDst; break;
+			case rhi::ImageUsage::ColorAttachmentAndSampled: imageUsage_ = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled; break;
+			case rhi::ImageUsage::DepthStencilAttachmentAndSampled: imageUsage_ = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled; break;
+			case rhi::ImageUsage::ColorAttachmentAndTransferSrc: imageUsage_ = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc; break;
+			case rhi::ImageUsage::DepthStencilAttachmentAndTransferSrc: imageUsage_ = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc; break;
+			case rhi::ImageUsage::ColorAttachmentAndTransferDst: imageUsage_ = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst; break;
+			case rhi::ImageUsage::DepthStencilAttachmentAndTransferDst: imageUsage_ = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferDst; break;
+			case rhi::ImageUsage::SampledAndTransferDst: imageUsage_ = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst; break;
 			}
 		}
 
-		vk::ImageUsageFlagBits Get() const { return imageUsage_; }
+		vk::ImageUsageFlags Get() const { return imageUsage_; }
 
 	private:
-		vk::ImageUsageFlagBits imageUsage_{ 0 };
+		vk::ImageUsageFlags imageUsage_{ 0 };
 	};
 
 	class VkEnumImageLayout final {
@@ -235,6 +246,23 @@ namespace engine {
 
 	private:
 		vk::ComponentSwizzle componentSwizzle_{ 0 };
+	};
+
+	class VkEnumImageAspect final {
+	public:
+		VkEnumImageAspect(rhi::ImageAspect imageAspect) {
+			switch (imageAspect) {
+			case rhi::ImageAspect::Color: imageAspect_ = vk::ImageAspectFlagBits::eColor; break;
+			case rhi::ImageAspect::Depth: imageAspect_ = vk::ImageAspectFlagBits::eDepth; break;
+			case rhi::ImageAspect::Stencil: imageAspect_ = vk::ImageAspectFlagBits::eStencil; break;
+			case rhi::ImageAspect::DepthStencil: imageAspect_ = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil; break;
+			}
+		}
+
+		vk::ImageAspectFlags Get() const { return imageAspect_; }
+
+	private:
+		vk::ImageAspectFlags imageAspect_{ 0 };
 	};
 
 	class VkEnumDescriptorType final {

@@ -16,7 +16,7 @@ namespace engine {
 
 		void UpdataViewMatrix();
 
-		void LookAt(math::Vector3f pos, math::Vector3f target, math::Vector3f worldUp);
+		void LookAt(math::Vector3f position, math::Vector3f target, math::Vector3f worldUp);
 		void Walk(float distance);
 		void Strafe(float distance);
 		void Pitch(float angle);
@@ -26,7 +26,7 @@ namespace engine {
 		math::Vector3f position{ 0.0f, 0.0f, 0.0f };
 		math::Vector3f right{ 1.0f, 0.0f, 0.0f };
 		math::Vector3f up{ 0.0f, 1.0f, 0.0f };
-		math::Vector3f look{ 0.0f, 0.0f, 1.0f };
+		math::Vector3f look{ 0.0f, 0.0f, -1.0f };
 
 		math::Matrix4f viewMatrix;
 		math::Matrix4f projMatrix;

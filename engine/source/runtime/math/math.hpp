@@ -1,11 +1,9 @@
 #pragma once
 
-#include "Eigen/Dense"
+#include "projection.hpp"
 
 namespace engine {
 	namespace math {
-
-		using namespace Eigen;
 
 		template<typename T>
 		T Pi() {

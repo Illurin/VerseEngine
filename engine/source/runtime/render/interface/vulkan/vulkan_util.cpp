@@ -17,13 +17,13 @@ bool VulkanUtil::MemoryTypeFromProperties(
 
 bool VulkanUtil::CheckValidationLayerSupport(const std::vector<const char*>& validationLayers) {
 	uint32_t layerCount = 0;
-	vk::enumerateInstanceLayerProperties(&layerCount, static_cast<vk::LayerProperties*>(nullptr));
+	auto result = vk::enumerateInstanceLayerProperties(&layerCount, static_cast<vk::LayerProperties*>(nullptr));
 
 	if (layerCount == 0)
 		return false;
 
 	std::vector<vk::LayerProperties> availableLayers(layerCount);
-	vk::enumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+	result = vk::enumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
 	for (const char* layerName : validationLayers) {
 		bool layerFound = false;

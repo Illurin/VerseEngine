@@ -1,8 +1,8 @@
-#include "debug_pass.hpp"
+#include "scene_pass.hpp"
 
 namespace engine {
 
-	void DebugPass::Init(const DebugPassInfo& info) {
+	void ScenePass::Init(const ScenePassInfo& info) {
 		this->info = info;
 		BuildBuffers();
 		BuildSamplers();
@@ -14,7 +14,7 @@ namespace engine {
 		BuildFramebuffers();
 	}
 
-	void DebugPass::Destroy() {
+	void ScenePass::Destroy() {
 		vertexBuffer->Destroy();
 		passUniformBuffer->Destroy();
 		if (uploaderBuffer) uploaderBuffer->Destroy();
@@ -28,7 +28,7 @@ namespace engine {
 		for (auto& framebuffer : framebuffers) framebuffer->Destroy();
 	}
 
-	void DebugPass::BuildBuffers() {
+	void ScenePass::BuildBuffers() {
 
 		// Build vertex buffer
 
@@ -65,7 +65,7 @@ namespace engine {
 		passUniformBuffer->Unmap();
 	}
 
-	void DebugPass::BuildSamplers() {
+	void ScenePass::BuildSamplers() {
 		auto samplerInfo = rhi::SamplerCreateInfo()
 			.SetMinFilter(rhi::Filter::Linear)
 			.SetMagFilter(rhi::Filter::Linear)
@@ -79,7 +79,7 @@ namespace engine {
 		sampler = info.device->CreateSampler(samplerInfo);
 	}
 
-	void DebugPass::BuildImages() {
+	void ScenePass::BuildImages() {
 		auto rawImage = asset::ImageLoader::Load(Path("asset/brickTexture.jpg").GetAbsolutePath().c_str(), 32);
 
 		auto imageInfo = rhi::ImageCreateInfo()
@@ -113,7 +113,7 @@ namespace engine {
 		uploaderBuffer->Unmap();
 	}
 
-	void DebugPass::BuildDescriptorLayout() {
+	void ScenePass::BuildDescriptorLayout() {
 		std::vector<rhi::DescriptorSetLayoutBindingInfo> layoutBindings(3);
 
 		layoutBindings[0] = rhi::DescriptorSetLayoutBindingInfo()
@@ -138,7 +138,7 @@ namespace engine {
 		descriptorSetLayout = info.device->CreateDescriptorSetLayout(descriptorSetLayoutInfo);
 	}
 
-	void DebugPass::BuildDescriptorSets() {
+	void ScenePass::BuildDescriptorSets() {
 		std::vector<rhi::DescriptorPoolSize> poolSizes(2);
 
 		poolSizes[0] = rhi::DescriptorPoolSize()
@@ -181,7 +181,7 @@ namespace engine {
 		descriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, imageViewInfo);
 	}
 
-	void DebugPass::BuildRenderPass() {
+	void ScenePass::BuildRenderPass() {
 		auto colorAttachmentDescription = rhi::AttachmentDescription()
 			.SetFormat(info.colorFormat)
 			.SetSampleCount(rhi::SampleCount::Count1)
@@ -199,7 +199,7 @@ namespace engine {
 		renderPass = info.device->CreateRenderPass(renderPassInfo);
 	}
 
-	void DebugPass::BuildPipeline() {
+	void ScenePass::BuildPipeline() {
 
 		// Create pipeline layout
 
@@ -337,7 +337,7 @@ namespace engine {
 		fragmentShaderModule->Destroy();
 	}
 
-	void DebugPass::BuildFramebuffers() {
+	void ScenePass::BuildFramebuffers() {
 		for (auto& colorAttachment : info.colorAttachments) {
 			auto imageViewInfo = rhi::ImageViewInfo()
 				.SetImage(colorAttachment)
@@ -362,7 +362,7 @@ namespace engine {
 		}
 	}
 
-	void DebugPass::PreparePassData(rhi::CommandBuffer commandBuffer) {
+	void ScenePass::PreparePassData(rhi::CommandBuffer commandBuffer) {
 		if (passDataPrepared) {
 			if (uploaderBuffer) {
 				uploaderBuffer->Destroy();
@@ -402,7 +402,7 @@ namespace engine {
 		passDataPrepared = true;
 	}
 
-	void DebugPass::Draw(uint32_t frame, rhi::CommandBuffer commandBuffer) {
+	void ScenePass::Draw(uint32_t frame, rhi::CommandBuffer commandBuffer) {
 		auto clearColorValue = rhi::ClearColorValue().SetColorValue(std::array<float, 4>({ 0.0f, 0.0f, 0.0f, 0.0f }));
 
 		auto renderPassBeginInfo = rhi::RenderPassBeginInfo()

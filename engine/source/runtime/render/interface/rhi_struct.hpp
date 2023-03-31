@@ -5,10 +5,12 @@
 #include "runtime/system/file_system/path.hpp"
 #include "runtime/system/platform/platform_info.hpp"
 
-#define RHI_DEFINE_HANDLE(object) class object##_T; typedef object##_T* object;
+#define RHI_DEFINE_HANDLE(object) class object##_T; using object = object##_T*;
 
 namespace engine {
 	namespace rhi {
+
+		constexpr auto shaderUnused = ~0u;
 
 		/* -------------------- handle -------------------- */
 
@@ -20,6 +22,7 @@ namespace engine {
 		RHI_DEFINE_HANDLE(CommandBuffer)
 		RHI_DEFINE_HANDLE(Buffer)
 		RHI_DEFINE_HANDLE(Image)
+		RHI_DEFINE_HANDLE(AccelerationStructure)
 		RHI_DEFINE_HANDLE(Sampler)
 		RHI_DEFINE_HANDLE(DescriptorPool)
 		RHI_DEFINE_HANDLE(DescriptorSet)
@@ -155,15 +158,23 @@ namespace engine {
 			QueueType queueType;
 		};
 
+		struct DeviceExtension {
+			DeviceExtension& SetRayTracingEnabled(bool rayTracingEnabled) { this->rayTracingEnabled = rayTracingEnabled; return *this; }
+
+			bool rayTracingEnabled;
+		};
+
 		struct DeviceCreateInfo {
 			DeviceCreateInfo& SetPhysicalDeviceId(uint32_t physicalDeviceId) { this->physicalDeviceId = physicalDeviceId; return *this; }
 			DeviceCreateInfo& SetQueueCreateInfoCount(uint32_t queueCreateInfoCount) { this->queueCreateInfoCount = queueCreateInfoCount; return *this; }
 			DeviceCreateInfo& SetPQueueCreateInfos(QueueCreateInfo* pQueueCreateInfos) { this->pQueueCreateInfos = pQueueCreateInfos; return *this; }
 			DeviceCreateInfo& SetQueueCreateInfos(std::vector<QueueCreateInfo>& queueCreateInfos) { queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()); pQueueCreateInfos = queueCreateInfos.data(); return *this; }
+			DeviceCreateInfo& SetDeviceExtension(DeviceExtension deviceExtension) { this->deviceExtension = deviceExtension; return *this; }
 
 			uint32_t physicalDeviceId;
 			uint32_t queueCreateInfoCount;
 			QueueCreateInfo* pQueueCreateInfos;
+			DeviceExtension deviceExtension;
 		};
 
 		struct SwapchainCreateInfo {
@@ -360,6 +371,7 @@ namespace engine {
 		struct PipelineLayoutCreateInfo {
 			PipelineLayoutCreateInfo& SetDescriptorSetLayoutCount(uint32_t descriptorSetLayoutCount) { this->descriptorSetLayoutCount = descriptorSetLayoutCount; return *this; }
 			PipelineLayoutCreateInfo& SetPDescriptorSetLayouts(DescriptorSetLayout* pDescriptorSetLayouts) { this->pDescriptorSetLayouts = pDescriptorSetLayouts; return *this; }
+			PipelineLayoutCreateInfo& SetDescriptorSetLayouts(std::vector<DescriptorSetLayout>& descriptorSetLayouts) { descriptorSetLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size()); pDescriptorSetLayouts = descriptorSetLayouts.data(); return *this; }
 
 			uint32_t descriptorSetLayoutCount;
 			DescriptorSetLayout* pDescriptorSetLayouts;
@@ -591,7 +603,7 @@ namespace engine {
 			GraphicsPipelineCreateInfo& SetDepthStencilInfo(PipelineDepthStencilInfo depthStencilInfo) { this->depthStencilInfo = depthStencilInfo; return *this; }
 			GraphicsPipelineCreateInfo& SetColorBlendInfo(PipelineColorBlendInfo colorBlendInfo) { this->colorBlendInfo = colorBlendInfo; return *this; }
 			GraphicsPipelineCreateInfo& SetMultisampleInfo(PipelineMultisampleInfo multisampleInfo) { this->multisampleInfo = multisampleInfo; return *this; }
-			GraphicsPipelineCreateInfo& SetPipelineLayout(PipelineLayout pipelineLayout) { this->pipelineLayout = pipelineLayout; return *this; }
+			GraphicsPipelineCreateInfo& SetLayout(PipelineLayout layout) { this->layout = layout; return *this; }
 			GraphicsPipelineCreateInfo& SetRenderPass(RenderPass renderPass) { this->renderPass = renderPass; return *this; }
 
 			PipelineShaderStageInfo shaderStageInfo;
@@ -603,7 +615,7 @@ namespace engine {
 			PipelineDepthStencilInfo depthStencilInfo;
 			PipelineColorBlendInfo colorBlendInfo;
 			PipelineMultisampleInfo multisampleInfo;
-			PipelineLayout pipelineLayout;
+			PipelineLayout layout;
 			RenderPass renderPass;
 		};
 
@@ -672,6 +684,158 @@ namespace engine {
 			Offset3D offset;
 			Extent3D extent;
 			ImageSubresource subresourceIndex;
+		};
+
+		struct TransformMatrix {
+			TransformMatrix& SetData(std::array<std::array<float, 4>, 3>& data) { this->data = data; return *this; }
+
+			std::array<std::array<float, 4>, 3> data;
+		};
+
+		struct AccelerationStructureGeometryTrianglesData {
+			AccelerationStructureGeometryTrianglesData& SetVertexFormat(Format vertexFormat) { this->vertexFormat = vertexFormat; return *this; }
+			AccelerationStructureGeometryTrianglesData& SetVertexData(Buffer vertexData) { this->vertexData = vertexData; return *this; }
+			AccelerationStructureGeometryTrianglesData& SetVertexStride(uint64_t vertexStride) { this->vertexStride = vertexStride; return *this; }
+			AccelerationStructureGeometryTrianglesData& SetMaxVertex(uint32_t maxVertex) { this->maxVertex = maxVertex; return *this; }
+			AccelerationStructureGeometryTrianglesData& SetIndexType(IndexType indexType) { this->indexType = indexType; return *this; }
+			AccelerationStructureGeometryTrianglesData& SetIndexData(Buffer indexData) { this->indexData = indexData; return *this; }
+			AccelerationStructureGeometryTrianglesData& SetTransformData(Buffer transformData) { this->transformData = transformData; return *this; }
+
+			Format vertexFormat;
+			Buffer vertexData;
+			uint64_t vertexStride;
+			uint32_t maxVertex;
+			IndexType indexType;
+			Buffer indexData;
+			Buffer transformData;
+		};
+
+		struct AccelerationStructureGeometryAabbsData {
+			AccelerationStructureGeometryAabbsData& SetBuffer(Buffer data) { this->data = data; return *this; }
+			AccelerationStructureGeometryAabbsData& SetStride(uint64_t stride) { this->stride = stride; return *this; }
+
+			Buffer data;
+			uint64_t stride;
+		};
+
+		struct AccelerationStructureGeometryInstance {
+			AccelerationStructureGeometryInstance& SetTransform(TransformMatrix transform) { this->transform = transform; return *this; }
+			AccelerationStructureGeometryInstance& SetAccelerationStructure(AccelerationStructure accelerationStructure) { this->accelerationStructure = accelerationStructure; return *this; }
+
+			TransformMatrix transform;
+			AccelerationStructure accelerationStructure;
+		};
+
+		struct AccelerationStructureGeometryInstancesData {
+			AccelerationStructureGeometryInstancesData& SetData(Buffer data) { this->data = data; return *this; }
+
+			Buffer data;
+		};
+
+		using AccelerationStructureGeometryData = std::variant<AccelerationStructureGeometryTrianglesData,
+		                                                       AccelerationStructureGeometryAabbsData,
+		                                                       AccelerationStructureGeometryInstancesData>;
+
+		struct AccelerationStructureGeometry {
+			AccelerationStructureGeometry& SetType(AccelerationStructureGeometryType type) { this->type = type; return *this; }
+			AccelerationStructureGeometry& SetData(AccelerationStructureGeometryData data) { this->data = data; return *this; }
+
+			AccelerationStructureGeometryType type;
+			AccelerationStructureGeometryData data;
+		};
+
+		struct AccelerationStructureBuildGeometryInfo {
+			AccelerationStructureBuildGeometryInfo& SetType(AccelerationStructureType type) { this->type = type; return *this; }
+			AccelerationStructureBuildGeometryInfo& SetDstAccelerationStructure(AccelerationStructure dstAccelerationStructure) { this->dstAccelerationStructure = dstAccelerationStructure; return *this; }
+			AccelerationStructureBuildGeometryInfo& SetGeometryCount(uint32_t geometryCount) { this->geometryCount = geometryCount; return *this; }
+			AccelerationStructureBuildGeometryInfo& SetPGeometries(AccelerationStructureGeometry* pGeometries) { this->pGeometries = pGeometries; return *this; }
+			AccelerationStructureBuildGeometryInfo& SetGeometries(std::vector<AccelerationStructureGeometry>& geometries) { geometryCount = static_cast<uint32_t>(geometries.size()); pGeometries = geometries.data(); return *this; }
+			AccelerationStructureBuildGeometryInfo& SetScratchData(Buffer scratchData) { this->scratchData = scratchData; return *this; }
+
+			AccelerationStructureType type;
+			AccelerationStructure dstAccelerationStructure;
+			uint32_t geometryCount;
+			AccelerationStructureGeometry* pGeometries;
+			Buffer scratchData;
+		};
+
+		struct AccelerationStructureBuildRangeInfo {
+			AccelerationStructureBuildRangeInfo& SetPrimitiveCount(uint32_t primitiveCount) { this->primitiveCount = primitiveCount; return *this; }
+			AccelerationStructureBuildRangeInfo& SetFirstVertex(uint32_t firstVertex) { this->firstVertex = firstVertex; return *this; }
+
+			uint32_t primitiveCount;
+			uint32_t firstVertex;
+		};
+
+		struct AccelerationStructureBuildSizesInfo {
+			AccelerationStructureBuildSizesInfo& SetAccelerationStructureSize(uint64_t accelerationStructureSize) { this->accelerationStructureSize = accelerationStructureSize; return *this; }
+			AccelerationStructureBuildSizesInfo& SetScratchSize(uint64_t scratchSize) { this->scratchSize = scratchSize; return *this; }
+
+			uint64_t accelerationStructureSize;
+			uint64_t scratchSize;
+		};
+
+		struct AccelerationStructureCreateInfo {
+			AccelerationStructureCreateInfo& SetBuffer(Buffer buffer) { this->buffer = buffer; return *this; }
+			AccelerationStructureCreateInfo& SetSize(uint64_t size) { this->size = size; return *this; }
+			AccelerationStructureCreateInfo& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
+			AccelerationStructureCreateInfo& SetType(AccelerationStructureType type) { this->type = type; return *this; }
+
+			Buffer buffer;
+			uint64_t size;
+			uint64_t offset;
+			AccelerationStructureType type;
+		};
+
+		struct RayTracingShaderGroupCreateInfo {
+			RayTracingShaderGroupCreateInfo& SetType(RayTracingShaderGroupType type) { this->type = type; return *this; }
+			RayTracingShaderGroupCreateInfo& SetGeneralShader(uint32_t generalShader) { this->generalShader = generalShader; return *this; }
+			RayTracingShaderGroupCreateInfo& SetIntersectionShader(uint32_t intersectionShader) { this->intersectionShader = intersectionShader; return *this; }
+			RayTracingShaderGroupCreateInfo& SetAnyHitShader(uint32_t anyHitShader) { this->anyHitShader = anyHitShader; return *this; }
+			RayTracingShaderGroupCreateInfo& SetClosestHitShader(uint32_t closestHitShader) { this->closestHitShader = closestHitShader; return *this; }
+
+			RayTracingShaderGroupType type;
+			uint32_t generalShader;
+			uint32_t intersectionShader;
+			uint32_t anyHitShader;
+			uint32_t closestHitShader;
+		};
+
+		struct RayTracingPipelineCreateInfo {
+			RayTracingPipelineCreateInfo& SetShaderStageInfo(PipelineShaderStageInfo shaderStageInfo) { this->shaderStageInfo = shaderStageInfo; return *this; }
+			RayTracingPipelineCreateInfo& SetShaderGroupCount(uint32_t shaderGroupCount) { this->shaderGroupCount = shaderGroupCount; return *this; }
+			RayTracingPipelineCreateInfo& SetPShaderGroups(RayTracingShaderGroupCreateInfo* pShaderGroups) { this->pShaderGroups = pShaderGroups; return *this; }
+			RayTracingPipelineCreateInfo& SetShaderGroups(std::vector<RayTracingShaderGroupCreateInfo>& shaderGroups) { shaderGroupCount = static_cast<uint32_t>(shaderGroups.size()); pShaderGroups = shaderGroups.data(); return *this; }
+			RayTracingPipelineCreateInfo& SetMaxRayRecursionDepth(uint32_t maxRayRecursionDepth) { this->maxRayRecursionDepth = maxRayRecursionDepth; return *this; }
+			RayTracingPipelineCreateInfo& SetLayout(PipelineLayout layout) { this->layout = layout; return *this; }
+
+			PipelineShaderStageInfo shaderStageInfo;
+			uint32_t shaderGroupCount;
+			RayTracingShaderGroupCreateInfo* pShaderGroups;
+			uint32_t maxRayRecursionDepth;
+			PipelineLayout layout;
+		};
+
+		struct RayTracingShaderGroupHandleRequirement {
+			RayTracingShaderGroupHandleRequirement& SetShaderGroupBaseAlignment(uint32_t shaderGroupBaseAlignment) { this->shaderGroupBaseAlignment = shaderGroupBaseAlignment; return *this; }
+			RayTracingShaderGroupHandleRequirement& SetShaderGroupHandleAlignment(uint32_t shaderGroupHandleAlignment) { this->shaderGroupHandleAlignment = shaderGroupHandleAlignment; return *this; }
+			RayTracingShaderGroupHandleRequirement& SetShaderGroupHandleSize(uint32_t shaderGroupHandleSize) { this->shaderGroupHandleSize = shaderGroupHandleSize; return *this; }
+
+			uint32_t shaderGroupBaseAlignment;
+			uint32_t shaderGroupHandleAlignment;
+			uint32_t shaderGroupHandleSize;
+		};
+
+		struct BufferStridedRegion {
+			BufferStridedRegion& SetBuffer(Buffer buffer) { this->buffer = buffer; return *this; }
+			BufferStridedRegion& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
+			BufferStridedRegion& SetStride(uint64_t stride) { this->stride = stride; return *this; }
+			BufferStridedRegion& SetSize(uint64_t size) { this->size = size; return *this; }
+
+			Buffer buffer;
+			uint64_t offset;
+			uint64_t stride;
+			uint64_t size;
 		};
 
 	}

@@ -27,7 +27,6 @@ public:
 
 	static bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayers);
 
-#ifdef _DEBUG
 	static VKAPI_ATTR vk::Bool32 VKAPI_CALL DebugCallback(
 		vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		vk::DebugUtilsMessageTypeFlagsEXT messageType,
@@ -38,7 +37,6 @@ public:
 #endif // _WIN32
 		return VK_FALSE;
 	}
-#endif // _DEBUG
 };
 
 #endif // _VULKAN

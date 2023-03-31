@@ -50,11 +50,16 @@ namespace engine {
 		virtual void Destroy() override;
 
 		rhi::Queue GetQueue(uint32_t queueIndex) const override;
-
+		rhi::AccelerationStructureBuildSizesInfo GetAccelerationStructureBuildSizes(const rhi::AccelerationStructureBuildGeometryInfo&,
+			                                                                        const uint32_t* pMaxPrimitiveCounts) const override;
+		rhi::RayTracingShaderGroupHandleRequirement GetRayTracingShaderGroupHandleRequirement() const override;
+		std::vector<uint8_t> GetRayTracingShaderGroupHandles(rhi::Pipeline pipeline, uint32_t firstGroup, uint32_t groupCount) const override;
 		rhi::Swapchain CreateSwapchain(const rhi::SwapchainCreateInfo&) const override;
 		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
 		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
+		rhi::Buffer CreateBuffer(uint32_t instanceCount, const rhi::AccelerationStructureGeometryInstance*) const override;
 		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
+		rhi::AccelerationStructure CreateAccelerationStructure(const rhi::AccelerationStructureCreateInfo&) const override;
 		rhi::Sampler CreateSampler(const rhi::SamplerCreateInfo&) const override;
 		rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
 		rhi::DescriptorSetLayout CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo&) const override;
@@ -62,6 +67,7 @@ namespace engine {
 		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
 		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
 		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
+		rhi::Pipeline CreateRayTracingPipeline(const rhi::RayTracingPipelineCreateInfo&) const override;
 		rhi::Framebuffer CreateFramebuffer(const rhi::FramebufferCreateInfo&) const override;
 		rhi::Fence CreateFence(const rhi::FenceCreateInfo&) const override;
 
@@ -167,6 +173,15 @@ namespace engine {
 	
 		void ResourceBarrier(const rhi::ImageMemoryBarrierInfo&) override;
 		void CopyBufferToImage(const rhi::BufferCopyRegion&, const rhi::ImageCopyRegion&) override;
+
+		void BuildAccelerationStructures(uint32_t infoCount,
+			                             const rhi::AccelerationStructureBuildGeometryInfo*,
+			                             const rhi::AccelerationStructureBuildRangeInfo* const*) override;
+		void TraceRays(const rhi::BufferStridedRegion& raygenShaderBindingTable,
+			           const rhi::BufferStridedRegion& missShaderBindingTable,
+			           const rhi::BufferStridedRegion& hitShaderBindingTable,
+				       const rhi::BufferStridedRegion& callableShaderBindingTable,
+				       uint32_t width, uint32_t height, uint32_t depth) override;
 
 	private:
 		void PrepareRenderingInfo();
@@ -290,8 +305,9 @@ namespace engine {
 
 	public:
 		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
-		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) override;
+		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::ImageLayout, rhi::ImageViewInfo) override;
 		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Sampler) override;
+		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::AccelerationStructure) override;
 
 	private:
 		void Destroy();
@@ -445,6 +461,22 @@ namespace engine {
 
 	private:
 		ID3D12Fence* fence{ nullptr };
+	};
+
+	//
+	// Direct3D12 handle wrapper for RHI AccelerationStructure
+	//
+	class D3D12WrapperAccelerationStructure final : public rhi::AccelerationStructure_T {
+
+		friend class D3D12WrapperDevice;
+		friend class D3D12WrapperCommandBuffer;
+		friend class D3D12WrapperDescriptorSet;
+
+	public:
+		void Destroy() override;
+
+	private:
+		ID3D12Resource* resource{ nullptr };
 	};
 
 }

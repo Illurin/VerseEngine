@@ -33,11 +33,16 @@ namespace engine {
 			virtual void Destroy() = 0;
 
 			virtual Queue GetQueue(uint32_t queueIndex) const = 0;
-
+			virtual AccelerationStructureBuildSizesInfo GetAccelerationStructureBuildSizes(const AccelerationStructureBuildGeometryInfo&,
+				                                                                           const uint32_t* pMaxPrimitiveCounts) const = 0;
+			virtual RayTracingShaderGroupHandleRequirement GetRayTracingShaderGroupHandleRequirement() const = 0;
+			virtual std::vector<uint8_t> GetRayTracingShaderGroupHandles(Pipeline pipeline, uint32_t firstGroup, uint32_t groupCount) const = 0;
 			virtual Swapchain CreateSwapchain(const SwapchainCreateInfo&) const = 0;
 			virtual CommandPool CreateCommandPool(const CommandPoolCreateInfo&) const = 0;
 			virtual Buffer CreateBuffer(const BufferCreateInfo&) const = 0;
+			virtual Buffer CreateBuffer(uint32_t instanceCount, const AccelerationStructureGeometryInstance*) const = 0;
 			virtual Image CreateImage(const ImageCreateInfo&) const = 0;
+			virtual AccelerationStructure CreateAccelerationStructure(const AccelerationStructureCreateInfo&) const = 0;
 			virtual Sampler CreateSampler(const SamplerCreateInfo&) const = 0;
 			virtual DescriptorPool CreateDescriptorPool(const DescriptorPoolCreateInfo&) const = 0;
 			virtual DescriptorSetLayout CreateDescriptorSetLayout(const DescriptorSetLayoutCreateInfo&) const = 0;
@@ -45,6 +50,7 @@ namespace engine {
 			virtual RenderPass CreateRenderPass(const RenderPassCreateInfo&) const = 0;
 			virtual ShaderModule CreateShaderModule(const ShaderModuleCreateInfo&) const = 0;
 			virtual Pipeline CreateGraphicsPipeline(const GraphicsPipelineCreateInfo&) const = 0;
+			virtual Pipeline CreateRayTracingPipeline(const RayTracingPipelineCreateInfo&) const = 0;
 			virtual Framebuffer CreateFramebuffer(const FramebufferCreateInfo&) const = 0;
 			virtual Fence CreateFence(const FenceCreateInfo&) const = 0;
 		};
@@ -111,6 +117,15 @@ namespace engine {
 
 			virtual void ResourceBarrier(const ImageMemoryBarrierInfo&) = 0;
 			virtual void CopyBufferToImage(const BufferCopyRegion&, const ImageCopyRegion&) = 0;
+
+			virtual void BuildAccelerationStructures(uint32_t infoCount,
+				                                     const AccelerationStructureBuildGeometryInfo*,
+				                                     const AccelerationStructureBuildRangeInfo* const*) = 0;
+			virtual void TraceRays(const BufferStridedRegion& raygenShaderBindingTable,
+			                       const BufferStridedRegion& missShaderBindingTable,
+			                       const BufferStridedRegion& hitShaderBindingTable,
+				                   const BufferStridedRegion& callableShaderBindingTable,
+				                   uint32_t width, uint32_t height, uint32_t depth) = 0;
 		};
 
 		//
@@ -168,8 +183,9 @@ namespace engine {
 		class DescriptorSet_T {
 		public:
 			virtual void Write(uint32_t dstBinding, DescriptorType, Buffer) = 0;
-			virtual void Write(uint32_t dstBinding, DescriptorType, ImageViewInfo) = 0;
+			virtual void Write(uint32_t dstBinding, DescriptorType, ImageLayout, ImageViewInfo) = 0;
 			virtual void Write(uint32_t dstBinding, DescriptorType, Sampler) = 0;
+			virtual void Write(uint32_t dstBinding, DescriptorType, AccelerationStructure) = 0;
 		};
 
 		//
@@ -238,6 +254,15 @@ namespace engine {
 			virtual void Wait() = 0;
 
 			virtual bool GetCurrentStatus() const = 0;
+		};
+
+		//
+		// The AccelerationStructure handle is used to storage geometry data for ray tracing.
+		// Only available when device extension for ray tracing is enabled.
+		//
+		class AccelerationStructure_T {
+		public:
+			virtual void Destroy() = 0;
 		};
 
 	}

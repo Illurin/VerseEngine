@@ -41,6 +41,8 @@ namespace engine {
 #ifdef _DEBUG
 		vk::DebugUtilsMessengerEXT debugMessenger{ nullptr };
 #endif // _DEBUG
+
+		vk::DispatchLoaderDynamic dispatcher{};
 	};
 
 	//
@@ -56,11 +58,16 @@ namespace engine {
 		void Destroy() override;
 		
 		rhi::Queue GetQueue(uint32_t queueIndex) const override;
-
+		rhi::AccelerationStructureBuildSizesInfo GetAccelerationStructureBuildSizes(const rhi::AccelerationStructureBuildGeometryInfo&,
+			                                                                        const uint32_t* pMaxPrimitiveCounts) const override;
+		rhi::RayTracingShaderGroupHandleRequirement GetRayTracingShaderGroupHandleRequirement() const override;
+		std::vector<uint8_t> GetRayTracingShaderGroupHandles(rhi::Pipeline pipeline, uint32_t firstGroup, uint32_t groupCount) const override;
 		rhi::Swapchain CreateSwapchain(const rhi::SwapchainCreateInfo&) const override;
 		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
 		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
+		rhi::Buffer CreateBuffer(uint32_t instanceCount, const rhi::AccelerationStructureGeometryInstance*) const override;
 		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
+		rhi::AccelerationStructure CreateAccelerationStructure(const rhi::AccelerationStructureCreateInfo&) const override;
 		rhi::Sampler CreateSampler(const rhi::SamplerCreateInfo&) const override;
 		rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
 		rhi::DescriptorSetLayout CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo&) const override;
@@ -68,6 +75,7 @@ namespace engine {
 		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
 		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
 		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
+		rhi::Pipeline CreateRayTracingPipeline(const rhi::RayTracingPipelineCreateInfo&) const override;
 		rhi::Framebuffer CreateFramebuffer(const rhi::FramebufferCreateInfo&) const override;
 		rhi::Fence CreateFence(const rhi::FenceCreateInfo&) const override;
 
@@ -75,6 +83,8 @@ namespace engine {
 		vk::PhysicalDevice physicalDevice{ nullptr };
 		vk::Device device{ nullptr };
 		std::vector<rhi::Queue> queues;
+
+		vk::DispatchLoaderDynamic dispatcher{};
 	};
 
 	//
@@ -145,6 +155,8 @@ namespace engine {
 	private:
 		vk::CommandPool commandPool{ nullptr };
 		std::vector<rhi::CommandBuffer> commandBuffers;
+
+		vk::DispatchLoaderDynamic dispatcher{};
 	};
 
 	//
@@ -155,6 +167,7 @@ namespace engine {
 		friend class VkWrapperCommandPool;
 		friend class VkWrapperQueue;
 
+		vk::Device device{ nullptr };
 		vk::CommandPool commandPool{ nullptr };
 
 	public:
@@ -175,9 +188,19 @@ namespace engine {
 		void ResourceBarrier(const rhi::ImageMemoryBarrierInfo&) override;
 		void CopyBufferToImage(const rhi::BufferCopyRegion&, const rhi::ImageCopyRegion&) override;
 
+		void BuildAccelerationStructures(uint32_t infoCount,
+			                             const rhi::AccelerationStructureBuildGeometryInfo*,
+			                             const rhi::AccelerationStructureBuildRangeInfo* const*) override;
+		void TraceRays(const rhi::BufferStridedRegion& raygenShaderBindingTable,
+			           const rhi::BufferStridedRegion& missShaderBindingTable,
+			           const rhi::BufferStridedRegion& hitShaderBindingTable,
+				       const rhi::BufferStridedRegion& callableShaderBindingTable,
+				       uint32_t width, uint32_t height, uint32_t depth) override;
+
 	private:
 		uint32_t poolIndex{ 0 };
 		vk::CommandBuffer commandBuffer{ nullptr };
+		vk::DispatchLoaderDynamic dispatcher{};
 	};
 
 	//
@@ -278,8 +301,9 @@ namespace engine {
 
 	public:
 		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
-		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::ImageViewInfo) override;
+		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::ImageLayout, rhi::ImageViewInfo) override;
 		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Sampler) override;
+		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::AccelerationStructure) override;
 
 	private:
 		uint32_t poolIndex{ 0 };
@@ -374,7 +398,7 @@ namespace engine {
 
 	private:
 		vk::Pipeline pipeline{ nullptr };
-		rhi::PipelineType pipelineType{ 0 };
+		vk::PipelineBindPoint pipelineType{ 0 };
 	};
 
 	//
@@ -418,6 +442,28 @@ namespace engine {
 
 	private:
 		vk::Fence fence{ nullptr };
+	};
+
+	//
+	// Vulkan handle wrapper for RHI Image
+	//
+	class VkWrapperAccelerationStructure final : public rhi::AccelerationStructure_T {
+
+		friend class VkWrapperDevice;
+		friend class VkWrapperCommandBuffer;
+		friend class VkWrapperDescriptorSet;
+
+		vk::Device device{ nullptr };
+
+	public:
+		void Destroy() override;
+
+	private:
+		vk::AccelerationStructureKHR accelerationStructure{ nullptr };
+		vk::Buffer instancesDataBuffer{ nullptr };
+		vk::DeviceMemory instancesDataMemory{ nullptr };
+
+		vk::DispatchLoaderDynamic dispatcher{};
 	};
 	
 }

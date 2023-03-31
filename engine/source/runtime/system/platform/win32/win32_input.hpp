@@ -9,13 +9,13 @@
 
 namespace engine {
 	namespace win32 {
-
-		class KeyboardInputDevice {
+		
+		class KeyboardDevice {
 		public:
-			KeyboardInputDevice(IDirectInputDevice8* device) : device(device) {}
+			KeyboardDevice(IDirectInputDevice8* device) : device(device) {}
 
-			void Update();
-			
+			bool Update();
+
 			bool GetKey(uint8_t dikValue);
 			bool GetKeyDown(uint8_t dikValue);
 			bool GetKeyUp(uint8_t dikValue);
@@ -27,11 +27,11 @@ namespace engine {
 			std::array<uint8_t, 256> lastState{};
 		};
 
-		class MouseInputDevice {
+		class MouseDevice {
 		public:
-			MouseInputDevice(IDirectInputDevice8* device) : device(device) {}
+			MouseDevice(IDirectInputDevice8* device) : device(device) {}
 
-			void Update();
+			bool Update();
 
 			bool GetMouse(uint8_t buttonValue);
 			bool GetMouseDown(uint8_t buttonValue);
@@ -46,12 +46,12 @@ namespace engine {
 
 		class DirectInputSystem {
 		public:
-			DirectInputSystem(HINSTANCE hInstance);
+			explicit DirectInputSystem(HINSTANCE hInstance);
 			DirectInputSystem(const DirectInputSystem&) = delete;
 			~DirectInputSystem();
 
-			KeyboardInputDevice CreateKeyBoardInputSystem(HWND hWnd);
-			MouseInputDevice CreateMouseInputSystem(HWND hWnd);
+			KeyboardDevice CreateKeyBoardInputSystem(HWND hWnd);
+			MouseDevice CreateMouseInputSystem(HWND hWnd);
 
 		private:
 			IDirectInput8* directInput{ nullptr };

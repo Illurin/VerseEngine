@@ -52,17 +52,11 @@ namespace engine {
 
 		// Build uniform buffer
 
-		math::Affine3f transformation(math::AngleAxisf(math::Pi<float>() * 0.2f, math::Vector3f::UnitZ()));
-
 		auto passUniformBufferInfo = rhi::BufferCreateInfo()
 			.SetSize(sizeof(math::Matrix4f))
 			.SetUsage(rhi::BufferUsage::UniformBuffer);
 
 		passUniformBuffer = info.device->CreateBuffer(passUniformBufferInfo);
-
-		auto passUniformBufferPtr = reinterpret_cast<math::Matrix4f*>(passUniformBuffer->Map());
-		*passUniformBufferPtr = transformation.matrix();
-		passUniformBuffer->Unmap();
 	}
 
 	void DebugPass::BuildSamplers() {
@@ -178,7 +172,7 @@ namespace engine {
 				.SetBaseArrayLayer(0)
 				.SetArrayLayerCount(1));
 
-		descriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, imageViewInfo);
+		descriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
 	}
 
 	void DebugPass::BuildRenderPass() {
@@ -328,7 +322,7 @@ namespace engine {
 			.SetDepthStencilInfo(depthStencilInfo)
 			.SetColorBlendInfo(colorBlendInfo)
 			.SetMultisampleInfo(multisampleInfo)
-			.SetPipelineLayout(pipelineLayout)
+			.SetLayout(pipelineLayout)
 			.SetRenderPass(renderPass);
 
 		pipeline = info.device->CreateGraphicsPipeline(pipelineInfo);
@@ -363,6 +357,21 @@ namespace engine {
 	}
 
 	void DebugPass::PreparePassData(rhi::CommandBuffer commandBuffer) {
+		// Update uniform buffer
+
+		if (input::GetKey(input::KeyCode::D)) movement.x() += static_cast<float>(1.0 * Time::GetDeltaTime());
+		if (input::GetKey(input::KeyCode::A)) movement.x() -= static_cast<float>(1.0 * Time::GetDeltaTime());
+		if (input::GetKey(input::KeyCode::W)) movement.y() += static_cast<float>(1.0 * Time::GetDeltaTime());
+		if (input::GetKey(input::KeyCode::S)) movement.y() -= static_cast<float>(1.0 * Time::GetDeltaTime());
+
+		math::Affine3f transformation(math::Translation3f(movement.x(), movement.y(), 0.0f));
+
+		auto passUniformBufferPtr = reinterpret_cast<math::Matrix4f*>(passUniformBuffer->Map());
+		*passUniformBufferPtr = transformation.matrix();
+		passUniformBuffer->Unmap();
+
+		// Prepare pass data
+
 		if (passDataPrepared) {
 			if (uploaderBuffer) {
 				uploaderBuffer->Destroy();

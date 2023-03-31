@@ -16,7 +16,18 @@ namespace engine {
 	}
 
 	void Camera::UpdataViewMatrix() {
+		if (viewDirty) {
+			look.normalize();
+			right = up.cross(look).normalized();
+			up = look.cross(right);
 
+			viewMatrix << right.x(), right.y(), right.z(), -position.dot(right),
+				          up   .x(), up   .y(), up   .z(), -position.dot(up),
+				          -look.x(), -look.y(), -look.z(), -position.dot(-look),
+				          0.0f     , 0.0f     , 0.0f     , 1.0f;
+
+			viewDirty = false;
+		}
 	}
 
 	void Camera::LookAt(math::Vector3f position, math::Vector3f target, math::Vector3f worldUp) {

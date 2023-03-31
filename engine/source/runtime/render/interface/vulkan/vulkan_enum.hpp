@@ -137,6 +137,10 @@ namespace engine {
 			case rhi::BufferUsage::UniformBufferAndTransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst; break;
 			case rhi::BufferUsage::VertexBufferAndTransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst; break;
 			case rhi::BufferUsage::IndexBufferAndTransferDst: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst; break;
+			case rhi::BufferUsage::AccelerationStructureStorage: bufferUsage_ = vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR; break;
+			case rhi::BufferUsage::AccelerationStructureReadOnly: bufferUsage_ = vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
+			case rhi::BufferUsage::AccelerationStructureScratch: bufferUsage_ = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
+			case rhi::BufferUsage::ShaderBindingTable: bufferUsage_ = vk::BufferUsageFlagBits::eShaderBindingTableKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
 			}
 		}
 
@@ -153,6 +157,7 @@ namespace engine {
 			case rhi::ImageUsage::ColorAttachment: imageUsage_ = vk::ImageUsageFlagBits::eColorAttachment; break;
 			case rhi::ImageUsage::DepthStencilAttachment: imageUsage_ = vk::ImageUsageFlagBits::eDepthStencilAttachment; break;
 			case rhi::ImageUsage::Sampled: imageUsage_ = vk::ImageUsageFlagBits::eSampled; break;
+			case rhi::ImageUsage::Storage: imageUsage_ = vk::ImageUsageFlagBits::eStorage; break;
 			case rhi::ImageUsage::TransferSrc: imageUsage_ = vk::ImageUsageFlagBits::eTransferSrc; break;
 			case rhi::ImageUsage::TransferDst: imageUsage_ = vk::ImageUsageFlagBits::eTransferDst; break;
 			case rhi::ImageUsage::ColorAttachmentAndSampled: imageUsage_ = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled; break;
@@ -176,6 +181,7 @@ namespace engine {
 		VkEnumImageLayout(rhi::ImageLayout imageLayout) {
 			switch (imageLayout) {
 			case rhi::ImageLayout::Undefined: imageLayout_ = vk::ImageLayout::eUndefined; break;
+			case rhi::ImageLayout::General: imageLayout_ = vk::ImageLayout::eGeneral; break;
 			case rhi::ImageLayout::ColorAttachment: imageLayout_ = vk::ImageLayout::eColorAttachmentOptimal; break;
 			case rhi::ImageLayout::DepthStencilAttachment: imageLayout_ = vk::ImageLayout::eDepthStencilAttachmentOptimal; break;
 			case rhi::ImageLayout::DepthStencilReadOnly: imageLayout_ = vk::ImageLayout::eDepthStencilReadOnlyOptimal; break;
@@ -274,6 +280,7 @@ namespace engine {
 			case rhi::DescriptorType::StorageImage: descriptorType_ = vk::DescriptorType::eStorageImage; break;
 			case rhi::DescriptorType::UniformBuffer: descriptorType_ = vk::DescriptorType::eUniformBuffer; break;
 			case rhi::DescriptorType::StorageBuffer: descriptorType_ = vk::DescriptorType::eStorageBuffer; break;
+			case rhi::DescriptorType::AccelerationStructure: descriptorType_ = vk::DescriptorType::eAccelerationStructureKHR; break;
 			}
 		}
 
@@ -387,6 +394,12 @@ namespace engine {
 			case rhi::ShaderStage::Geometry: shaderStage_ = vk::ShaderStageFlagBits::eGeometry; break;
 			case rhi::ShaderStage::Fragment: shaderStage_ = vk::ShaderStageFlagBits::eFragment; break;
 			case rhi::ShaderStage::Compute: shaderStage_ = vk::ShaderStageFlagBits::eCompute; break;
+			case rhi::ShaderStage::Raygen: shaderStage_ = vk::ShaderStageFlagBits::eRaygenKHR; break;
+			case rhi::ShaderStage::Intersection: shaderStage_ = vk::ShaderStageFlagBits::eIntersectionKHR; break;
+			case rhi::ShaderStage::AnyHit: shaderStage_ = vk::ShaderStageFlagBits::eAnyHitKHR; break;
+			case rhi::ShaderStage::ClosestHit: shaderStage_ = vk::ShaderStageFlagBits::eClosestHitKHR; break;
+			case rhi::ShaderStage::Miss: shaderStage_ = vk::ShaderStageFlagBits::eMissKHR; break;
+			case rhi::ShaderStage::Callable: shaderStage_ = vk::ShaderStageFlagBits::eCallableKHR; break;
 			}
 		}
 
@@ -407,6 +420,12 @@ namespace engine {
 			case rhi::ShaderStage::Geometry: shaderStage_ = vk::ShaderStageFlagBits::eGeometry; break;
 			case rhi::ShaderStage::Fragment: shaderStage_ = vk::ShaderStageFlagBits::eFragment; break;
 			case rhi::ShaderStage::Compute: shaderStage_ = vk::ShaderStageFlagBits::eCompute; break;
+			case rhi::ShaderStage::Raygen: shaderStage_ = vk::ShaderStageFlagBits::eRaygenKHR; break;
+			case rhi::ShaderStage::AnyHit: shaderStage_ = vk::ShaderStageFlagBits::eAnyHitKHR; break;
+			case rhi::ShaderStage::ClosestHit: shaderStage_ = vk::ShaderStageFlagBits::eClosestHitKHR; break;
+			case rhi::ShaderStage::Miss: shaderStage_ = vk::ShaderStageFlagBits::eMissKHR; break;
+			case rhi::ShaderStage::Intersection: shaderStage_ = vk::ShaderStageFlagBits::eIntersectionKHR; break;
+			case rhi::ShaderStage::Callable: shaderStage_ = vk::ShaderStageFlagBits::eCallableKHR; break;
 			}
 		}
 
@@ -639,6 +658,53 @@ namespace engine {
 
 	private:
 		vk::IndexType indexType_{ 0 };
+	};
+
+	class VkEnumGeometryTypeKHR final {
+	public:
+		VkEnumGeometryTypeKHR(rhi::AccelerationStructureGeometryType geometryType) {
+			switch (geometryType) {
+			case rhi::AccelerationStructureGeometryType::Triangles: geometryType_ = vk::GeometryTypeKHR::eTriangles; break;
+			case rhi::AccelerationStructureGeometryType::Aabbs: geometryType_ = vk::GeometryTypeKHR::eAabbs; break;
+			case rhi::AccelerationStructureGeometryType::Instances: geometryType_ = vk::GeometryTypeKHR::eInstances; break;
+			}
+		}
+
+		vk::GeometryTypeKHR Get() const { return geometryType_; }
+
+	private:
+		vk::GeometryTypeKHR geometryType_{ 0 };
+	};
+
+	class VkEnumAccelerationStructureTypeKHR final {
+	public:
+		VkEnumAccelerationStructureTypeKHR(rhi::AccelerationStructureType accelerationStructureType) {
+			switch (accelerationStructureType) {
+			case rhi::AccelerationStructureType::TopLevel: accelerationStructureType_ = vk::AccelerationStructureTypeKHR::eTopLevel; break;
+			case rhi::AccelerationStructureType::BottomLevel: accelerationStructureType_ = vk::AccelerationStructureTypeKHR::eBottomLevel; break;
+			}
+		}
+
+		vk::AccelerationStructureTypeKHR Get() const { return accelerationStructureType_; }
+
+	private:
+		vk::AccelerationStructureTypeKHR accelerationStructureType_{ 0 };
+	};
+
+	class VkEnumRayTracingShaderGroupTypeKHR final {
+	public:
+		VkEnumRayTracingShaderGroupTypeKHR(rhi::RayTracingShaderGroupType type) {
+			switch (type) {
+			case rhi::RayTracingShaderGroupType::General: type_ = vk::RayTracingShaderGroupTypeKHR::eGeneral; break;
+			case rhi::RayTracingShaderGroupType::TrianglesHitGroup: type_ = vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup; break;
+			case rhi::RayTracingShaderGroupType::ProceduralHitGroup: type_ = vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup; break;
+			}
+		}
+
+		vk::RayTracingShaderGroupTypeKHR Get() const { return type_; }
+
+	private:
+		vk::RayTracingShaderGroupTypeKHR type_{ 0 };
 	};
 
 }

@@ -5,51 +5,55 @@
 namespace engine {
 	namespace win32 {
 
-		void KeyboardInputDevice::Update() {
+		bool KeyboardDevice::Update() {
 			if (FAILED(device->Acquire())) {
-				throw std::runtime_error("Acquire keyboard input device failed");
+				return false;
 			}
 
 			lastState = currentState;
 
 			if (FAILED(device->GetDeviceState(sizeof(uint8_t) * 256, currentState.data()))) {
-				throw std::runtime_error("Get keyboard input device state failed");
+				return false;
 			}
+
+			return true;
 		}
 
-		bool KeyboardInputDevice::GetKey(uint8_t dikValue) {
+		bool KeyboardDevice::GetKey(uint8_t dikValue) {
 			return currentState[dikValue] & 0x80;
 		}
 
-		bool KeyboardInputDevice::GetKeyDown(uint8_t dikValue) {
+		bool KeyboardDevice::GetKeyDown(uint8_t dikValue) {
 			return (currentState[dikValue] & 0x80) && !(lastState[dikValue] & 0x80);
 		}
 
-		bool KeyboardInputDevice::GetKeyUp(uint8_t dikValue) {
+		bool KeyboardDevice::GetKeyUp(uint8_t dikValue) {
 			return !(currentState[dikValue] & 0x80) && (lastState[dikValue] & 0x80);
 		}
 
-		void MouseInputDevice::Update() {
+		bool MouseDevice::Update() {
 			if (FAILED(device->Acquire())) {
-				throw std::runtime_error("Acquire mouse input device failed");
+				return false;
 			}
 
 			lastState = currentState;
 
 			if (FAILED(device->GetDeviceState(sizeof(DIMOUSESTATE), static_cast<LPVOID>(&currentState)))) {
-				throw std::runtime_error("Get mouse input device state failed");
+				return false;
 			}
+
+			return true;
 		}
 
-		bool MouseInputDevice::GetMouse(uint8_t buttonValue) {
+		bool MouseDevice::GetMouse(uint8_t buttonValue) {
 			return currentState.rgbButtons[buttonValue] & 0x80;
 		}
 
-		bool MouseInputDevice::GetMouseDown(uint8_t buttonValue) {
+		bool MouseDevice::GetMouseDown(uint8_t buttonValue) {
 			return (currentState.rgbButtons[buttonValue] & 0x80) && !(lastState.rgbButtons[buttonValue] & 0x80);
 		}
 
-		bool MouseInputDevice::GetMouseUp(uint8_t buttonValue) {
+		bool MouseDevice::GetMouseUp(uint8_t buttonValue) {
 			return !(currentState.rgbButtons[buttonValue] & 0x80) && (lastState.rgbButtons[buttonValue] & 0x80);
 		}
 
@@ -66,7 +70,7 @@ namespace engine {
 			if (mouseInputDevice) mouseInputDevice->Release();
 		}
 
-		KeyboardInputDevice DirectInputSystem::CreateKeyBoardInputSystem(HWND hWnd) {
+		KeyboardDevice DirectInputSystem::CreateKeyBoardInputSystem(HWND hWnd) {
 			if (keyboardInputDevice) keyboardInputDevice->Release();
 
 			if (FAILED(directInput->CreateDevice(GUID_SysKeyboard, &keyboardInputDevice, NULL))) {
@@ -81,11 +85,11 @@ namespace engine {
 				throw std::runtime_error("Set keyboard input device cooperative level failed");
 			}
 
-			KeyboardInputDevice device(keyboardInputDevice);
+			KeyboardDevice device(keyboardInputDevice);
 			return device;
 		}
 
-		MouseInputDevice DirectInputSystem::CreateMouseInputSystem(HWND hWnd) {
+		MouseDevice DirectInputSystem::CreateMouseInputSystem(HWND hWnd) {
 			if (mouseInputDevice) mouseInputDevice->Release();
 
 			if (FAILED(directInput->CreateDevice(GUID_SysMouse, &mouseInputDevice, NULL))) {
@@ -100,7 +104,7 @@ namespace engine {
 				throw std::runtime_error("Set mouse input device cooperative level failed");
 			}
 
-			MouseInputDevice device(mouseInputDevice);
+			MouseDevice device(mouseInputDevice);
 			return device;
 		}
 

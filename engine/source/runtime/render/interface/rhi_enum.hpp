@@ -88,13 +88,18 @@ namespace engine {
 			StorageBufferAndTransferSrc,
 			UniformBufferAndTransferDst,
 			VertexBufferAndTransferDst,
-			IndexBufferAndTransferDst
+			IndexBufferAndTransferDst,
+			AccelerationStructureStorage,
+			AccelerationStructureReadOnly,
+			AccelerationStructureScratch,
+			ShaderBindingTable
 		};
 
 		enum class ImageUsage {
 			ColorAttachment,
 			DepthStencilAttachment,
 			Sampled,
+			Storage,
 			TransferSrc,
 			TransferDst,
 			ColorAttachmentAndSampled,
@@ -108,6 +113,7 @@ namespace engine {
 
 		enum class ImageLayout {
 			Undefined,
+			General,
 			ColorAttachment,
 			DepthStencilAttachment,
 			DepthStencilReadOnly,
@@ -155,7 +161,8 @@ namespace engine {
 			SampledImage,
 			StorageImage,
 			UniformBuffer,
-			StorageBuffer
+			StorageBuffer,
+			AccelerationStructure
 		};
 
 		enum class Filter {
@@ -194,7 +201,15 @@ namespace engine {
 			TessellationEvaluation,
 			Geometry,
 			Fragment,
-			Compute
+			Compute,
+
+			// for ray tracing
+			Raygen,
+			AnyHit,
+			ClosestHit,
+			Miss,
+			Intersection,
+			Callable
 		};
 
 		enum class PipelineType {
@@ -300,6 +315,23 @@ namespace engine {
 		enum class IndexType {
 			Uint16,
 			Uint32
+		};
+
+		enum class AccelerationStructureGeometryType {
+			Triangles,
+			Aabbs,
+			Instances
+		};
+
+		enum class AccelerationStructureType {
+			TopLevel,
+			BottomLevel
+		};
+
+		enum class RayTracingShaderGroupType {
+			General,
+			TrianglesHitGroup,
+			ProceduralHitGroup
 		};
 	
 	}

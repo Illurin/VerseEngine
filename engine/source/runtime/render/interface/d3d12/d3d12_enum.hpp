@@ -128,6 +128,7 @@ namespace engine {
 			case rhi::ImageUsage::ColorAttachment: usage = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
 			case rhi::ImageUsage::DepthStencilAttachment: usage = DXGI_USAGE_RENDER_TARGET_OUTPUT; break;
 			case rhi::ImageUsage::Sampled: usage = DXGI_USAGE_SHADER_INPUT; break;
+			case rhi::ImageUsage::Storage: usage = DXGI_USAGE_UNORDERED_ACCESS; break;
 			case rhi::ImageUsage::TransferSrc: usage = DXGI_USAGE_READ_ONLY; break;
 			case rhi::ImageUsage::TransferDst: usage = DXGI_USAGE_UNORDERED_ACCESS; break;
 			}
@@ -144,6 +145,7 @@ namespace engine {
 		D3D12EnumResourceStates(rhi::ImageLayout imageLayout) {
 			switch (imageLayout) {
 			case rhi::ImageLayout::Undefined: resourceStates = D3D12_RESOURCE_STATE_COMMON; break;
+			case rhi::ImageLayout::General: resourceStates = D3D12_RESOURCE_STATE_COMMON; break;
 			case rhi::ImageLayout::ColorAttachment: resourceStates = D3D12_RESOURCE_STATE_RENDER_TARGET; break;
 			case rhi::ImageLayout::DepthStencilAttachment: resourceStates = D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ; break;
 			case rhi::ImageLayout::DepthStencilReadOnly: resourceStates = D3D12_RESOURCE_STATE_DEPTH_READ; break;

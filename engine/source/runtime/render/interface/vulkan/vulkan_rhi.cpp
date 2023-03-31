@@ -31,22 +31,22 @@ namespace engine {
 
 		CreateInstance(info);
 
-#ifdef _DEBUG
 		vk::DynamicLoader dl;
-		PFN_vkGetInstanceProcAddr GetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+		auto pGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+		dispatcher = vk::DispatchLoaderDynamic(instance, pGetInstanceProcAddr);
 
+#ifdef _DEBUG
 		auto debugMessengerInfo = vk::DebugUtilsMessengerCreateInfoEXT()
 			.setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-				                vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-				                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+				vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+				vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
 			.setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-				            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-				            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
+				vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+				vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
 			.setPfnUserCallback(reinterpret_cast<PFN_vkDebugUtilsMessengerCallbackEXT>(VulkanUtil::DebugCallback))
 			.setPUserData(nullptr);
-
-		vk::DispatchLoaderDynamic dispatch(instance, GetInstanceProcAddr);
-		debugMessenger = instance.createDebugUtilsMessengerEXT(debugMessengerInfo, nullptr, dispatch);
+		
+		debugMessenger = instance.createDebugUtilsMessengerEXT(debugMessengerInfo, nullptr, dispatcher);
 		
 		if (!debugMessenger) {
 			throw std::runtime_error("Create debug messenger failed");
@@ -135,18 +135,51 @@ namespace engine {
 			deviceQueueInfos[i] = deviceQueueInfo;
 		}
 
+		auto deviceExtensions = extensions.device;
+
+		deviceExtensions.emplace_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+		deviceExtensions.emplace_back(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
+
 		auto features = vk::PhysicalDeviceFeatures()
 			.setGeometryShader(VK_TRUE)
 			.setFillModeNonSolid(VK_TRUE);
 
-		auto deviceExtensions = extensions.device;
+		vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
+		vk::PhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures;
+		vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures;
 
-		//deviceExtensions.emplace_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
-		//deviceExtensions.emplace_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
-		deviceExtensions.emplace_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
-		deviceExtensions.emplace_back(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
+		if (info.deviceExtension.rayTracingEnabled) {
+			auto features12 = vk::PhysicalDeviceVulkan12Features()
+				.setBufferDeviceAddress(VK_TRUE);
+
+			accelerationStructureFeatures
+				.setPNext(&features12)
+				.setAccelerationStructure(VK_TRUE)
+				.setAccelerationStructureCaptureReplay(VK_TRUE)
+				.setAccelerationStructureIndirectBuild(VK_FALSE)
+				.setAccelerationStructureHostCommands(VK_FALSE)
+				.setDescriptorBindingAccelerationStructureUpdateAfterBind(VK_TRUE);
+
+			rayTracingPipelineFeatures
+				.setPNext(&accelerationStructureFeatures)
+				.setRayTracingPipeline(VK_TRUE)
+				.setRayTracingPipelineShaderGroupHandleCaptureReplay(VK_FALSE)
+				.setRayTracingPipelineShaderGroupHandleCaptureReplayMixed(VK_FALSE)
+				.setRayTracingPipelineTraceRaysIndirect(VK_TRUE)
+				.setRayTraversalPrimitiveCulling(VK_TRUE);
+
+			rayQueryFeatures
+				.setPNext(&rayTracingPipelineFeatures)
+				.setRayQuery(VK_TRUE);
+
+			deviceExtensions.emplace_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+			deviceExtensions.emplace_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+			deviceExtensions.emplace_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+			deviceExtensions.emplace_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+		}
 
 		auto lineRasterizationFeaturesEXT = vk::PhysicalDeviceLineRasterizationFeaturesEXT()
+			.setPNext(&rayQueryFeatures)
 			.setSmoothLines(VK_TRUE);
 
 		auto deviceInfo = vk::DeviceCreateInfo()
@@ -163,6 +196,7 @@ namespace engine {
 		
 		auto deviceWrapper = new VkWrapperDevice();
 		deviceWrapper->instance = instance;
+		deviceWrapper->dispatcher = dispatcher;
 		deviceWrapper->device = device;
 		deviceWrapper->physicalDevice = physicalDevice;
 
@@ -190,8 +224,9 @@ namespace engine {
 		shaderCompiler.AddArgument(ShaderCompileArgument::spirv);
 		shaderCompiler.AddArgument(ShaderCompileArgument::vs_profile, ShaderCompileArgument::spirv_invert_y);
 		shaderCompiler.AddArgument(ShaderCompileArgument::matrix_column_major);
-		shaderCompiler.AddArgument(ShaderCompileArgument::spirv_debug);
+#ifdef _DEBUG
 		shaderCompiler.AddArgument(ShaderCompileArgument::treat_warnings_as_errors);
+#endif // _DEBUG
 		shaderCompiler.AddIncludePath(StringToWString(GlobalConfig::configPath).c_str());
 		return shaderCompiler;
 	}
@@ -205,6 +240,118 @@ namespace engine {
 			throw std::runtime_error("Get queue out of range");
 		}
 		return queues[queueIndex];
+	}
+
+	rhi::AccelerationStructureBuildSizesInfo VkWrapperDevice::GetAccelerationStructureBuildSizes(const rhi::AccelerationStructureBuildGeometryInfo& info,
+		                                                                                         const uint32_t* pMaxPrimitiveCounts) const {
+		std::vector<vk::AccelerationStructureGeometryKHR> geometries(info.geometryCount);
+		for (uint32_t i = 0; i < info.geometryCount; i++) {
+			auto& geometryInfo = info.pGeometries[i];
+
+			vk::AccelerationStructureGeometryDataKHR geometryData;
+			
+			switch (geometryInfo.type) {
+			case rhi::AccelerationStructureGeometryType::Triangles: {
+				auto& triangles = std::get<rhi::AccelerationStructureGeometryTrianglesData>(geometryInfo.data);
+				vk::AccelerationStructureGeometryTrianglesDataKHR trianglesData;
+
+				if (triangles.vertexData) {
+					trianglesData.setVertexData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+						          device.getBufferAddress(vk::BufferDeviceAddressInfo()
+						          	.setBuffer(static_cast<VkWrapperBuffer*>(triangles.vertexData)->buffer))))
+						          .setVertexFormat(VkEnumFormat(triangles.vertexFormat).Get())
+						          .setVertexStride(triangles.vertexStride)
+						          .setMaxVertex(triangles.maxVertex);
+				}
+
+				if (triangles.indexData) {
+					trianglesData.setIndexData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+						          device.getBufferAddress(vk::BufferDeviceAddressInfo()
+						          	.setBuffer(static_cast<VkWrapperBuffer*>(triangles.indexData)->buffer))))
+						          .setIndexType(VkEnumIndexType(triangles.indexType).Get());
+				}
+
+				if (triangles.transformData) {
+					trianglesData.setTransformData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+						device.getBufferAddress(vk::BufferDeviceAddressInfo()
+							.setBuffer(static_cast<VkWrapperBuffer*>(triangles.transformData)->buffer))));
+				}
+
+				geometryData.setTriangles(trianglesData);
+				break;
+			}
+			case rhi::AccelerationStructureGeometryType::Aabbs: {
+				auto& aabbs = std::get<rhi::AccelerationStructureGeometryAabbsData>(geometryInfo.data);
+
+				geometryData.setAabbs(
+					vk::AccelerationStructureGeometryAabbsDataKHR()
+					.setData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+						device.getBufferAddress(vk::BufferDeviceAddressInfo()
+							.setBuffer(static_cast<VkWrapperBuffer*>(aabbs.data)->buffer))))
+					.setStride(aabbs.stride)
+				);
+				break;
+			}
+			case rhi::AccelerationStructureGeometryType::Instances: {
+				auto& instances = std::get<rhi::AccelerationStructureGeometryInstancesData>(geometryInfo.data);
+
+				geometryData.setInstances(
+					vk::AccelerationStructureGeometryInstancesDataKHR()
+					.setData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+						device.getBufferAddress(vk::BufferDeviceAddressInfo()
+							.setBuffer(static_cast<VkWrapperBuffer*>(instances.data)->buffer))))
+					.setArrayOfPointers(VK_FALSE)
+				);
+				break;
+			}
+			}
+
+			geometries[i] = vk::AccelerationStructureGeometryKHR()
+				.setGeometry(geometryData)
+				.setGeometryType(VkEnumGeometryTypeKHR(geometryInfo.type).Get());
+		}
+		
+		auto buildInfo = vk::AccelerationStructureBuildGeometryInfoKHR()
+			.setType(VkEnumAccelerationStructureTypeKHR(info.type).Get())
+			.setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+			.setGeometries(geometries);
+
+		vk::AccelerationStructureBuildSizesInfoKHR sizes;
+		device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, &buildInfo, pMaxPrimitiveCounts, &sizes, dispatcher);
+
+		auto sizesInfo = rhi::AccelerationStructureBuildSizesInfo()
+			.SetAccelerationStructureSize(sizes.accelerationStructureSize)
+			.SetScratchSize(sizes.buildScratchSize);
+
+		return sizesInfo;
+	}
+
+	rhi::RayTracingShaderGroupHandleRequirement VkWrapperDevice::GetRayTracingShaderGroupHandleRequirement() const {
+		vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
+		vk::PhysicalDeviceProperties2 properties;
+		properties.pNext = &rayTracingPipelineProperties;
+		physicalDevice.getProperties2(&properties);
+
+		return rhi::RayTracingShaderGroupHandleRequirement()
+			.SetShaderGroupBaseAlignment(rayTracingPipelineProperties.shaderGroupBaseAlignment)
+			.SetShaderGroupHandleAlignment(rayTracingPipelineProperties.shaderGroupHandleAlignment)
+			.SetShaderGroupHandleSize(rayTracingPipelineProperties.shaderGroupHandleSize);
+	}
+
+	std::vector<uint8_t> VkWrapperDevice::GetRayTracingShaderGroupHandles(rhi::Pipeline pipeline, uint32_t firstGroup, uint32_t groupCount) const {
+		vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
+		vk::PhysicalDeviceProperties2 properties;
+		properties.pNext = &rayTracingPipelineProperties;
+		physicalDevice.getProperties2(&properties);
+
+		std::vector<uint8_t> shaderGroupHandles(groupCount * rayTracingPipelineProperties.shaderGroupHandleSize);
+		auto result = device.getRayTracingShaderGroupHandlesKHR(static_cast<VkWrapperPipeline*>(pipeline)->pipeline, firstGroup, groupCount, shaderGroupHandles.size(), shaderGroupHandles.data(), dispatcher);
+		
+		if (result != vk::Result::eSuccess) {
+			throw std::runtime_error("Get shader group handles failed");
+		}
+
+		return shaderGroupHandles;
 	}
 
 	rhi::Swapchain VkWrapperDevice::CreateSwapchain(const rhi::SwapchainCreateInfo& info) const {
@@ -286,6 +433,7 @@ namespace engine {
 		auto cmdPoolWrapper = new VkWrapperCommandPool();
 		cmdPoolWrapper->device = device;
 		cmdPoolWrapper->commandPool = cmdPool;
+		cmdPoolWrapper->dispatcher = dispatcher;
 		return cmdPoolWrapper;
 	}
 
@@ -301,8 +449,17 @@ namespace engine {
 		}
 
 		auto memReqs = device.getBufferMemoryRequirements(buffer);
+
+		vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo;
+
 		auto memoryInfo = vk::MemoryAllocateInfo()
 			.setAllocationSize(memReqs.size);
+		
+		if (bufferInfo.usage & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+			memoryInfo.setPNext(&memoryAllocateFlagsInfo);
+			memoryAllocateFlagsInfo.setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+		}
+
 		VulkanUtil::MemoryTypeFromProperties(physicalDevice.getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible, memoryInfo.memoryTypeIndex);
 
 		auto memory = device.allocateMemory(memoryInfo);
@@ -312,6 +469,57 @@ namespace engine {
 		}
 
 		device.bindBufferMemory(buffer, memory, 0);
+
+		auto bufferWrapper = new VkWrapperBuffer();
+		bufferWrapper->device = device;
+		bufferWrapper->buffer = buffer;
+		bufferWrapper->memory = memory;
+		return bufferWrapper;
+	}
+
+	rhi::Buffer VkWrapperDevice::CreateBuffer(uint32_t instanceCount, const rhi::AccelerationStructureGeometryInstance* infos) const {
+		auto bufferInfo = vk::BufferCreateInfo()
+			.setSize(instanceCount * sizeof(vk::AccelerationStructureInstanceKHR))
+			.setUsage(vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress);
+
+		auto buffer = device.createBuffer(bufferInfo);
+
+		if (!buffer) {
+			throw std::runtime_error("Create buffer failed");
+		}
+
+		auto memReqs = device.getBufferMemoryRequirements(buffer);
+
+		auto memoryAllocateFlagsInfo = vk::MemoryAllocateFlagsInfo()
+			.setFlags(vk::MemoryAllocateFlagBits::eDeviceAddress);
+
+		auto memoryInfo = vk::MemoryAllocateInfo()
+			.setPNext(&memoryAllocateFlagsInfo)
+			.setAllocationSize(memReqs.size);
+
+		VulkanUtil::MemoryTypeFromProperties(physicalDevice.getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible, memoryInfo.memoryTypeIndex);
+
+		auto memory = device.allocateMemory(memoryInfo);
+
+		if (!memory) {
+			throw std::runtime_error("Allocate memory failed");
+		}
+
+		device.bindBufferMemory(buffer, memory, 0);
+
+		auto p = reinterpret_cast<vk::AccelerationStructureInstanceKHR*>(device.mapMemory(memory, 0, instanceCount * sizeof(vk::AccelerationStructureInstanceKHR)));
+		
+		for (uint32_t i = 0; i < instanceCount; i++) {
+			auto& info = infos[i];
+
+			p[i].setAccelerationStructureReference(
+				device.getAccelerationStructureAddressKHR(vk::AccelerationStructureDeviceAddressInfoKHR()
+					.setAccelerationStructure(static_cast<VkWrapperAccelerationStructure*>(info.accelerationStructure)->accelerationStructure), dispatcher))
+				.setMask(0xff)
+				.setTransform(vk::TransformMatrixKHR(info.transform.data));
+		}
+
+		device.unmapMemory(memory);
 
 		auto bufferWrapper = new VkWrapperBuffer();
 		bufferWrapper->device = device;
@@ -344,7 +552,7 @@ namespace engine {
 		VulkanUtil::MemoryTypeFromProperties(physicalDevice.getMemoryProperties(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal, memoryInfo.memoryTypeIndex);
 
 		auto memory = device.allocateMemory(memoryInfo);
-
+		
 		if (!memory) {
 			throw std::runtime_error("Allocate memory failed");
 		}
@@ -357,6 +565,26 @@ namespace engine {
 		imageWrapper->memory = memory;
 		imageWrapper->extent = info.extent;
 		return imageWrapper;
+	}
+
+	rhi::AccelerationStructure VkWrapperDevice::CreateAccelerationStructure(const rhi::AccelerationStructureCreateInfo& info) const {
+		auto accelerationStructureInfo = vk::AccelerationStructureCreateInfoKHR()
+			.setBuffer(static_cast<VkWrapperBuffer*>(info.buffer)->buffer)
+			.setSize(info.size)
+			.setOffset(info.offset)
+			.setType(VkEnumAccelerationStructureTypeKHR(info.type).Get());
+
+		auto accelerationStructure = device.createAccelerationStructureKHR(accelerationStructureInfo, nullptr, dispatcher);
+
+		if (!accelerationStructure) {
+			throw std::runtime_error("Create acceleration structure failed");
+		}
+
+		auto accelerationStructureWrapper = new VkWrapperAccelerationStructure();
+		accelerationStructureWrapper->device = device;
+		accelerationStructureWrapper->dispatcher = dispatcher;
+		accelerationStructureWrapper->accelerationStructure = accelerationStructure;
+		return accelerationStructureWrapper;
 	}
 
 	rhi::Sampler VkWrapperDevice::CreateSampler(const rhi::SamplerCreateInfo& info) const {
@@ -424,7 +652,7 @@ namespace engine {
 				.setStageFlags(VkEnumShaderStageFlags(binding.shaderStage).Get());
 
 			if (binding.pStaticSampler) {
-				vk::Sampler sampler = static_cast<VkWrapperSampler*>(*binding.pStaticSampler)->sampler;
+				auto& sampler = static_cast<VkWrapperSampler*>(*binding.pStaticSampler)->sampler;
 				bindings[i].setPImmutableSamplers(&sampler);
 			}
 		}
@@ -686,7 +914,7 @@ namespace engine {
 			.setPDepthStencilState(&depthStencilInfo)
 			.setPColorBlendState(&colorBlendInfo)
 			.setPMultisampleState(&multisampleInfo)
-			.setLayout(static_cast<VkWrapperPipelineLayout*>(info.pipelineLayout)->pipelineLayout)
+			.setLayout(static_cast<VkWrapperPipelineLayout*>(info.layout)->pipelineLayout)
 			.setRenderPass(static_cast<VkWrapperRenderPass*>(info.renderPass)->renderPass);
 		
 		auto pipeline = device.createGraphicsPipeline(nullptr, pipelineInfo).value;
@@ -698,7 +926,47 @@ namespace engine {
 		auto pipelineWrapper = new VkWrapperPipeline();
 		pipelineWrapper->device = device;
 		pipelineWrapper->pipeline = pipeline;
-		pipelineWrapper->pipelineType = rhi::PipelineType::Graphics;
+		pipelineWrapper->pipelineType = vk::PipelineBindPoint::eGraphics;
+		return pipelineWrapper;
+	}
+
+	rhi::Pipeline VkWrapperDevice::CreateRayTracingPipeline(const rhi::RayTracingPipelineCreateInfo& info) const {
+		std::vector<vk::PipelineShaderStageCreateInfo> shaderStageInfos(info.shaderStageInfo.shaderModuleCount);
+		for (uint32_t i = 0; i < info.shaderStageInfo.shaderModuleCount; i++) {
+			auto shaderModule = static_cast<VkWrapperShaderModule*>(info.shaderStageInfo.pShaderModules[i]);
+			shaderStageInfos[i] = vk::PipelineShaderStageCreateInfo()
+				.setModule(shaderModule->shaderModule)
+				.setPName(shaderModule->entryPoint)
+				.setStage(VkEnumShaderStage(shaderModule->shaderStage).Get());
+		}
+
+		std::vector<vk::RayTracingShaderGroupCreateInfoKHR> shaderGroups(info.shaderGroupCount);
+		for (uint32_t i = 0; i < info.shaderGroupCount; i++) {
+			auto& shaderGroup = info.pShaderGroups[i];
+			shaderGroups[i] = vk::RayTracingShaderGroupCreateInfoKHR()
+				.setType(VkEnumRayTracingShaderGroupTypeKHR(shaderGroup.type).Get())
+				.setGeneralShader(shaderGroup.generalShader)
+				.setIntersectionShader(shaderGroup.intersectionShader)
+				.setAnyHitShader(shaderGroup.anyHitShader)
+				.setClosestHitShader(shaderGroup.closestHitShader);
+		}
+
+		auto pipelineInfo = vk::RayTracingPipelineCreateInfoKHR()
+			.setStages(shaderStageInfos)
+			.setGroups(shaderGroups)
+			.setMaxPipelineRayRecursionDepth(info.maxRayRecursionDepth)
+			.setLayout(static_cast<VkWrapperPipelineLayout*>(info.layout)->pipelineLayout);
+
+		auto pipeline = device.createRayTracingPipelineKHR(nullptr, nullptr, pipelineInfo, nullptr, dispatcher);
+
+		if (pipeline.result != vk::Result::eSuccess) {
+			throw std::runtime_error("Create ray tracing pipeline failed");
+		}
+
+		auto pipelineWrapper = new VkWrapperPipeline();
+		pipelineWrapper->device = device;
+		pipelineWrapper->pipeline = pipeline.value;
+		pipelineWrapper->pipelineType = vk::PipelineBindPoint::eRayTracingKHR;
 		return pipelineWrapper;
 	}
 
@@ -894,8 +1162,10 @@ namespace engine {
 		std::vector<rhi::CommandBuffer> cmdWrappers(bufferCount);
 		for (uint32_t i = 0; i < bufferCount; i++) {
 			auto cmdWrapper = new VkWrapperCommandBuffer();
+			cmdWrapper->device = device;
 			cmdWrapper->commandPool = commandPool;
 			cmdWrapper->commandBuffer = cmdBuffer[i];
+			cmdWrapper->dispatcher = dispatcher;
 			cmdWrappers[i] = cmdWrapper;
 
 			bool found = false;
@@ -958,7 +1228,7 @@ namespace engine {
 
 	void VkWrapperCommandBuffer::BindPipeline(rhi::Pipeline& pipeline) {
 		auto pipeline_ = static_cast<VkWrapperPipeline*>(pipeline);
-		commandBuffer.bindPipeline(VkEnumPipelineBindPoint(pipeline_->pipelineType).Get(), pipeline_->pipeline);
+		commandBuffer.bindPipeline(pipeline_->pipelineType, pipeline_->pipeline);
 	}
 
 	void VkWrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) {
@@ -1013,7 +1283,7 @@ namespace engine {
 				.setBaseMipLevel(info.subresourceRange.baseMipLevel)
 				.setLayerCount(info.subresourceRange.arrayLayerCount)
 				.setLevelCount(info.subresourceRange.mipLevelCount));
-
+		
 		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
 			                          vk::PipelineStageFlagBits::eBottomOfPipe,
 			                          vk::DependencyFlags(),
@@ -1037,6 +1307,151 @@ namespace engine {
 			                            static_cast<VkWrapperImage*>(imageRegion.image)->image,
 			                            vk::ImageLayout::eTransferDstOptimal,
 			                            bufferImageCopy);
+	}
+
+	void VkWrapperCommandBuffer::BuildAccelerationStructures(uint32_t infoCount,
+		                                                     const rhi::AccelerationStructureBuildGeometryInfo* pGeometryInfos,
+		                                                     const rhi::AccelerationStructureBuildRangeInfo* const* ppRangeInfos) {
+		std::vector<vk::AccelerationStructureBuildGeometryInfoKHR> geometryInfos(infoCount);
+		std::vector<vk::AccelerationStructureBuildRangeInfoKHR*> rangeInfos(infoCount);
+		std::vector<vk::AccelerationStructureGeometryKHR*> geometries(infoCount);
+		for (uint32_t infoIndex = 0; infoIndex < infoCount; infoIndex++) {
+			auto& geometryInfo = pGeometryInfos[infoIndex];
+			auto& pRangeInfos = ppRangeInfos[infoIndex];
+			geometries[infoIndex] = new vk::AccelerationStructureGeometryKHR[geometryInfo.geometryCount];
+			rangeInfos[infoIndex] = new vk::AccelerationStructureBuildRangeInfoKHR[geometryInfo.geometryCount];
+
+			for (uint32_t i = 0; i < geometryInfo.geometryCount; i++) {
+				auto& geometry = geometryInfo.pGeometries[i];
+
+				vk::AccelerationStructureGeometryDataKHR geometryData;
+
+				switch (geometry.type) {
+				case rhi::AccelerationStructureGeometryType::Triangles: {
+					auto& triangles = std::get<rhi::AccelerationStructureGeometryTrianglesData>(geometry.data);
+					vk::AccelerationStructureGeometryTrianglesDataKHR trianglesData;
+
+					if (triangles.vertexData) {
+						trianglesData.setVertexData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+							device.getBufferAddress(vk::BufferDeviceAddressInfo()
+								.setBuffer(static_cast<VkWrapperBuffer*>(triangles.vertexData)->buffer))))
+							.setVertexFormat(VkEnumFormat(triangles.vertexFormat).Get())
+							.setVertexStride(triangles.vertexStride)
+							.setMaxVertex(triangles.maxVertex);
+					}
+
+					if (triangles.indexData) {
+						trianglesData.setIndexData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+							device.getBufferAddress(vk::BufferDeviceAddressInfo()
+								.setBuffer(static_cast<VkWrapperBuffer*>(triangles.indexData)->buffer))))
+							.setIndexType(VkEnumIndexType(triangles.indexType).Get());
+					}
+
+					if (triangles.transformData) {
+						trianglesData.setTransformData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+							device.getBufferAddress(vk::BufferDeviceAddressInfo()
+								.setBuffer(static_cast<VkWrapperBuffer*>(triangles.transformData)->buffer))));
+					}
+
+					geometryData.setTriangles(trianglesData);
+					break;
+				}
+				case rhi::AccelerationStructureGeometryType::Aabbs: {
+					auto& aabbs = std::get<rhi::AccelerationStructureGeometryAabbsData>(geometry.data);
+
+					geometryData.setAabbs(
+						vk::AccelerationStructureGeometryAabbsDataKHR()
+						.setData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+							device.getBufferAddress(vk::BufferDeviceAddressInfo()
+								.setBuffer(static_cast<VkWrapperBuffer*>(aabbs.data)->buffer))))
+						.setStride(aabbs.stride)
+					);
+					break;
+				}
+				case rhi::AccelerationStructureGeometryType::Instances: {
+					auto& instances = std::get<rhi::AccelerationStructureGeometryInstancesData>(geometry.data);
+
+					geometryData.setInstances(
+						vk::AccelerationStructureGeometryInstancesDataKHR()
+						.setData(vk::DeviceOrHostAddressConstKHR().setDeviceAddress(
+							device.getBufferAddress(vk::BufferDeviceAddressInfo()
+								.setBuffer(static_cast<VkWrapperBuffer*>(instances.data)->buffer))))
+						.setArrayOfPointers(VK_FALSE)
+					);
+					break;
+				}
+				}
+
+				geometries[infoIndex][i] = vk::AccelerationStructureGeometryKHR()
+					.setGeometry(geometryData)
+					.setGeometryType(VkEnumGeometryTypeKHR(geometry.type).Get());
+				
+				rangeInfos[infoIndex][i].setPrimitiveCount(pRangeInfos[i].primitiveCount)
+					                    .setFirstVertex(pRangeInfos[i].firstVertex);
+			}
+
+			geometryInfos[infoIndex] = vk::AccelerationStructureBuildGeometryInfoKHR()
+				                       .setFlags(vk::BuildAccelerationStructureFlagBitsKHR::eAllowCompaction)
+				                       .setType(VkEnumAccelerationStructureTypeKHR(geometryInfo.type).Get())
+				                       .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+				                       .setDstAccelerationStructure(static_cast<VkWrapperAccelerationStructure*>(geometryInfo.dstAccelerationStructure)->accelerationStructure)
+				                       .setGeometryCount(geometryInfo.geometryCount)
+				                       .setPGeometries(geometries[infoIndex])
+				                       .setScratchData(vk::DeviceOrHostAddressKHR().setDeviceAddress(
+										   device.getBufferAddress(vk::BufferDeviceAddressInfo()
+											   .setBuffer(static_cast<VkWrapperBuffer*>(geometryInfo.scratchData)->buffer))));
+		}
+
+		commandBuffer.buildAccelerationStructuresKHR(geometryInfos, rangeInfos, dispatcher);
+
+		for (auto& pGeometries : geometries) delete[] pGeometries;
+		for (auto& pRangeInfos : rangeInfos) delete[] pRangeInfos;
+
+		auto barrier = vk::MemoryBarrier()
+			.setSrcAccessMask(vk::AccessFlagBits::eAccelerationStructureWriteKHR)
+			.setDstAccessMask(vk::AccessFlagBits::eAccelerationStructureReadKHR);
+		
+		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eAccelerationStructureBuildKHR,
+			                          vk::PipelineStageFlagBits::eAccelerationStructureBuildKHR,
+			                          vk::DependencyFlags(), barrier, nullptr, nullptr);
+	}
+
+	void VkWrapperCommandBuffer::TraceRays(const rhi::BufferStridedRegion& raygenShaderBindingTable,
+		                                   const rhi::BufferStridedRegion& missShaderBindingTable,
+		                                   const rhi::BufferStridedRegion& hitShaderBindingTable,
+		                                   const rhi::BufferStridedRegion& callableShaderBindingTable,
+		                                   uint32_t width, uint32_t height, uint32_t depth) {
+		auto raygenSbt = vk::StridedDeviceAddressRegionKHR()
+			.setSize(raygenShaderBindingTable.size)
+			.setStride(raygenShaderBindingTable.stride)
+			.setDeviceAddress(raygenShaderBindingTable.buffer ? device.getBufferAddress(
+				vk::BufferDeviceAddressInfo().setBuffer(
+					static_cast<VkWrapperBuffer*>(raygenShaderBindingTable.buffer)->buffer))
+				+ raygenShaderBindingTable.offset : 0);
+		auto missSbt = vk::StridedDeviceAddressRegionKHR()
+			.setSize(missShaderBindingTable.size)
+			.setStride(missShaderBindingTable.stride)
+			.setDeviceAddress(missShaderBindingTable.buffer ? device.getBufferAddress(
+				vk::BufferDeviceAddressInfo().setBuffer(
+					static_cast<VkWrapperBuffer*>(missShaderBindingTable.buffer)->buffer))
+				+ missShaderBindingTable.offset : 0);
+		auto hitSbt = vk::StridedDeviceAddressRegionKHR()
+			.setSize(hitShaderBindingTable.size)
+			.setStride(hitShaderBindingTable.stride)
+			.setDeviceAddress(hitShaderBindingTable.buffer ? device.getBufferAddress(
+				vk::BufferDeviceAddressInfo().setBuffer(
+					static_cast<VkWrapperBuffer*>(hitShaderBindingTable.buffer)->buffer))
+				+ hitShaderBindingTable.offset : 0);
+		auto callableSbt = vk::StridedDeviceAddressRegionKHR()
+			.setSize(callableShaderBindingTable.size)
+			.setStride(callableShaderBindingTable.stride)
+			.setDeviceAddress(callableShaderBindingTable.buffer ? device.getBufferAddress(
+				vk::BufferDeviceAddressInfo().setBuffer(
+					static_cast<VkWrapperBuffer*>(callableShaderBindingTable.buffer)->buffer))
+				+ callableShaderBindingTable.offset : 0);
+
+		commandBuffer.traceRaysKHR(raygenSbt, missSbt, hitSbt, callableSbt,
+			                       width, height, depth, dispatcher);
 	}
 
 
@@ -1176,7 +1591,7 @@ namespace engine {
 		device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	}
 
-	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageViewInfo imageViewInfo) {
+	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageLayout imageLayout, rhi::ImageViewInfo imageViewInfo) {
 		if (imageView) {
 			device.destroy(imageView);
 			imageView = nullptr;
@@ -1206,7 +1621,7 @@ namespace engine {
 		
 		auto descriptorImageInfo = vk::DescriptorImageInfo()
 			.setImageView(imageView)
-			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+			.setImageLayout(VkEnumImageLayout(imageLayout).Get());
 
 		auto writeDescriptorSet = vk::WriteDescriptorSet()
 			.setDstSet(descriptorSet)
@@ -1230,6 +1645,21 @@ namespace engine {
 			.setDescriptorCount(1)
 			.setDescriptorType(VkEnumDescriptorType(descriptorType).Get())
 			.setPImageInfo(&descriptorImageInfo);
+
+		device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+	}
+
+	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::AccelerationStructure accelerationStructure) {
+		auto descriptorAccelerationStructureInfo = vk::WriteDescriptorSetAccelerationStructureKHR()
+			.setAccelerationStructures(static_cast<VkWrapperAccelerationStructure*>(accelerationStructure)->accelerationStructure);
+
+		auto writeDescriptorSet = vk::WriteDescriptorSet()
+			.setDstSet(descriptorSet)
+			.setDstBinding(dstBinding)
+			.setDstArrayElement(0)
+			.setDescriptorCount(1)
+			.setDescriptorType(VkEnumDescriptorType(descriptorType).Get())
+			.setPNext(&descriptorAccelerationStructureInfo);
 
 		device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 	}
@@ -1260,11 +1690,7 @@ namespace engine {
 
 	void VkWrapperInstance::Destroy() {
 #ifdef _DEBUG
-		vk::DynamicLoader dl;
-		PFN_vkGetInstanceProcAddr GetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
-		vk::DispatchLoaderDynamic dispatch(instance, GetInstanceProcAddr);
-
-		instance.destroy(debugMessenger, nullptr, dispatch);
+		instance.destroy(debugMessenger, nullptr, dispatcher);
 #endif // _DEBUG
 
 		instance.destroy();
@@ -1356,6 +1782,11 @@ namespace engine {
 
 	void VkWrapperFence::Destroy() {
 		device.destroy(fence);
+		delete this;
+	}
+
+	void VkWrapperAccelerationStructure::Destroy() {
+		device.destroy(accelerationStructure, nullptr, dispatcher);
 		delete this;
 	}
 

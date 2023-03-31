@@ -62,6 +62,7 @@ namespace engine {
 		static constexpr auto gs_profile = L"gs_6_6";
 		static constexpr auto ps_profile = L"ps_6_6";
 		static constexpr auto cs_profile = L"cs_6_6";
+		static constexpr auto lib_profile = L"lib_6_4";
 	};
 
 	class ShaderCompiler {
@@ -80,6 +81,7 @@ namespace engine {
 		void SetSpirvRegisterShift(const wchar_t* registerType, const wchar_t* bindingShift, const wchar_t* space);
 		void SetSpirvBindGlobals(const wchar_t* binding, const wchar_t* descSet);
 		void SetSpirvBindRegister(const wchar_t* registerSlot, const wchar_t* space, const wchar_t* binding, const wchar_t* descSet);
+		void SetSpirvRayTracing();
 
 		// see more optimization information in http://khr.io/hlsl2spirv#optimization
 		void ConfigSpirvOptimization(const wchar_t* info);

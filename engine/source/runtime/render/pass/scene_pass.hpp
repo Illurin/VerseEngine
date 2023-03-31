@@ -42,9 +42,11 @@ namespace engine {
 
 	private:
 		rhi::Buffer                     vertexBuffer{ nullptr };
+		rhi::Buffer                     indexBuffer{ nullptr };
+		std::vector<rhi::Buffer>        objectBuffers;
 		rhi::Buffer                     passUniformBuffer{ nullptr };
 		rhi::Buffer                     uploaderBuffer{ nullptr };
-		rhi::Image                      textureImage{ nullptr };
+		std::vector<rhi::Image>         textureImages{nullptr};
 		rhi::Sampler                    sampler{ nullptr };
 
 		rhi::DescriptorPool             descriptorPool{ nullptr };

@@ -3,6 +3,8 @@
 #include "base_pass.hpp"
 
 #include "runtime/resource/asset_loader/image/image_loader.hpp"
+#include "runtime/system/time.hpp"
+#include "runtime/system/platform/input_system.hpp"
 
 namespace engine {
 
@@ -55,6 +57,8 @@ namespace engine {
 		rhi::RenderPass                 renderPass{ nullptr };
 		rhi::Pipeline                   pipeline{ nullptr };
 		std::vector<rhi::Framebuffer>   framebuffers;
+
+		math::Vector2f                  movement{ 0.0f, 0.0f };
 	};
 
 }

@@ -1,4 +1,4 @@
-#include "system/engine.hpp"
+#include "runtime/system/engine.hpp"
 
 using namespace engine;
 
@@ -9,6 +9,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 	uint32_t initialWidth = 640;
 	uint32_t initialHeight = 480;
+
+	// Initialize window system
 
 	win32::WindowSystem windowSystem(hInstance, lpCmdLine, nCmdShow);
 	auto windowCreateInfo = win32::WindowCreateInfo()
@@ -23,9 +25,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		.SetHInstance(windowSystem.GetHInstance())
 		.SetHWnd(windowSystem.GetMainHWnd());
 
+	// Initialize input system
+
+	win32::DirectInputSystem inputSystem(hInstance);
+	auto keyboradDevice = inputSystem.CreateKeyBoardInputSystem(windowSystem.GetMainHWnd());
+	auto mouseDevice = inputSystem.CreateMouseInputSystem(windowSystem.GetMainHWnd());
+	input::Init(&keyboradDevice, &mouseDevice);
+
+	// Start engine
+
 	engine.Start(platformInfo);
 
 	while (true) {
+		keyboradDevice.Update();
+		mouseDevice.Update();
 		engine.Run();
 
 		if (!windowSystem.MessageLoop()) {

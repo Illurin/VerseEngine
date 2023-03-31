@@ -21,17 +21,18 @@ namespace engine {
 		auto deviceInfo = rhi::DeviceCreateInfo()
 			.SetPhysicalDeviceId(1)
 			.SetPQueueCreateInfos(&queueInfo)
-			.SetQueueCreateInfoCount(1);
+			.SetQueueCreateInfoCount(1)
+			.SetDeviceExtension(rhi::DeviceExtension().SetRayTracingEnabled(true));
 		
 		device = instance->CreateDevice(deviceInfo);
 
 		queue = device->GetQueue(0);
-
+		
 		auto swapchainInfo = rhi::SwapchainCreateInfo()
 			.SetFormat(swapchainFormat)
 			.SetFrameCount(frameCount)
 			.SetAlphaMode(rhi::AlphaMode::Opaque)
-			.SetImageUsage(rhi::ImageUsage::ColorAttachment)
+			.SetImageUsage(rhi::ImageUsage::Storage)
 			.SetPlatformInfo(platformInfo)
 			.SetQueue(queue);
 
@@ -43,14 +44,22 @@ namespace engine {
 		auto shaderCompiler = instance->CreateShaderCompiler();
 
 		// render pass
-		DebugPassInfo defaultPassInfo;
-		defaultPassInfo.device = device;
-		defaultPassInfo.colorFormat = swapchainFormat;
-		defaultPassInfo.renderExtent = renderExtent;
-		defaultPassInfo.colorAttachments = swapchainImages;
-		defaultPassInfo.shaderCompiler = &shaderCompiler;
-		defaultPass.Init(defaultPassInfo);
+		//DebugPassInfo defaultPassInfo;
+		//defaultPassInfo.device = device;
+		//defaultPassInfo.colorFormat = swapchainFormat;
+		//defaultPassInfo.renderExtent = renderExtent;
+		//defaultPassInfo.colorAttachments = swapchainImages;
+		//defaultPassInfo.shaderCompiler = &shaderCompiler;
+		//defaultPass.Init(defaultPassInfo);
 
+		RayTracingPassInfo rayTracingPassInfo;
+		rayTracingPassInfo.device = device;
+		rayTracingPassInfo.colorFormat = swapchainFormat;
+		rayTracingPassInfo.renderExtent = renderExtent;
+		rayTracingPassInfo.colorAttachments = swapchainImages;
+		rayTracingPassInfo.shaderCompiler = &shaderCompiler;
+		rayTracingPass.Init(rayTracingPassInfo);
+		
 		auto commandPoolInfo = rhi::CommandPoolCreateInfo()
 			.SetQueue(queue);
 		commandPool = device->CreateCommandPool(commandPoolInfo);
@@ -61,12 +70,13 @@ namespace engine {
 
 	void Engine::Run() {
 		CalculateDeltaTime();
-		CalculateFPS();
+		CalculateFps();
 		Tick();
 	}
 
 	void Engine::Exit() {
-		defaultPass.Destroy();
+		//defaultPass.Destroy();
+		rayTracingPass.Destroy();
 		fence->Destroy();
 		swapchain->Destroy();
 		commandPool->Destroy();
@@ -80,7 +90,7 @@ namespace engine {
 	}
 
 	void Engine::LogicalTick() {
-
+		
 	}
 
 	void Engine::RendererTick() {
@@ -91,8 +101,11 @@ namespace engine {
 		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
 
 		// render pass
-		defaultPass.PreparePassData(commandBuffer);
-		defaultPass.Draw(swapchainImageIndex, commandBuffer);
+		//defaultPass.PreparePassData(commandBuffer);
+		//defaultPass.Draw(swapchainImageIndex, commandBuffer);
+
+		rayTracingPass.PreparePassData(commandBuffer);
+		rayTracingPass.Draw(swapchainImageIndex, commandBuffer);
 
 		commandBuffer->End();
 		
@@ -105,11 +118,12 @@ namespace engine {
 	void Engine::CalculateDeltaTime() {
 		auto currentTimePoint = std::chrono::steady_clock::now();
 		std::chrono::duration<double> elapsed = currentTimePoint - timePoint;
-		deltaTime = elapsed.count();
+		timePoint = currentTimePoint;
+		Time::SetDeltaTime(elapsed.count());
 	}
 
-	void Engine::CalculateFPS() {
-		fps = 1.0 / deltaTime;
+	void Engine::CalculateFps() {
+		Time::SetFps(1.0 / Time::GetDeltaTime());
 	}
 
 }

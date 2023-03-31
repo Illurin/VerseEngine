@@ -55,9 +55,9 @@ namespace engine {
 				result.vertices.emplace_back(vertex);
 			}
 
-			for (size_t i = 0; i < mesh->mNumFaces; i++) {
+			for (std::size_t i = 0; i < mesh->mNumFaces; i++) {
 				aiFace face = mesh->mFaces[i];
-				for (size_t j = 0; j < face.mNumIndices; j++)
+				for (std::size_t j = 0; j < face.mNumIndices; j++)
 					result.indices.push_back(face.mIndices[j]);
 			}
 

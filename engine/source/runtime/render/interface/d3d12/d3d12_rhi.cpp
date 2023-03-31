@@ -94,9 +94,11 @@ namespace engine {
 	ShaderCompiler D3D12WrapperInstance::CreateShaderCompiler() const {
 		ShaderCompiler shaderCompiler;
 		shaderCompiler.AddArgument(ShaderCompileArgument::matrix_column_major);
+		shaderCompiler.AddIncludePath(StringToWString(GlobalConfig::configPath).c_str());
+#ifdef _DEBUG
 		shaderCompiler.AddArgument(ShaderCompileArgument::enable_debug_info);
 		shaderCompiler.AddArgument(ShaderCompileArgument::treat_warnings_as_errors);
-		shaderCompiler.AddIncludePath(StringToWString(GlobalConfig::configPath).c_str());
+#endif // _DEBUG
 		return shaderCompiler;
 	}
 
@@ -109,6 +111,19 @@ namespace engine {
 			throw std::runtime_error("Queue index out of range");
 		}
 		return queues[queueIndex];
+	}
+
+	rhi::AccelerationStructureBuildSizesInfo D3D12WrapperDevice::GetAccelerationStructureBuildSizes(const rhi::AccelerationStructureBuildGeometryInfo&,
+		                                                                                            const uint32_t* pMaxPrimitiveCounts) const {
+		return {};
+	}
+
+	rhi::RayTracingShaderGroupHandleRequirement D3D12WrapperDevice::GetRayTracingShaderGroupHandleRequirement() const {
+		return {};
+	}
+
+	std::vector<uint8_t> D3D12WrapperDevice::GetRayTracingShaderGroupHandles(rhi::Pipeline pipeline, uint32_t firstGroup, uint32_t groupCount) const {
+		return std::vector<uint8_t>();
 	}
 
 	rhi::Swapchain D3D12WrapperDevice::CreateSwapchain(const rhi::SwapchainCreateInfo& info) const {
@@ -186,6 +201,11 @@ namespace engine {
 		return bufferWrapper;
 	}
 
+	rhi::Buffer D3D12WrapperDevice::CreateBuffer(uint32_t instanceCount, const rhi::AccelerationStructureGeometryInstance*) const {
+		throw std::runtime_error("DirectX backend do not support acceleration structure");
+		return new D3D12WrapperBuffer();
+	}
+
 	rhi::Image D3D12WrapperDevice::CreateImage(const rhi::ImageCreateInfo& info) const {
 		D3D12_RESOURCE_DESC resourceDesc = {};
 		resourceDesc.Format = D3D12EnumFormat(info.format).Get();
@@ -214,6 +234,10 @@ namespace engine {
 		auto imageWrapper = new D3D12WrapperImage();
 		imageWrapper->resource = resource;
 		return imageWrapper;
+	}
+
+	rhi::AccelerationStructure D3D12WrapperDevice::CreateAccelerationStructure(const rhi::AccelerationStructureCreateInfo&) const {
+		return new D3D12WrapperAccelerationStructure();
 	}
 
 	rhi::Sampler D3D12WrapperDevice::CreateSampler(const rhi::SamplerCreateInfo& info) const {
@@ -506,7 +530,7 @@ namespace engine {
 			}
 		}
 		
-		pipelineDesc.rootSignature.value = static_cast<D3D12WrapperPipelineLayout*>(info.pipelineLayout)->rootSignature;
+		pipelineDesc.rootSignature.value = static_cast<D3D12WrapperPipelineLayout*>(info.layout)->rootSignature;
 		
 		D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
 		streamDesc.SizeInBytes = sizeof(pipelineDesc);
@@ -537,7 +561,7 @@ namespace engine {
 
 		auto pipelineWrapper = new D3D12WrapperPipeline();
 		pipelineWrapper->pipeline = pipeline;
-		pipelineWrapper->rootSignature = static_cast<D3D12WrapperPipelineLayout*>(info.pipelineLayout)->rootSignature;
+		pipelineWrapper->rootSignature = static_cast<D3D12WrapperPipelineLayout*>(info.layout)->rootSignature;
 		pipelineWrapper->scissors = scissors;
 		pipelineWrapper->viewports = viewports;
 		pipelineWrapper->primitiveTopology = info.inputAssemblyInfo.topology == rhi::PrimitiveTopology::PatchList ?
@@ -552,6 +576,11 @@ namespace engine {
 		pipelineWrapper->depthStencilInfo.minDepthBounds = info.depthStencilInfo.maxDepthBounds;
 		pipelineWrapper->depthStencilInfo.maxDepthBounds = info.depthStencilInfo.maxDepthBounds;
 		return pipelineWrapper;
+	}
+
+	rhi::Pipeline D3D12WrapperDevice::CreateRayTracingPipeline(const rhi::RayTracingPipelineCreateInfo&) const {
+		throw std::runtime_error("Direct3D 12 backend does not support ray tracing");
+		return new D3D12WrapperPipeline();
 	}
 
 	rhi::Framebuffer D3D12WrapperDevice::CreateFramebuffer(const rhi::FramebufferCreateInfo& info) const {
@@ -1062,6 +1091,15 @@ namespace engine {
 		commandList->CopyTextureRegion(&dst, imageRegion.offset.x, imageRegion.offset.y, imageRegion.offset.z, &src, nullptr);
 	}
 
+	void D3D12WrapperCommandBuffer::BuildAccelerationStructures(uint32_t infoCount,
+		                                                        const rhi::AccelerationStructureBuildGeometryInfo*,
+		                                                        const rhi::AccelerationStructureBuildRangeInfo* const*) {}
+
+	void D3D12WrapperCommandBuffer::TraceRays(const rhi::BufferStridedRegion& raygenShaderBindingTable,
+			                                  const rhi::BufferStridedRegion& missShaderBindingTable,
+			                                  const rhi::BufferStridedRegion& hitShaderBindingTable,
+				                              const rhi::BufferStridedRegion& callableShaderBindingTable,
+				                              uint32_t width, uint32_t height, uint32_t depth) {}
 
 	/* -------------------- D3D12WrapperBuffer -------------------- */
 
@@ -1245,7 +1283,7 @@ namespace engine {
 		device->CreateConstantBufferView(&cbvDesc, GetDstBindingHandle(dstBinding));
 	}
 
-	void D3D12WrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageViewInfo imageViewInfo) {
+	void D3D12WrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageLayout, rhi::ImageViewInfo imageViewInfo) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Format = D3D12EnumFormat(imageViewInfo.format).Get();
 		srvDesc.ViewDimension = D3D12EnumSRVDimension(imageViewInfo.viewType).Get();
@@ -1338,6 +1376,10 @@ namespace engine {
 		device->CreateSampler(&samplerDesc, GetDstBindingHandle(dstBinding));
 	}
 
+	void D3D12WrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType, rhi::AccelerationStructure) {
+
+	}
+
 
 	/* -------------------- D3D12WrapperFence -------------------- */
 
@@ -1418,6 +1460,11 @@ namespace engine {
 	}
 
 	void D3D12WrapperImage::Destroy() {
+		resource->Release();
+		delete this;
+	}
+	
+	void D3D12WrapperAccelerationStructure::Destroy() {
 		resource->Release();
 		delete this;
 	}

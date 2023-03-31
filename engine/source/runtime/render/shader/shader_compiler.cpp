@@ -63,6 +63,13 @@ namespace engine {
 		arguments.emplace_back(descSet);
 	}
 
+	void ShaderCompiler::SetSpirvRayTracing() {
+		SetSpirvTargetEnv(L"vulkan1.2");
+		AddSpirvExtension(L"SPV_KHR_non_semantic_info");
+		AddSpirvExtension(L"SPV_KHR_ray_tracing");
+		AddSpirvExtension(L"SPV_KHR_ray_query");
+	}
+
 	void ShaderCompiler::ConfigSpirvOptimization(const wchar_t* info) {
 		arguments.emplace_back(std::wstring(L"-Oconfig=") + info);
 	}
@@ -110,9 +117,9 @@ namespace engine {
 			dxcCompileResult = nullptr;
 		}
 
-		dxcCompiler->Compile(&dxcSourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()), dxcIncludeHandler, IID_PPV_ARGS(&dxcCompileResult));
+		auto result = dxcCompiler->Compile(&dxcSourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()), dxcIncludeHandler, IID_PPV_ARGS(&dxcCompileResult));
 
-		if (!dxcCompileResult) {
+		if (!SUCCEEDED(result)) {
 			throw std::runtime_error("Cannot compile the shader file");
 		}
 

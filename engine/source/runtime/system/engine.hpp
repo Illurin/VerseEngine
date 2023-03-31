@@ -1,7 +1,9 @@
 #pragma once
 
 #include "runtime/system/global_config.hpp"
+#include "runtime/system/time.hpp"
 #include "runtime/system/platform/platform_info.hpp"
+#include "runtime/system/platform/input_system.hpp"
 #include "runtime/render/interface/rhi_instance.hpp"
 #include "runtime/math/math.hpp"
 #include "runtime/resource/asset_loader/image/image_loader.hpp"
@@ -18,21 +20,16 @@ namespace engine {
 		void Run();
 		void Exit();
 
-		double GetDeltaTime() const { return deltaTime; }
-		double GetFPS() const { return fps; }
-
 	private:
 		void Tick();
 		void LogicalTick();
 		void RendererTick();
 
 		void CalculateDeltaTime();
-		void CalculateFPS();
+		void CalculateFps();
 
 	private:
 		std::chrono::time_point<std::chrono::steady_clock> timePoint;
-		double deltaTime{ 0.0f };
-		double fps{ 0.0f };
 
 	private:
 		rhi::Extent2D renderExtent{ 0, 0 };
@@ -50,6 +47,7 @@ namespace engine {
 
 	private:
 		DebugPass defaultPass;
+		RayTracingPass rayTracingPass;
 	};
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "runtime/math/math.hpp"
+#include "interface/rhi.hpp"
 
 namespace engine {
 

@@ -4,22 +4,32 @@
 
 namespace engine {
 
-	class Scene {
+	class IScene {
 	public:
+		virtual ~IScene();
+
 		void Start();
 		void Update();
-		void Clear();
 
-		void AddSystem(ISystem* system) { systems.emplace_back(system); }
+		ecs::registry& GetRegistry() { return registry; }
+
+		void SetCamera(Camera& camera) { this->camera = camera; }
+		void AddSystem(std::unique_ptr<ISystem> pSystem) { systems.emplace_back(std::move(pSystem)); }
 
 	private:
+		Camera camera;
 		ecs::registry registry;
-		std::vector<ISystem*> systems;
+		std::vector<std::unique_ptr<ISystem>> systems;
 	};
 
-	class MainScene final : public Scene {
+	class MainScene final : public IScene {
 	public:
 		MainScene();
+		~MainScene();
+
+	private:
+		rhi::Sampler sampler;
+		rhi::Image image;
 	};
 
 }

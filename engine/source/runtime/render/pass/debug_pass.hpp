@@ -25,8 +25,8 @@ namespace engine {
 		void Init(const DebugPassInfo& info);
 		void Destroy() override;
 
-		void PreparePassData(rhi::CommandBuffer commandBuffer) override;
-		void Draw(uint32_t frame, rhi::CommandBuffer commandBuffer) override;
+		void PreparePassData(rhi::CommandBuffer commandBuffer);
+		void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) override;
 
 	private:
 		void BuildBuffers();

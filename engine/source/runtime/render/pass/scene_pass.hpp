@@ -6,57 +6,28 @@
 
 namespace engine {
 
-	struct ScenePassInfo {
-		rhi::Device             device;
-		ShaderCompiler*         shaderCompiler;
-
-		rhi::Format             colorFormat;
-		rhi::Extent2D           renderExtent;
-		std::vector<rhi::Image> colorAttachments;
-	};
-	
-	class ScenePass : public BasePass {
+	class ScenePass {
 	public:
-		ScenePass() {}
-		explicit ScenePass(const ScenePassInfo& info) { Init(info); }
+		ScenePass();
+		~ScenePass();
 
-		void Init(const ScenePassInfo& info);
-		void Destroy() override;
+		void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer);
 
-		void PreparePassData(rhi::CommandBuffer commandBuffer) override;
-		void Draw(uint32_t frame, rhi::CommandBuffer commandBuffer) override;
+		std::vector<rhi::DescriptorSetLayout> GetDescriptorSetLayouts() const { return descriptorSetLayouts; }
+		rhi::PipelineLayout GetPipelineLayout() const { return pipelineLayout; }
 
 	private:
-		void BuildBuffers();
-		void BuildSamplers();
-		void BuildImages();
 		void BuildDescriptorLayout();
-		void BuildDescriptorSets();
 		void BuildRenderPass();
 		void BuildPipeline();
 		void BuildFramebuffers();
 
 	private:
-		ScenePassInfo                   info{};
-		bool                            passDataPrepared{ false };
-
-	private:
-		rhi::Buffer                     vertexBuffer{ nullptr };
-		rhi::Buffer                     indexBuffer{ nullptr };
-		std::vector<rhi::Buffer>        objectBuffers;
-		rhi::Buffer                     passUniformBuffer{ nullptr };
-		rhi::Buffer                     uploaderBuffer{ nullptr };
-		std::vector<rhi::Image>         textureImages{nullptr};
-		rhi::Sampler                    sampler{ nullptr };
-
-		rhi::DescriptorPool             descriptorPool{ nullptr };
-		std::vector<rhi::DescriptorSet> descriptorSets;
-		rhi::DescriptorSetLayout        descriptorSetLayout{ nullptr };
-		rhi::PipelineLayout             pipelineLayout{ nullptr };
-
-		rhi::RenderPass                 renderPass{ nullptr };
-		rhi::Pipeline                   pipeline{ nullptr };
-		std::vector<rhi::Framebuffer>   framebuffers;
+		std::vector<rhi::DescriptorSetLayout> descriptorSetLayouts{ nullptr };
+		rhi::PipelineLayout                   pipelineLayout{ nullptr };
+		rhi::RenderPass                       renderPass{ nullptr };
+		rhi::Pipeline                         pipeline{ nullptr };
+		std::vector<rhi::Framebuffer>         framebuffers;
 	};
 
 }

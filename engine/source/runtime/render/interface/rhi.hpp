@@ -76,6 +76,7 @@ namespace engine {
 		public:
 			virtual void Destroy() = 0;
 
+			virtual rhi::Format GetFormat() const = 0;
 			virtual rhi::Extent2D GetImageExtent() const = 0;
 			virtual std::vector<rhi::Image> GetImages() const = 0;
 		};

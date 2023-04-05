@@ -411,7 +411,9 @@ namespace engine {
 		passDataPrepared = true;
 	}
 
-	void DebugPass::Draw(uint32_t frame, rhi::CommandBuffer commandBuffer) {
+	void DebugPass::Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) {
+		PreparePassData(commandBuffer);
+
 		auto clearColorValue = rhi::ClearColorValue().SetColorValue(std::array<float, 4>({ 0.0f, 0.0f, 0.0f, 0.0f }));
 
 		auto renderPassBeginInfo = rhi::RenderPassBeginInfo()

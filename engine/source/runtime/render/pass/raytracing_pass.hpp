@@ -21,8 +21,8 @@ namespace engine {
 		void Init(const RayTracingPassInfo& info);
 		void Destroy() override;
 
-		virtual void PreparePassData(rhi::CommandBuffer commandBuffer) override;
-		virtual void Draw(uint32_t frame, rhi::CommandBuffer commandBuffer) override;
+		virtual void PreparePassData(rhi::CommandBuffer commandBuffer);
+		virtual void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) override;
 
 	private:
 		void BuildBuffers();

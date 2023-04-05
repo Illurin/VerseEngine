@@ -365,7 +365,9 @@ namespace engine {
 		}
 	}
 
-	void RayTracingPass::Draw(uint32_t frame, rhi::CommandBuffer commandBuffer) {
+	void RayTracingPass::Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) {
+		PreparePassData(commandBuffer);
+
 		auto imageMemoryBarrier = rhi::ImageMemoryBarrierInfo()
 			.SetImage(info.colorAttachments[frame])
 			.SetOldLayout(rhi::ImageLayout::Present)

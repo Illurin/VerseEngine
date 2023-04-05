@@ -21,13 +21,19 @@ namespace engine {
 		math::Vector2f texCoord;
 	};
 
-	struct ObjectConstants {
-		math::Matrix4f worldMatrix;
-	};
-
 	struct PassConstants {
 		math::Matrix4f viewMatrix;
 		math::Matrix4f projMatrix;
+	};
+
+	struct ObjectConstants {
+		std::array<std::array<float, 4>, 3> worldMatrix;
+	};
+
+	struct MaterialConstants {
+		math::Vector3f diffuseAlbedo;
+		math::Vector3f fresnelR0;
+		float shiniess;
 	};
 
 }

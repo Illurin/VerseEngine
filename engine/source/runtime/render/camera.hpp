@@ -6,6 +6,7 @@ namespace engine {
 
 	class Camera {
 	public:
+		Camera() {}
 		explicit Camera(float aspect);
 
 		math::Vector3f GetPosition() const { return position; }

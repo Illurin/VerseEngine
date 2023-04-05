@@ -166,6 +166,7 @@ namespace engine {
 		auto swapchainWrapper = new D3D12WrapperSwapchain();
 		swapchainWrapper->swapchain = swapchain;
 		swapchainWrapper->images = swapchainImages;
+		swapchainWrapper->format = info.format;
 		swapchainWrapper->imageExtent = rhi::Extent2D().SetWidth(swapchainDesc.Width).SetHeight(swapchainDesc.Height);
 		return swapchainWrapper;
 	}
@@ -732,6 +733,10 @@ namespace engine {
 
 	/* -------------------- D3D12WrapperSwapchain -------------------- */
 
+
+	rhi::Format D3D12WrapperSwapchain::GetFormat() const {
+		return format;
+	}
 
 	rhi::Extent2D D3D12WrapperSwapchain::GetImageExtent() const {
 		return imageExtent;

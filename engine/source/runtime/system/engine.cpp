@@ -7,65 +7,27 @@ namespace engine {
 	}
 
 	void Engine::Start(const PlatformInfo& platformInfo) {
+
+		// Initialize render device
+
 		auto instanceInfo = rhi::InstanceCreateInfo()
-			//.SetPApiName("Direct3D12")
-			.SetPApiName("Vulkan")
+			.SetApplicationVersion(1)
 			.SetPApplicationName("Test application")
-			.SetApplicationVersion(1);
-		
-		instance = rhi::CreateInstance(instanceInfo);
+			.SetPApiName("Vulkan");
+		RenderDevice::Initialize(instanceInfo);
 
-		auto queueInfo = rhi::QueueCreateInfo()
-			.SetQueueType(rhi::QueueType::Graphics);
-		
-		auto deviceInfo = rhi::DeviceCreateInfo()
-			.SetPhysicalDeviceId(1)
-			.SetPQueueCreateInfos(&queueInfo)
-			.SetQueueCreateInfoCount(1)
-			.SetDeviceExtension(rhi::DeviceExtension().SetRayTracingEnabled(true));
-		
-		device = instance->CreateDevice(deviceInfo);
-
-		queue = device->GetQueue(0);
-		
 		auto swapchainInfo = rhi::SwapchainCreateInfo()
-			.SetFormat(swapchainFormat)
-			.SetFrameCount(frameCount)
+			.SetFrameCount(2)
 			.SetAlphaMode(rhi::AlphaMode::Opaque)
-			.SetImageUsage(rhi::ImageUsage::Storage)
+			.SetImageUsage(rhi::ImageUsage::ColorAttachment)
 			.SetPlatformInfo(platformInfo)
-			.SetQueue(queue);
+			.SetQueue(RenderDevice::GetQueue());
+		RenderDevice::SetSwapchain(swapchainInfo);
 
-		swapchain = device->CreateSwapchain(swapchainInfo);
+		// Create main scene
 
-		renderExtent = swapchain->GetImageExtent();
-		auto swapchainImages = swapchain->GetImages();
-
-		auto shaderCompiler = instance->CreateShaderCompiler();
-
-		// render pass
-		//DebugPassInfo defaultPassInfo;
-		//defaultPassInfo.device = device;
-		//defaultPassInfo.colorFormat = swapchainFormat;
-		//defaultPassInfo.renderExtent = renderExtent;
-		//defaultPassInfo.colorAttachments = swapchainImages;
-		//defaultPassInfo.shaderCompiler = &shaderCompiler;
-		//defaultPass.Init(defaultPassInfo);
-
-		RayTracingPassInfo rayTracingPassInfo;
-		rayTracingPassInfo.device = device;
-		rayTracingPassInfo.colorFormat = swapchainFormat;
-		rayTracingPassInfo.renderExtent = renderExtent;
-		rayTracingPassInfo.colorAttachments = swapchainImages;
-		rayTracingPassInfo.shaderCompiler = &shaderCompiler;
-		rayTracingPass.Init(rayTracingPassInfo);
-		
-		auto commandPoolInfo = rhi::CommandPoolCreateInfo()
-			.SetQueue(queue);
-		commandPool = device->CreateCommandPool(commandPoolInfo);
-		commandBuffers = commandPool->AllocateCommandBuffers(frameCount);
-
-		fence = device->CreateFence(rhi::FenceCreateInfo());
+		pScene = std::make_unique<MainScene>();
+		pScene->Start();
 	}
 
 	void Engine::Run() {
@@ -75,44 +37,12 @@ namespace engine {
 	}
 
 	void Engine::Exit() {
-		//defaultPass.Destroy();
-		rayTracingPass.Destroy();
-		fence->Destroy();
-		swapchain->Destroy();
-		commandPool->Destroy();
-		device->Destroy();
-		instance->Destroy();
+		pScene.reset();
+		RenderDevice::Clear();
 	}
 
 	void Engine::Tick() {
-		LogicalTick();
-		RendererTick();
-	}
-
-	void Engine::LogicalTick() {
-		
-	}
-
-	void Engine::RendererTick() {
-		uint32_t swapchainImageIndex = queue->AcquireNextImage(swapchain);
-		auto& commandBuffer = commandBuffers[swapchainImageIndex];
-		
-		commandBuffer->Reset();
-		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
-
-		// render pass
-		//defaultPass.PreparePassData(commandBuffer);
-		//defaultPass.Draw(swapchainImageIndex, commandBuffer);
-
-		rayTracingPass.PreparePassData(commandBuffer);
-		rayTracingPass.Draw(swapchainImageIndex, commandBuffer);
-
-		commandBuffer->End();
-		
-		fence->Reset();
-		queue->Submit(1, &commandBuffer, fence);
-		fence->Wait();
-		queue->Present(swapchain, swapchainImageIndex);
+		pScene->Update();
 	}
 
 	void Engine::CalculateDeltaTime() {

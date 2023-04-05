@@ -1,29 +1,39 @@
 #pragma once
 
 #include "system.hpp"
+#include "runtime/render/render_pass.hpp"
 
 namespace engine {
 
 	class RenderSystem : public ISystem {
 	public:
-		RenderSystem(rhi::Device device) : device(device) {}
-		void SetCommandBuffer(rhi::CommandBuffer cmd) { this->cmd = cmd; }
-		void Clear();
+		RenderSystem();
+		~RenderSystem();
 
 		void Start(ecs::registry& registry) override;
 		void Update(ecs::registry& registry) override;
 
-		void BuildVertexBuffers(ecs::registry& registry);
-		void BuildUniformBuffers(ecs::registry& registry);
+	private:
+		void BuildMeshes(ecs::registry& registry);
+		void BuildDescriptors(ecs::registry& registry);
 
 	private:
-		rhi::Device device{ nullptr };
-		rhi::CommandBuffer cmd{ nullptr };
+		rhi::CommandPool                      commandPool{ nullptr };
+		std::vector<rhi::CommandBuffer>       commandBuffers;
+		rhi::Fence                            fence{ nullptr };
 
-		rhi::Buffer vertexBuffer{ nullptr };
-		rhi::Buffer indexBuffer{ nullptr };
+		// Resource
 
-		rhi::DescriptorPool descriptorPool{ nullptr };
+		rhi::Buffer                           vertexBuffer{ nullptr };
+		rhi::Buffer                           indexBuffer{ nullptr };
+		rhi::Buffer                           passUniformBuffer{ nullptr };
+
+		rhi::DescriptorPool                   descriptorPool{ nullptr };
+		rhi::DescriptorSet                    passDescriptorSet{ nullptr };
+
+		// Render pass
+		
+		std::unique_ptr<ScenePass>            pScenePass;
 	};
 
 }

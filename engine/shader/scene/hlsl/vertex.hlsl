@@ -1,5 +1,8 @@
+#include "common.hlsl"
+
 struct VertexIn {
-	float2 position : Position;
+	float3 posW : WorldPos;
+	float3 normal : Normal;
 	float2 texCoord : TexCoord;
 };
 
@@ -17,7 +20,7 @@ ConstantBuffer<PassConstants> passConstants : register(b0, space0);
 VertexOut main(VertexIn input) {
 	VertexOut output;
 
-	output.posH = mul(passConstants.worldMatrix, float4(input.position, 0.0f, 1.0f));
+    output.posH = float4(input.posW, 1.0f);
 	output.texCoord = input.texCoord;
 
 	return output;

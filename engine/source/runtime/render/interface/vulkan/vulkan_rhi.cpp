@@ -415,6 +415,7 @@ namespace engine {
 		swapchainWrapper->surface = surface;
 		swapchainWrapper->swapchain = swapchain;
 		swapchainWrapper->images = swapchainImages;
+		swapchainWrapper->format = info.format;
 		swapchainWrapper->imageExtent = rhi::Extent2D().SetWidth(swapchainInfo.imageExtent.width).SetHeight(swapchainInfo.imageExtent.height);
 		return swapchainWrapper;
 	}
@@ -1115,6 +1116,10 @@ namespace engine {
 
 	/* -------------------- VkWrapperSwapchain -------------------- */
 
+
+	rhi::Format VkWrapperSwapchain::GetFormat() const {
+		return format;
+	}
 
 	rhi::Extent2D VkWrapperSwapchain::GetImageExtent() const {
 		return imageExtent;

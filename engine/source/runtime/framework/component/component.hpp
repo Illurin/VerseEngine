@@ -27,12 +27,16 @@ namespace engine {
 	};
 
 	struct MaterialComponent : public IComponent {
+		MaterialConstants constants;
 		rhi::Image texture{ nullptr };
 		rhi::Sampler sampler{ nullptr };
-		rhi::DescriptorSet desciptorSet{ nullptr };
+
+		rhi::Buffer uniformBuffer{ nullptr };
+		rhi::DescriptorSet descriptorSet{ nullptr };
 	};
 
 	struct CameraComponent : public IComponent {
+		bool active{ false };
 		Camera camera;
 	};
 

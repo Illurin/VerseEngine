@@ -124,6 +124,7 @@ namespace engine {
 	public:
 		void Destroy() override;
 
+		rhi::Format GetFormat() const override;
 		rhi::Extent2D GetImageExtent() const override;
 		std::vector<rhi::Image> GetImages() const override;
 
@@ -131,6 +132,7 @@ namespace engine {
 		vk::SurfaceKHR surface{ nullptr };
 		vk::SwapchainKHR swapchain{ nullptr };
 		std::vector<rhi::Image> images;
+		rhi::Format format{ 0 };
 		rhi::Extent2D imageExtent{};
 		uint32_t currentImageIndex{ 0 };
 	};

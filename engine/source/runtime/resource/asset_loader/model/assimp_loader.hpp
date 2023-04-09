@@ -1,7 +1,6 @@
 #pragma once
 
-#include "runtime/math/math.hpp"
-#include "runtime/system/file_system/path.hpp"
+#include "raw_model_data.hpp"
 
 #include "assimp/scene.h"
 #include "assimp/Importer.hpp"
@@ -12,44 +11,19 @@ namespace engine {
 
 		class AssimpModelLoader {
 		public:
-			AssimpModelLoader(const char* path);
+			AssimpModelLoader(std::filesystem::path path);
 
-			struct Vertex {
-				math::Vector3f position;
-				math::Vector3f normal;
-				math::Vector3f tangent;
-				math::Vector2f texCoord;
-			};
-
-			struct Texture {
-				std::string path;
-			};
-
-			struct Material {
-				Texture* diffuseMap;
-			};
-
-			struct Mesh {
-				std::string name;
-				std::vector<Vertex> vertices;
-				std::vector<uint32_t> indices;
-				Material material{ nullptr };
-			};
-
-			const std::vector<Mesh>& GetMeshes() const { return meshes; }
-			const std::vector<Texture>& GetTextures() const { return textures; }
-			const std::vector<Material>& GetMaterials() const { return materials; }
+			const std::vector<RawModelMesh>& GetMeshes() const { return meshes; }
 
 		private:
 			void ProcessNode(const aiScene* scene, aiNode* node);
-			Mesh ProcessMesh(const aiScene* scene, aiMesh* node);
-			Texture* ProcessTexture(aiMaterial* material, aiTextureType textureType);
+			RawModelMesh ProcessMesh(const aiScene* scene, aiMesh* node);
+			std::vector<RawModelTexture> ProcessTexture(aiMaterial* material, aiTextureType textureType);
 
-			std::vector<Mesh> meshes;
-			std::vector<Texture> textures;
-			std::vector<Material> materials;
+			std::vector<RawModelMesh> meshes;
+			std::vector<RawModelTexture> textures;
 
-			std::string directory;
+			std::filesystem::path directory;
 		};
 
 	}

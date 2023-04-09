@@ -230,6 +230,7 @@ namespace engine {
 
 	private:
 		ID3D12Resource* resource{ nullptr };
+		D3D12_RESOURCE_STATES states{ D3D12_RESOURCE_STATE_GENERIC_READ };
 		D3D12_RANGE range{};
 	};
 
@@ -250,6 +251,7 @@ namespace engine {
 
 	private:
 		ID3D12Resource* resource{ nullptr };
+		D3D12_RESOURCE_STATES states{ D3D12_RESOURCE_STATE_COMMON };
 	};
 
 	//
@@ -432,8 +434,8 @@ namespace engine {
 		friend class D3D12WrapperDevice;
 		friend class D3D12WrapperCommandBuffer;
 
-		std::vector<ID3D12Resource*> colorAttachments;
-		ID3D12Resource* depthStencilAttachment{ nullptr };
+		std::vector<D3D12WrapperImage*> colorAttachments;
+		D3D12WrapperImage* depthStencilAttachment{ nullptr };
 
 	public:
 		void Destroy() override;

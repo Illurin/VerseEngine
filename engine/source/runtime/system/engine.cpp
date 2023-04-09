@@ -2,8 +2,8 @@
 
 namespace engine {
 
-	Engine::Engine(const char* configPath) {
-		GlobalConfig::configPath = configPath; 
+	Engine::Engine(const char* directory) {
+		Path::SetDirectory(directory);
 	}
 
 	void Engine::Start(const PlatformInfo& platformInfo) {

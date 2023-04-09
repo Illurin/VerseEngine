@@ -14,6 +14,7 @@ namespace engine {
 		math::Matrix4f GetProjMatrix() const { return projMatrix; }
 
 		void SetLens(float fovY, float aspect, float nearZ, float farZ);
+		void SetPosition(math::Vector3f position);
 
 		void UpdataViewMatrix();
 

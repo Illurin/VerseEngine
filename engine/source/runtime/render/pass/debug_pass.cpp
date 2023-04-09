@@ -74,7 +74,7 @@ namespace engine {
 	}
 
 	void DebugPass::BuildImages() {
-		auto rawImage = asset::ImageLoader::Load(Path("asset/brickTexture.jpg").GetAbsolutePath().c_str(), 32);
+		auto rawImage = asset::ImageLoader::Load(Path::GetAbsolutePath("asset/brickTexture.jpg"), 32);
 
 		auto imageInfo = rhi::ImageCreateInfo()
 			.SetFormat(rhi::Format::R8G8B8A8Unorm)
@@ -207,7 +207,7 @@ namespace engine {
 
 		std::vector<uint8_t> shaderSource;
 
-		info.shaderCompiler->Compile(StringToWString(Path("shader/debug/hlsl/vertex.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::vs_profile);
+		info.shaderCompiler->Compile(Path::GetAbsolutePath("shader/debug/hlsl/vertex.hlsl"), L"main", ShaderCompileArgument::vs_profile);
 		info.shaderCompiler->GetSourceObject(shaderSource);
 
 		auto shaderModuleInfo = rhi::ShaderModuleCreateInfo()
@@ -217,7 +217,7 @@ namespace engine {
 
 		auto vertexShaderModule = info.device->CreateShaderModule(shaderModuleInfo);
 
-		info.shaderCompiler->Compile(StringToWString(Path("shader/debug/hlsl/fragment.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::ps_profile);
+		info.shaderCompiler->Compile(Path::GetAbsolutePath("shader/debug/hlsl/fragment.hlsl"), L"main", ShaderCompileArgument::ps_profile);
 		info.shaderCompiler->GetSourceObject(shaderSource);
 
 		shaderModuleInfo = rhi::ShaderModuleCreateInfo()

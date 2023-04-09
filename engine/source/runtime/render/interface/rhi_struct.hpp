@@ -5,6 +5,10 @@
 #include "runtime/system/file_system/path.hpp"
 #include "runtime/system/platform/platform_info.hpp"
 
+#include <array>
+#include <vector>
+#include <variant>
+
 #define RHI_DEFINE_HANDLE(object) class object##_T; using object = object##_T*;
 
 namespace engine {

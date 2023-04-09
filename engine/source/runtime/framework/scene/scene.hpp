@@ -1,6 +1,6 @@
 #pragma once
 
-#include "runtime/framework/system/render_system.hpp"
+#include "runtime/framework/system/system.hpp"
 
 namespace engine {
 
@@ -12,12 +12,10 @@ namespace engine {
 		void Update();
 
 		ecs::registry& GetRegistry() { return registry; }
-
-		void SetCamera(Camera& camera) { this->camera = camera; }
+		
 		void AddSystem(std::unique_ptr<ISystem> pSystem) { systems.emplace_back(std::move(pSystem)); }
 
 	private:
-		Camera camera;
 		ecs::registry registry;
 		std::vector<std::unique_ptr<ISystem>> systems;
 	};
@@ -25,11 +23,7 @@ namespace engine {
 	class MainScene final : public IScene {
 	public:
 		MainScene();
-		~MainScene();
-
-	private:
-		rhi::Sampler sampler;
-		rhi::Image image;
+		~MainScene() {}
 	};
 
 }

@@ -1,5 +1,7 @@
 #include "path.hpp"
 
+#include <Windows.h>
+
 namespace engine {
 
 	std::wstring StringToWString(const std::string& source) {
@@ -28,21 +30,6 @@ namespace engine {
 #endif // _WIN32
 	}
 
-	void Path::Init() {
-		std::replace(path.begin(), path.end(), '\\', '/');
-		if (path.rfind('/') == path.length() - 1) path = path.substr(0, path.length() - 1);
-	}
-
-	std::string Path::GetAbsolutePath() {
-		return std::string(GlobalConfig::configPath) + '/' + path;
-	}
-
-	std::string Path::GetRelativePath() {
-		return path.replace(path.find(GlobalConfig::configPath), std::string(GlobalConfig::configPath).length() + 1, "");
-	}
-
-	std::string Path::GetParentPath() {
-		return path.substr(0, path.rfind('/'));
-	}
+	std::filesystem::path Path::directory{};
 
 }

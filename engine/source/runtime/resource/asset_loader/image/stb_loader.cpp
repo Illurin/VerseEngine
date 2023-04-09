@@ -4,9 +4,9 @@
 namespace engine {
 	namespace asset {
 
-		StbImageLoader::StbImageLoader(const char* path) {
+		StbImageLoader::StbImageLoader(std::filesystem::path path) {
 			int channelInFile;
-			source = stbi_load(path, &width, &height, &channelInFile, 4);
+			source = stbi_load(path.string().c_str(), &width, &height, &channelInFile, 4);
 		}
 
 		StbImageLoader::~StbImageLoader() {

@@ -29,34 +29,8 @@ namespace engine {
 	}
 
 	void RenderSystem::Update(ecs::registry& registry) {
-		uint32_t swapchainImageIndex = RenderDevice::GetQueue()->AcquireNextImage(RenderDevice::GetSwapchain());
-		auto& commandBuffer = commandBuffers[swapchainImageIndex];
-
-		commandBuffer->Reset();
-		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
-
-		pScenePass->Begin(swapchainImageIndex, commandBuffer);
-
-		commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 2, 1, &passDescriptorSet);
-		commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
-		commandBuffer->BindIndexBuffer(indexBuffer, 0, rhi::IndexType::Uint32);
-
-		auto view = registry.view<const TransformComponent, const MeshRendererComponent, const MaterialComponent>();
-
-		view.each([&](const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const MaterialComponent& material) {
-			commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 0, 1, &transform.descriptorSet);
-			commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 1, 1, &material.descriptorSet);
-
-			commandBuffer->DrawIndexed(static_cast<uint32_t>(meshRenderer.indices.size()), 1, meshRenderer.firstIndex, meshRenderer.vertexOffset, 0);
-		});
-
-		commandBuffer->EndRenderPass();
-		commandBuffer->End();
-
-		fence->Reset();
-		RenderDevice::GetQueue()->Submit(1, &commandBuffer, fence);
-		fence->Wait();
-		RenderDevice::GetQueue()->Present(RenderDevice::GetSwapchain(), swapchainImageIndex);
+		UpdateFrameResource(registry);
+		UpdateRendering(registry);
 	}
 
 	void RenderSystem::BuildMeshes(ecs::registry& registry) {
@@ -111,30 +85,10 @@ namespace engine {
 		descriptorPool = RenderDevice::GetDevice()->CreateDescriptorPool(descriptorPoolInfo);
 
 		transformView.each([&](TransformComponent& transform) {
-			auto s = math::AlignedScaling3f(transform.scale);
-			auto lr = math::AngleAxisf(transform.localEulerAngle.x(), math::Vector3f::UnitX())
-				    * math::AngleAxisf(transform.localEulerAngle.y(), math::Vector3f::UnitY())
-				    * math::AngleAxisf(transform.localEulerAngle.z(), math::Vector3f::UnitZ());
-			auto t = math::Translation3f(transform.position);
-			auto gr = math::AngleAxisf(transform.globalEulerAngle.x(), math::Vector3f::UnitX())
-				    * math::AngleAxisf(transform.globalEulerAngle.y(), math::Vector3f::UnitY())
-				    * math::AngleAxisf(transform.globalEulerAngle.z(), math::Vector3f::UnitZ());
-			math::Affine3f affine(gr * t * lr * s);
-			auto m = affine.matrix();
-
-			std::array<std::array<float, 4>, 3> worldMatrix;
-			worldMatrix[0][0] = m(0, 0); worldMatrix[0][1] = m(0, 1); worldMatrix[0][2] = m(0, 2); worldMatrix[0][3] = m(0, 3);
-			worldMatrix[1][0] = m(1, 0); worldMatrix[1][1] = m(1, 1); worldMatrix[1][2] = m(1, 2); worldMatrix[1][3] = m(1, 3);
-			worldMatrix[2][0] = m(2, 0); worldMatrix[2][1] = m(2, 1); worldMatrix[2][2] = m(2, 2); worldMatrix[2][3] = m(2, 3);
-
 			auto uniformBufferInfo = rhi::BufferCreateInfo()
 				.SetSize(sizeof(ObjectConstants))
 				.SetUsage(rhi::BufferUsage::UniformBuffer);
 			transform.uniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
-
-			auto p = reinterpret_cast<ObjectConstants*>(transform.uniformBuffer->Map());
-			p->worldMatrix = worldMatrix;
-			transform.uniformBuffer->Unmap();
 
 			std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[0] };
 
@@ -181,17 +135,6 @@ namespace engine {
 			.SetUsage(rhi::BufferUsage::UniformBuffer);
 		passUniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
 
-		auto p = reinterpret_cast<PassConstants*>(passUniformBuffer->Map());
-
-		cameraView.each([&](CameraComponent& camera) {
-			if (!camera.active) return;
-
-			p->viewMatrix = camera.camera.GetViewMatrix();
-			p->projMatrix = camera.camera.GetProjMatrix();
-		});
-
-		passUniformBuffer->Unmap();
-
 		std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[2] };
 
 		auto allocateInfo = rhi::DescriptorSetAllocateInfo()
@@ -200,6 +143,79 @@ namespace engine {
 
 		desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, passUniformBuffer);
 		passDescriptorSet = desriptorSets[0];
+	}
+
+	void RenderSystem::UpdateFrameResource(ecs::registry& registry) {
+		auto transformUpdateView = registry.view<TransformComponent>();
+
+		transformUpdateView.each([&](TransformComponent& transform) {
+			if (!transform.dirty) return;
+
+			auto s = math::AlignedScaling3f(transform.scale);
+			auto lr = math::AngleAxisf(transform.localEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
+				    * math::AngleAxisf(transform.localEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
+				    * math::AngleAxisf(transform.localEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
+			auto t = math::Translation3f(transform.position);
+			auto gr = math::AngleAxisf(transform.globalEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
+				    * math::AngleAxisf(transform.globalEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
+				    * math::AngleAxisf(transform.globalEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
+			math::Affine3f affine(gr * t * lr * s);
+			
+			auto p = reinterpret_cast<ObjectConstants*>(transform.uniformBuffer->Map());
+			p->worldMatrix = affine.matrix();
+			transform.uniformBuffer->Unmap();
+
+			transform.dirty = false;
+		});
+
+		auto cameraUpdateView = registry.view<CameraComponent>();
+
+		auto p = reinterpret_cast<PassConstants*>(passUniformBuffer->Map());
+
+		cameraUpdateView.each([&](CameraComponent& camera) {
+			if (!camera.active) return;
+			if (!camera.dirty) return;
+
+			camera.camera.UpdataViewMatrix();
+			p->viewMatrix = camera.camera.GetViewMatrix();
+			p->projMatrix = camera.camera.GetProjMatrix();
+			p->eyePos << camera.camera.GetPosition(), 1.0f;
+			p->ambientLight = camera.ambientLight;
+			camera.dirty = false;
+		});
+
+		passUniformBuffer->Unmap();
+	}
+
+	void RenderSystem::UpdateRendering(ecs::registry& registry) {
+		uint32_t swapchainImageIndex = RenderDevice::GetQueue()->AcquireNextImage(RenderDevice::GetSwapchain());
+		auto& commandBuffer = commandBuffers[swapchainImageIndex];
+
+		commandBuffer->Reset();
+		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
+
+		pScenePass->Begin(swapchainImageIndex, commandBuffer);
+
+		commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 2, 1, &passDescriptorSet);
+		commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
+		commandBuffer->BindIndexBuffer(indexBuffer, 0, rhi::IndexType::Uint32);
+
+		auto renderView = registry.view<const TransformComponent, const MeshRendererComponent, const MaterialComponent>();
+
+		renderView.each([&](const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const MaterialComponent& material) {
+			commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 0, 1, &transform.descriptorSet);
+			commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 1, 1, &material.descriptorSet);
+
+			commandBuffer->DrawIndexed(static_cast<uint32_t>(meshRenderer.indices.size()), 1, meshRenderer.firstIndex, meshRenderer.vertexOffset, 0);
+		});
+
+		commandBuffer->EndRenderPass();
+		commandBuffer->End();
+
+		fence->Reset();
+		RenderDevice::GetQueue()->Submit(1, &commandBuffer, fence);
+		fence->Wait();
+		RenderDevice::GetQueue()->Present(RenderDevice::GetSwapchain(), swapchainImageIndex);
 	}
 
 }

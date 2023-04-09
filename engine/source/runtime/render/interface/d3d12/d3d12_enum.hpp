@@ -147,7 +147,7 @@ namespace engine {
 			case rhi::ImageLayout::Undefined: resourceStates = D3D12_RESOURCE_STATE_COMMON; break;
 			case rhi::ImageLayout::General: resourceStates = D3D12_RESOURCE_STATE_COMMON; break;
 			case rhi::ImageLayout::ColorAttachment: resourceStates = D3D12_RESOURCE_STATE_RENDER_TARGET; break;
-			case rhi::ImageLayout::DepthStencilAttachment: resourceStates = D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ; break;
+			case rhi::ImageLayout::DepthStencilAttachment: resourceStates = D3D12_RESOURCE_STATE_DEPTH_WRITE; break;
 			case rhi::ImageLayout::DepthStencilReadOnly: resourceStates = D3D12_RESOURCE_STATE_DEPTH_READ; break;
 			case rhi::ImageLayout::ShaderReadOnly: resourceStates = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
 			case rhi::ImageLayout::TransferSrc: resourceStates = D3D12_RESOURCE_STATE_COPY_SOURCE; break;

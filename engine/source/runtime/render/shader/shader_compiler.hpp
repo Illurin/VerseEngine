@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <string>
 #include <fstream>
+#include <filesystem>
 
 namespace engine {
 
@@ -72,7 +73,7 @@ namespace engine {
 
 		// compiler arguments
 		void Define(const wchar_t* macro);
-		void AddIncludePath(const wchar_t* includePath);
+		void AddIncludePath(std::filesystem::path includePath);
 		void SetEncoding(const wchar_t* utf8_or_utf16);
 
 		// spir-v code gen
@@ -91,14 +92,14 @@ namespace engine {
 		void ClearArguments();
 
 		void Compile(char* pSourceCode, uint32_t sourceCodeSize, const wchar_t* entryPoint, const wchar_t* profile);
-		void Compile(const wchar_t* sourcePath, const wchar_t* entryPoint, const wchar_t* profile);
+		void Compile(std::filesystem::path sourcePath, const wchar_t* entryPoint, const wchar_t* profile);
 
 		// get compile info
 		bool GetSourceObject(std::vector<uint8_t>& sourceObject) const;
 		bool GetErrorInfo(std::string& errorInfo) const;
 
-		bool GenerateSourceObjectFile(const wchar_t* path) const;
-		bool GenerateErrorInfoFile(const wchar_t* path) const;
+		bool GenerateSourceObjectFile(std::filesystem::path path) const;
+		bool GenerateErrorInfoFile(std::filesystem::path path) const;
 
 	private:
 		IDxcUtils* dxcUtils{ nullptr };

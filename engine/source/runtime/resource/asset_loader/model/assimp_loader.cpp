@@ -3,14 +3,15 @@
 namespace engine {
 	namespace asset {
 
-		AssimpModelLoader::AssimpModelLoader(const char* path) {
+		AssimpModelLoader::AssimpModelLoader(std::filesystem::path path) {
 			Assimp::Importer importer;
-			auto scene = importer.ReadFile(path, 
+			auto scene = importer.ReadFile(path.string().c_str(),
+				aiProcess_Triangulate |
+				aiProcess_FlipUVs |
 				aiProcess_JoinIdenticalVertices |
 				aiProcess_GenNormals |
-				aiProcess_CalcTangentSpace |
-				aiProcess_FlipWindingOrder);
-			directory = Path(path).GetParentPath();
+				aiProcess_CalcTangentSpace);
+			directory = path.parent_path();
 			ProcessNode(scene, scene->mRootNode);
 		}
 
@@ -25,13 +26,13 @@ namespace engine {
 			}
 		}
 
-		AssimpModelLoader::Mesh AssimpModelLoader::ProcessMesh(const aiScene* scene, aiMesh* mesh) {
-			Mesh result;
+		RawModelMesh AssimpModelLoader::ProcessMesh(const aiScene* scene, aiMesh* mesh) {
+			RawModelMesh result;
 
 			result.name = mesh->mName.C_Str();
 
 			for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
-				Vertex vertex;
+				RawModelVertexData vertex;
 				vertex.position[0] = mesh->mVertices[i].x;
 				vertex.position[1] = mesh->mVertices[i].y;
 				vertex.position[2] = mesh->mVertices[i].z;
@@ -49,7 +50,7 @@ namespace engine {
 					vertex.texCoord[1] = mesh->mTextureCoords[0][i].y;
 				}
 				else {
-					vertex.texCoord = { 0.0f, 0.0f };
+					vertex.texCoord = { -1.0f, -1.0f };
 				}
 
 				result.vertices.emplace_back(vertex);
@@ -63,30 +64,26 @@ namespace engine {
 
 			if (mesh->mMaterialIndex >= 0) {
 				auto mat = scene->mMaterials[mesh->mMaterialIndex];
-				result.material.diffuseMap = ProcessTexture(mat, aiTextureType_DIFFUSE);
+				auto textures = ProcessTexture(mat, aiTextureType_DIFFUSE);
+				if (textures.empty())
+					result.material.diffuseMap = std::nullopt;
+				else
+					result.material.diffuseMap = textures[0];
 			}
 			
 			return result;
 		}
 
-		AssimpModelLoader::Texture* AssimpModelLoader::ProcessTexture(aiMaterial* mat, aiTextureType type) {
-			if (mat->GetTextureCount(type) > 0) {
+		std::vector<RawModelTexture> AssimpModelLoader::ProcessTexture(aiMaterial* mat, aiTextureType type) {
+			std::vector<RawModelTexture> textures(mat->GetTextureCount(type));
+			for (uint32_t i = 0; i < mat->GetTextureCount(type); i++) {
 				aiString str;
 				mat->GetTexture(type, 0, &str);
-				auto texturePath = directory + str.C_Str();
-
-				for (auto& texture : textures) {
-					if (texture.path == texturePath) {
-						return &texture;
-					}
-				}
-
-				Texture texture = { texturePath };
-				textures.emplace_back(texture);
-				return &textures.back();
+				auto texturePath = directory / str.C_Str();
+				RawModelTexture texture = { texturePath };
+				textures[i] = texture;
 			}
-			return nullptr;
+			return textures;
 		}
-
 	}
 }

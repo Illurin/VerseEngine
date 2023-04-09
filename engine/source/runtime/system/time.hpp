@@ -7,12 +7,12 @@ namespace engine {
 		static double GetDeltaTime() { return deltaTime; }
 		static double GetFps() { return fps; }
 
-		static void SetDeltaTime(double deltaTime) { Time::fps = deltaTime; }
+		static void SetDeltaTime(double deltaTime) { Time::deltaTime = deltaTime; }
 		static void SetFps(double fps) { Time::fps = fps; }
 
 	private:
-		static double deltaTime;
-		static double fps;
+		static inline double deltaTime{ 0.0 };
+		static inline double fps{ 0.0 };
 	};
 
 }

@@ -6,6 +6,7 @@ namespace engine {
 		BuildDescriptorLayout();
 		BuildRenderPass();
 		BuildPipeline();
+		BuildDepthImage();
 		BuildFramebuffers();
 	}
 
@@ -14,6 +15,7 @@ namespace engine {
 		if (pipelineLayout) pipelineLayout->Destroy();
 		if (renderPass) renderPass->Destroy();
 		if (pipeline) pipeline->Destroy();
+		if (depthImage) depthImage->Destroy();
 		for (auto& framebuffer : framebuffers) framebuffer->Destroy();
 	}
 
@@ -55,10 +57,20 @@ namespace engine {
 			.SetPassLayout(rhi::ImageLayout::ColorAttachment)
 			.SetFinalLayout(rhi::ImageLayout::Present);
 
+		auto depthStencilDescription = rhi::AttachmentDescription()
+			.SetFormat(rhi::Format::D32Sfloat)
+			.SetSampleCount(rhi::SampleCount::Count1)
+			.SetLoadOp(rhi::AttachmentLoadOp::Clear)
+			.SetStoreOp(rhi::AttachmentStoreOp::Store)
+			.SetInitialLayout(rhi::ImageLayout::Undefined)
+			.SetPassLayout(rhi::ImageLayout::DepthStencilAttachment)
+			.SetFinalLayout(rhi::ImageLayout::DepthStencilAttachment);
+
 		auto renderPassInfo = rhi::RenderPassCreateInfo()
 			.SetPipelineType(rhi::PipelineType::Graphics)
 			.SetColorAttachmentCount(1)
-			.SetPColorAttachments(&colorAttachmentDescription);
+			.SetPColorAttachments(&colorAttachmentDescription)
+			.SetPDepthStencilAttachment(&depthStencilDescription);
 
 		renderPass = RenderDevice::GetDevice()->CreateRenderPass(renderPassInfo);
 	}
@@ -78,8 +90,8 @@ namespace engine {
 
 		auto shaderCompiler = RenderDevice::GetInstance()->CreateShaderCompiler();
 
-		shaderCompiler.AddIncludePath(StringToWString(Path("shader/scene/hlsl").GetAbsolutePath()).c_str());
-		shaderCompiler.Compile(StringToWString(Path("shader/scene/hlsl/vertex.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::vs_profile);
+		shaderCompiler.AddIncludePath(Path::GetAbsolutePath("shader/scene/hlsl"));
+		shaderCompiler.Compile(Path::GetAbsolutePath("shader/scene/hlsl/vertex.hlsl"), L"main", ShaderCompileArgument::vs_profile);
 		shaderCompiler.GetSourceObject(shaderSource);
 
 		auto shaderModuleInfo = rhi::ShaderModuleCreateInfo()
@@ -89,7 +101,7 @@ namespace engine {
 
 		auto vertexShaderModule = RenderDevice::GetDevice()->CreateShaderModule(shaderModuleInfo);
 
-		shaderCompiler.Compile(StringToWString(Path("shader/scene/hlsl/fragment.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::ps_profile);
+		shaderCompiler.Compile(Path::GetAbsolutePath("shader/scene/hlsl/fragment.hlsl"), L"main", ShaderCompileArgument::ps_profile);
 		shaderCompiler.GetSourceObject(shaderSource);
 
 		shaderModuleInfo = rhi::ShaderModuleCreateInfo()
@@ -117,7 +129,7 @@ namespace engine {
 		vertexAttributeInfos.emplace_back(rhi::VertexAttributeInfo()
 			.SetBinding(0)
 			.SetFormat(rhi::Format::R32G32B32Sfloat)
-			.SetSemantic("WorldPos")
+			.SetSemantic("LocalPos")
 			.SetOffset(0));
 
 		vertexAttributeInfos.emplace_back(rhi::VertexAttributeInfo()
@@ -161,7 +173,7 @@ namespace engine {
 		auto viewport = rhi::Viewport()
 			.SetWidth(static_cast<float>(RenderDevice::GetSwapchain()->GetImageExtent().width)).SetHeight(static_cast<float>(RenderDevice::GetSwapchain()->GetImageExtent().height))
 			.SetX(0.0f).SetY(0.0f)
-			.SetMinDepth(0.0f).SetMaxDepth(0.0f);
+			.SetMinDepth(0.0f).SetMaxDepth(1.0f);
 
 		auto viewportInfo = rhi::PipelineViewportInfo()
 			.SetPScissors(&scissor).SetScissorCount(1)
@@ -170,8 +182,10 @@ namespace engine {
 		// Pipeline depth & stencil
 
 		auto depthStencilInfo = rhi::PipelineDepthStencilInfo()
-			.SetDepthTestEnable(false)
-			.SetDepthWriteEnable(false)
+			.SetDepthTestEnable(true)
+			.SetDepthWriteEnable(true)
+			.SetDepthCompareOp(rhi::CompareOp::Less)
+			.SetDepthBoundsTestEnable(false)
 			.SetStencilTestEnable(false);
 
 		// Pipeline color blend
@@ -209,11 +223,24 @@ namespace engine {
 		fragmentShaderModule->Destroy();
 	}
 
+	void ScenePass::BuildDepthImage() {
+		auto imageInfo = rhi::ImageCreateInfo()
+			.SetFormat(rhi::Format::D32Sfloat)
+			.SetImageType(rhi::ImageType::Image2D)
+			.SetExtent(rhi::Extent3D().SetWidth(RenderDevice::GetSwapchain()->GetImageExtent().width)
+				                      .SetHeight(RenderDevice::GetSwapchain()->GetImageExtent().height)
+				                      .SetDepth(1))
+			.SetArrayLayers(1)
+			.SetMipLevels(1)
+			.SetUsage(rhi::ImageUsage::DepthStencilAttachment);
+		depthImage = RenderDevice::GetDevice()->CreateImage(imageInfo);
+	}
+
 	void ScenePass::BuildFramebuffers() {
 		auto colorAttachments = RenderDevice::GetSwapchain()->GetImages();
 
 		for (auto& colorAttachment : colorAttachments) {
-			auto imageViewInfo = rhi::ImageViewInfo()
+			auto colorImageViewInfo = rhi::ImageViewInfo()
 				.SetImage(colorAttachment)
 				.SetFormat(RenderDevice::GetSwapchainFormat())
 				.SetViewType(rhi::ImageViewType::Image2D)
@@ -224,12 +251,24 @@ namespace engine {
 					.SetBaseArrayLayer(0)
 					.SetArrayLayerCount(1));
 
+			auto depthImageViewInfo = rhi::ImageViewInfo()
+				.SetImage(depthImage)
+				.SetFormat(rhi::Format::D32Sfloat)
+				.SetViewType(rhi::ImageViewType::Image2D)
+				.SetSubresourceRange(rhi::ImageSubresourceRange()
+					.SetImageAspect(rhi::ImageAspect::Depth)
+					.SetBaseMipLevel(0)
+					.SetMipLevelCount(1)
+					.SetBaseArrayLayer(0)
+					.SetArrayLayerCount(1));
+
 			auto framebufferInfo = rhi::FramebufferCreateInfo()
 				.SetWidth(RenderDevice::GetSwapchain()->GetImageExtent().width)
 				.SetHeight(RenderDevice::GetSwapchain()->GetImageExtent().height)
 				.SetLayers(1)
 				.SetColorAttachmentCount(1)
-				.SetPColorAttachments(&imageViewInfo)
+				.SetPColorAttachments(&colorImageViewInfo)
+				.SetPDepthStencilAttachments(&depthImageViewInfo)
 				.SetRenderPass(renderPass);
 
 			framebuffers.emplace_back(RenderDevice::GetDevice()->CreateFramebuffer(framebufferInfo));
@@ -238,11 +277,13 @@ namespace engine {
 
 	void ScenePass::Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) {
 		auto clearColorValue = rhi::ClearColorValue().SetColorValue(std::array<float, 4>({ 0.0f, 0.0f, 0.0f, 0.0f }));
+		auto clearDepthValue = rhi::ClearDepthStencilValue().SetDepthValue(1.0f);
 
 		auto renderPassBeginInfo = rhi::RenderPassBeginInfo()
 			.SetRenderPass(renderPass)
 			.SetFramebuffer(framebuffers[frame])
-			.SetPClearColorValues(&clearColorValue);
+			.SetPClearColorValues(&clearColorValue)
+			.SetClearDepthStencilValue(clearDepthValue);
 		commandBuffer->BeginRenderPass(renderPassBeginInfo);
 
 		commandBuffer->BindPipeline(pipeline);

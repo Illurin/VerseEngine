@@ -1,5 +1,7 @@
 #include "vulkan_rhi.hpp"
 
+#include <variant>
+
 #ifdef _VULKAN
 
 namespace engine {
@@ -227,7 +229,6 @@ namespace engine {
 #ifdef _DEBUG
 		shaderCompiler.AddArgument(ShaderCompileArgument::treat_warnings_as_errors);
 #endif // _DEBUG
-		shaderCompiler.AddIncludePath(StringToWString(GlobalConfig::configPath).c_str());
 		return shaderCompiler;
 	}
 

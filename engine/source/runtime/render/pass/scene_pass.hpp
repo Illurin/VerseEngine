@@ -20,6 +20,7 @@ namespace engine {
 		void BuildDescriptorLayout();
 		void BuildRenderPass();
 		void BuildPipeline();
+		void BuildDepthImage();
 		void BuildFramebuffers();
 
 	private:
@@ -27,6 +28,7 @@ namespace engine {
 		rhi::PipelineLayout                   pipelineLayout{ nullptr };
 		rhi::RenderPass                       renderPass{ nullptr };
 		rhi::Pipeline                         pipeline{ nullptr };
+		rhi::Image                            depthImage{ nullptr };
 		std::vector<rhi::Framebuffer>         framebuffers;
 	};
 

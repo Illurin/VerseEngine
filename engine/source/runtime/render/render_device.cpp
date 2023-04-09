@@ -12,7 +12,7 @@ namespace engine {
 			.SetPhysicalDeviceId(1)
 			.SetPQueueCreateInfos(&queueInfo)
 			.SetQueueCreateInfoCount(1)
-			.SetDeviceExtension(rhi::DeviceExtension().SetRayTracingEnabled(true));
+			.SetDeviceExtension(rhi::DeviceExtension().SetRayTracingEnabled(false));
 
 		device = instance->CreateDevice(deviceInfo);
 
@@ -33,11 +33,5 @@ namespace engine {
 
 		if (!swapchain) swapchain = device->CreateSwapchain(swapchainInfo);
 	}
-
-	rhi::Format RenderDevice::swapchainFormat{ rhi::Format::B8G8R8A8Unorm };
-	rhi::Instance RenderDevice::instance{ nullptr };
-	rhi::Device RenderDevice::device{ nullptr };
-	rhi::Queue RenderDevice::queue{ nullptr };
-	rhi::Swapchain RenderDevice::swapchain{ nullptr };
 
 }

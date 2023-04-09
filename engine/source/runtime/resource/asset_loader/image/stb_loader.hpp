@@ -1,15 +1,15 @@
 #pragma once
 
-#include "runtime/system/global_config.hpp"
-
 #include "stb/stb_image.h"
+
+#include "runtime/system/file_system/path.hpp"
 
 namespace engine {
 	namespace asset {
 
 		class StbImageLoader {
 		public:
-			StbImageLoader(const char* path);
+			StbImageLoader(std::filesystem::path path);
 			~StbImageLoader();
 
 			stbi_uc* GetSource() const { return source; }

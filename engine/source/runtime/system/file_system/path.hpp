@@ -1,7 +1,5 @@
 #pragma once
 
-#include "runtime/system/global_config.hpp"
-
 #include <filesystem>
 
 namespace engine {
@@ -11,21 +9,12 @@ namespace engine {
 
 	class Path {
 	public:
-		Path(const char* path) : path(path) { Init(); }
-		Path(std::string& path) : path(path) { Init(); }
-
-		std::string Get() const { return path; }
-
-		std::string GetAbsolutePath();
-		std::string GetRelativePath();
-
-		std::string GetParentPath();
+		static void SetDirectory(std::filesystem::path directory) { Path::directory = directory; }
+		static std::filesystem::path GetDirectory() { return directory; }
+		static std::filesystem::path GetAbsolutePath(std::filesystem::path path) { return directory / path; }
 
 	private:
-		void Init();
-
-	private:
-		std::string path;
+		static std::filesystem::path directory;
 	};
 
 }

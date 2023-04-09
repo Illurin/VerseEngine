@@ -16,7 +16,7 @@ namespace engine {
 	};
 
 	struct ObjectVertexData {
-		math::Vector3f worldPos;
+		math::Vector3f localPos;
 		math::Vector3f normal;
 		math::Vector2f texCoord;
 	};
@@ -24,14 +24,16 @@ namespace engine {
 	struct PassConstants {
 		math::Matrix4f viewMatrix;
 		math::Matrix4f projMatrix;
+		math::Vector4f eyePos;
+		math::Vector3f ambientLight;
 	};
 
 	struct ObjectConstants {
-		std::array<std::array<float, 4>, 3> worldMatrix;
+		math::Matrix4f worldMatrix;
 	};
 
 	struct MaterialConstants {
-		math::Vector3f diffuseAlbedo;
+		math::Vector4f diffuseAlbedo;
 		math::Vector3f fresnelR0;
 		float shiniess;
 	};

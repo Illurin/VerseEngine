@@ -14,10 +14,10 @@ namespace engine {
 				auto result = Matrix<T, 4, 4>::Identity();
 				result(0, 0) = static_cast<T>(2) / (right - left);
 				result(1, 1) = static_cast<T>(2) / (top - bottom);
-				result(2, 2) = -static_cast<T>(1) / (farZ - nearZ);
-				result(3, 0) = -(right + left) / (right - left);
-				result(3, 1) = -(top + bottom) / (top - bottom);
-				result(3, 2) = -nearZ / (farZ - nearZ);
+				result(2, 2) = - static_cast<T>(1) / (farZ - nearZ);
+				result(0, 3) = - (right + left) / (right - left);
+				result(1, 3) = - (top + bottom) / (top - bottom);
+				result(2, 3) = - nearZ / (farZ - nearZ);
 				return result;
 			}
 
@@ -29,8 +29,8 @@ namespace engine {
 				result(0, 0) = static_cast<T>(1) / (aspect * tanHalfFovY);
 				result(1, 1) = static_cast<T>(1) / (tanHalfFovY);
 				result(2, 2) = farZ / (nearZ - farZ);
-				result(2, 3) = - static_cast<T>(1);
-				result(3, 2) = - (farZ * nearZ) / (farZ - nearZ);
+				result(3, 2) = - static_cast<T>(1);
+				result(2, 3) = (nearZ * farZ) / (nearZ - farZ);
 				return result;
 			}
 		};

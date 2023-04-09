@@ -23,9 +23,9 @@ namespace engine {
 		arguments.emplace_back(macro);
 	}
 
-	void ShaderCompiler::AddIncludePath(const wchar_t* includePath) {
+	void ShaderCompiler::AddIncludePath(std::filesystem::path includePath) {
 		arguments.emplace_back(L"-I");
-		arguments.emplace_back(includePath);
+		arguments.emplace_back(includePath.native().c_str());
 	}
 
 	void ShaderCompiler::SetEncoding(const wchar_t* utf8_or_utf16) {
@@ -126,7 +126,7 @@ namespace engine {
 		dxcEncoding->Release();
 	}
 
-	void ShaderCompiler::Compile(const wchar_t* sourcePath, const wchar_t* entryPoint, const wchar_t* profile) {
+	void ShaderCompiler::Compile(std::filesystem::path sourcePath, const wchar_t* entryPoint, const wchar_t* profile) {
 		std::ifstream loadFile(sourcePath, std::ios::ate | std::ios::binary);
 
 		if (!loadFile.is_open()) {
@@ -189,7 +189,7 @@ namespace engine {
 		return true;
 	}
 
-	bool ShaderCompiler::GenerateSourceObjectFile(const wchar_t* path) const {
+	bool ShaderCompiler::GenerateSourceObjectFile(std::filesystem::path path) const {
 		std::vector<uint8_t> sourceObject;
 		if (!GetSourceObject(sourceObject)) {
 			return false;
@@ -202,7 +202,7 @@ namespace engine {
 		return true;
 	}
 
-	bool ShaderCompiler::GenerateErrorInfoFile(const wchar_t* path) const {
+	bool ShaderCompiler::GenerateErrorInfoFile(std::filesystem::path path) const {
 		std::string errorInfo;
 		if (!GetErrorInfo(errorInfo)) {
 			return false;

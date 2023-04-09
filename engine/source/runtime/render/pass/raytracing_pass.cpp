@@ -212,26 +212,26 @@ namespace engine {
 
 		info.shaderCompiler->SetSpirvRayTracing();
 
-		info.shaderCompiler->Compile(StringToWString(Path("shader/raytracing/hlsl/raygen.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::lib_profile);
+		info.shaderCompiler->Compile(Path::GetAbsolutePath("shader/raytracing/hlsl/raygen.hlsl"), L"main", ShaderCompileArgument::lib_profile);
 		info.shaderCompiler->GetSourceObject(sourceObject);
 		shaderModuleInfo.SetSourceCode(sourceObject)
 			            .SetPEntryPoint("main")
 			            .SetShaderStage(rhi::ShaderStage::Raygen);
 		shaderModules[0] = info.device->CreateShaderModule(shaderModuleInfo);
 
-		info.shaderCompiler->Compile(StringToWString(Path("shader/raytracing/hlsl/miss.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::lib_profile);
+		info.shaderCompiler->Compile(Path::GetAbsolutePath("shader/raytracing/hlsl/miss.hlsl"), L"main", ShaderCompileArgument::lib_profile);
 		info.shaderCompiler->GetSourceObject(sourceObject);
 		shaderModuleInfo.SetSourceCode(sourceObject)
 			.SetShaderStage(rhi::ShaderStage::Miss);
 		shaderModules[1] = info.device->CreateShaderModule(shaderModuleInfo);
 
-		info.shaderCompiler->Compile(StringToWString(Path("shader/raytracing/hlsl/anyhit.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::lib_profile);
+		info.shaderCompiler->Compile(Path::GetAbsolutePath("shader/raytracing/hlsl/anyhit.hlsl"), L"main", ShaderCompileArgument::lib_profile);
 		info.shaderCompiler->GetSourceObject(sourceObject);
 		shaderModuleInfo.SetSourceCode(sourceObject)
 			            .SetShaderStage(rhi::ShaderStage::AnyHit);
 		shaderModules[2] = info.device->CreateShaderModule(shaderModuleInfo);
 
-		info.shaderCompiler->Compile(StringToWString(Path("shader/raytracing/hlsl/closesthit.hlsl").GetAbsolutePath()).c_str(), L"main", ShaderCompileArgument::lib_profile);
+		info.shaderCompiler->Compile(Path::GetAbsolutePath("shader/raytracing/hlsl/closesthit.hlsl"), L"main", ShaderCompileArgument::lib_profile);
 		info.shaderCompiler->GetSourceObject(sourceObject);
 		shaderModuleInfo.SetSourceCode(sourceObject)
 			            .SetShaderStage(rhi::ShaderStage::ClosestHit);

@@ -19,12 +19,12 @@ namespace engine {
 		static rhi::Swapchain GetSwapchain() { return swapchain; }
 
 	private:
-		static rhi::Format swapchainFormat;
+		static inline rhi::Format swapchainFormat{ rhi::Format::B8G8R8A8Unorm };
 		
-		static rhi::Instance instance;
-		static rhi::Device device;
-		static rhi::Queue queue;
-		static rhi::Swapchain swapchain;
+		static inline rhi::Instance instance{ nullptr };
+		static inline rhi::Device device{ nullptr };
+		static inline rhi::Queue queue{ nullptr };
+		static inline rhi::Swapchain swapchain{ nullptr };
 	};
 
 }

@@ -1,0 +1,350 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{aa1c151c-3990-41b8-83b0-450649c2dfcc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader">
+      <UniqueIdentifier>{092da4e4-9973-4b67-8202-1b2fe5baca3d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime">
+      <UniqueIdentifier>{14d46a13-7fb4-4b80-8f58-7e5c69634f1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\math">
+      <UniqueIdentifier>{d7af1096-4053-4606-a17d-6b3414ea82ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render">
+      <UniqueIdentifier>{de321600-8590-48a7-a92e-5982f1248ed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\system">
+      <UniqueIdentifier>{7cba0350-820a-45a8-881f-c733cd1fd4af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\system\platform">
+      <UniqueIdentifier>{7d88f960-0071-4178-9008-39155f16fcda}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\system\platform\win32">
+      <UniqueIdentifier>{afbfddfb-98c7-44ca-a10f-66a8ebddbcd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\interface">
+      <UniqueIdentifier>{202a4ade-8f6b-45a7-bcb0-7f3f5be5c8f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\interface\vulkan">
+      <UniqueIdentifier>{b2e735dc-a147-4f68-922a-72d442c72d29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\interface\d3d12">
+      <UniqueIdentifier>{86104aaf-ae97-4b5e-897a-0916e6063fad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\shader">
+      <UniqueIdentifier>{093103ee-9008-4dd3-bbf0-289d8df34fa3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass">
+      <UniqueIdentifier>{9ce1def3-e0ed-453d-bafb-0b7c1f0f4d49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\resource">
+      <UniqueIdentifier>{68398586-b911-4e99-b6ff-d54454870af4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\resource\asset_loader">
+      <UniqueIdentifier>{2f6de312-2885-4905-8403-0562563bc862}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\resource\asset_loader\image">
+      <UniqueIdentifier>{b475e19c-4e47-4c74-8898-adffc468e3ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\resource\asset_loader\model">
+      <UniqueIdentifier>{3dc6696f-7c1d-4b02-8db7-016cc067b472}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\debug">
+      <UniqueIdentifier>{742da70b-d731-48c0-9ebf-f8db7de19db4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\debug\hlsl">
+      <UniqueIdentifier>{57093faf-bf5c-4d86-b61a-ad74003bfa20}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\scene">
+      <UniqueIdentifier>{c85806ce-b95a-4058-977d-6fb0aa0725fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\scene\hlsl">
+      <UniqueIdentifier>{c2453cda-c00a-4de8-a0c0-099aaabc8fd7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\framework">
+      <UniqueIdentifier>{d7716063-1de8-4af4-996b-beab8a63cdd4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\raytracing">
+      <UniqueIdentifier>{0e24775f-65ae-49cc-9401-0542c507cab3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\raytracing\hlsl">
+      <UniqueIdentifier>{af993cca-6a3c-46e9-b6bf-f135ef437610}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\framework\scene">
+      <UniqueIdentifier>{c8b28e5d-04c3-4fcb-a688-b28ce00ad902}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\framework\component">
+      <UniqueIdentifier>{b283dfca-d4d1-44aa-8fa8-b58051f7cf1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\framework\system">
+      <UniqueIdentifier>{311dc45a-67f3-4fc5-baf3-bd970e25c0f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\framework\ecs">
+      <UniqueIdentifier>{e8d2b080-e04e-4251-b703-c22e218d35ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\system\file_system">
+      <UniqueIdentifier>{0164e22a-18ea-463d-97e3-5910b6d1d446}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\skybox">
+      <UniqueIdentifier>{0e6651c3-438f-466b-9ddc-03dc7cff3c39}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\skybox\hlsl">
+      <UniqueIdentifier>{b87c5110-4fa8-43e5-8f34-97071ae2545f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\engine\source\runtime\main.cpp">
+      <Filter>source\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\system\engine.cpp">
+      <Filter>source\runtime\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\system\platform\win32\window_system.cpp">
+      <Filter>source\runtime\system\platform\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_rhi.cpp">
+      <Filter>source\runtime\render\interface\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_util.cpp">
+      <Filter>source\runtime\render\interface\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_rhi.cpp">
+      <Filter>source\runtime\render\interface\d3d12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\shader\shader_compiler.cpp">
+      <Filter>source\runtime\render\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\rhi_instance.cpp">
+      <Filter>source\runtime\render\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.cpp">
+      <Filter>source\runtime\resource\asset_loader\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\debug_pass.cpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.cpp">
+      <Filter>source\runtime\resource\asset_loader\model</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\camera.cpp">
+      <Filter>source\runtime\render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\system\platform\win32\win32_input.cpp">
+      <Filter>source\runtime\system\platform\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\system\platform\input_system.cpp">
+      <Filter>source\runtime\system\platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing_pass.cpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\framework\system\render_system.cpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\framework\scene\scene.cpp">
+      <Filter>source\runtime\framework\scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\scene_pass.cpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\render_device.cpp">
+      <Filter>source\runtime\render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\system\file_system\path.cpp">
+      <Filter>source\runtime\system\file_system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\framework\system\control_system.cpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\framework\system\resource_system.cpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox_pass.cpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\geometry.cpp">
+      <Filter>source\runtime\render</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\engine\source\runtime\system\engine.hpp">
+      <Filter>source\runtime\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\win32\window_system.hpp">
+      <Filter>source\runtime\system\platform\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\platform_info.hpp">
+      <Filter>source\runtime\system\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi.hpp">
+      <Filter>source\runtime\render\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi_enum.hpp">
+      <Filter>source\runtime\render\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi_struct.hpp">
+      <Filter>source\runtime\render\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_enum.hpp">
+      <Filter>source\runtime\render\interface\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_rhi.hpp">
+      <Filter>source\runtime\render\interface\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_util.hpp">
+      <Filter>source\runtime\render\interface\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_enum.hpp">
+      <Filter>source\runtime\render\interface\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_rhi.hpp">
+      <Filter>source\runtime\render\interface\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_util.hpp">
+      <Filter>source\runtime\render\interface\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3dx12.hpp">
+      <Filter>source\runtime\render\interface\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\shader\shader_compiler.hpp">
+      <Filter>source\runtime\render\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi_instance.hpp">
+      <Filter>source\runtime\render\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_pipeline.hpp">
+      <Filter>source\runtime\render\interface\d3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\math\math.hpp">
+      <Filter>source\runtime\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\image\image_loader.hpp">
+      <Filter>source\runtime\resource\asset_loader\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.hpp">
+      <Filter>source\runtime\resource\asset_loader\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\debug_pass.hpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\base_pass.hpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.hpp">
+      <Filter>source\runtime\resource\asset_loader\model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\model_loader.hpp">
+      <Filter>source\runtime\resource\asset_loader\model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\camera.hpp">
+      <Filter>source\runtime\render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\render_pass.hpp">
+      <Filter>source\runtime\render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\render_data.hpp">
+      <Filter>source\runtime\render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\win32\win32_input.hpp">
+      <Filter>source\runtime\system\platform\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\input_system.hpp">
+      <Filter>source\runtime\system\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\math\projection.hpp">
+      <Filter>source\runtime\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\system\time.hpp">
+      <Filter>source\runtime\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing_pass.hpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene.hpp">
+      <Filter>source\runtime\framework\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\component.hpp">
+      <Filter>source\runtime\framework\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\system.hpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\ecs\ecs.hpp">
+      <Filter>source\runtime\framework\ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\scene_pass.hpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\render_device.hpp">
+      <Filter>source\runtime\render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\system\file_system\path.hpp">
+      <Filter>source\runtime\system\file_system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\control_system.hpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\resource_system.hpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\raw_model_data.hpp">
+      <Filter>source\runtime\resource\asset_loader\model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox_pass.hpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\geometry.hpp">
+      <Filter>source\runtime\render</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\..\engine\shader\debug\hlsl\fragment.hlsl">
+      <Filter>shader\debug\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\debug\hlsl\vertex.hlsl">
+      <Filter>shader\debug\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\raygen.hlsl">
+      <Filter>shader\raytracing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\intersection.hlsl">
+      <Filter>shader\raytracing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\anyhit.hlsl">
+      <Filter>shader\raytracing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\closesthit.hlsl">
+      <Filter>shader\raytracing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\miss.hlsl">
+      <Filter>shader\raytracing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\callable.hlsl">
+      <Filter>shader\raytracing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\fragment.hlsl">
+      <Filter>shader\scene\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\vertex.hlsl">
+      <Filter>shader\scene\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\common.hlsl">
+      <Filter>shader\scene\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\lighting_util.hlsl">
+      <Filter>shader\scene\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\skybox\hlsl\fragment.hlsl">
+      <Filter>shader\skybox\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\skybox\hlsl\vertex.hlsl">
+      <Filter>shader\skybox\hlsl</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>

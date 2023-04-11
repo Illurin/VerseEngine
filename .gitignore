@@ -1,2 +1,5 @@
-build/
+build/VerseEngine/.vs
+build/VerseEngine/x64
+build/VerseEngine/Debug
+build/VerseEngine/Release
 engine/asset/

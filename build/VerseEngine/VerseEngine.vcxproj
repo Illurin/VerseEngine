@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{cf1e328d-998b-4815-a320-253a648b8c5d}</ProjectGuid>
+    <RootNamespace>VerseEngine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>..\..\engine\3rdparty\entt-3.11.1\src;..\..\engine\3rdparty\assimp-5.2.5\include;..\..\engine\3rdparty\stb-master;..\..\engine\3rdparty\eigen-3.4.0;..\..\engine\source;..\..\engine\3rdparty\dxc\Win32\inc;..\..\engine\3rdparty\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\..\engine\3rdparty\assimp-5.2.5\lib\Win32\x64\Debug;..\..\engine\3rdparty\dxc\Win32\lib\x64;..\..\engine\3rdparty\VulkanSDK\Lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;VkLayer_utils.lib;dxgi.lib;d3d12.lib;dxguid.lib;dxcompiler.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies);dinput8.lib</AdditionalDependencies>
+    </Link>
+    <FxCompile>
+      <AdditionalOptions>-Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+    </FxCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>..\..\engine\3rdparty\entt-3.11.1\src;..\..\engine\3rdparty\assimp-5.2.5\include;..\..\engine\3rdparty\stb-master;..\..\engine\3rdparty\eigen-3.4.0;..\..\engine\source;..\..\engine\3rdparty\dxc\Win32\inc;..\..\engine\3rdparty\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\..\engine\3rdparty\assimp-5.2.5\lib\Win32\x64\Release;..\..\engine\3rdparty\dxc\Win32\lib\x64;..\..\engine\3rdparty\VulkanSDK\Lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;VkLayer_utils.lib;dxgi.lib;d3d12.lib;dxguid.lib;dxcompiler.lib;assimp-vc143-mt.lib;%(AdditionalDependencies);dinput8.lib</AdditionalDependencies>
+    </Link>
+    <FxCompile>
+      <AdditionalOptions>-Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+    </FxCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\engine\source\runtime\framework\scene\scene.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\framework\system\control_system.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\framework\system\render_system.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\framework\system\resource_system.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\main.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\camera.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\geometry.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_rhi.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\rhi_instance.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_rhi.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_util.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\debug_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\scene_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\render_device.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\shader\shader_compiler.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\system\engine.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\system\file_system\path.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\system\platform\input_system.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\system\platform\win32\win32_input.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\system\platform\win32\window_system.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\component.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\ecs\ecs.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\control_system.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\resource_system.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\system.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\math\math.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\math\projection.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\camera.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\geometry.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_enum.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_pipeline.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_rhi.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_util.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3dx12.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi_enum.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi_instance.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\rhi_struct.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_enum.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_rhi.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_util.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\debug_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\base_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\scene_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\render_data.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\render_device.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\render_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\shader\shader_compiler.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\image\image_loader.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\model_loader.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\raw_model_data.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\system\engine.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\system\file_system\path.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\input_system.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\platform_info.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\win32\win32_input.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\system\platform\win32\window_system.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\system\time.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\..\engine\shader\debug\hlsl\fragment.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\debug\hlsl\vertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\anyhit.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\callable.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\closesthit.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\intersection.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\miss.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\raytracing\hlsl\raygen.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\common.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\fragment.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\lighting_util.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\vertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\skybox\hlsl\fragment.hlsl">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\skybox\hlsl\vertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

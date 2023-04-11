@@ -213,7 +213,7 @@ namespace engine {
 		resourceDesc.Dimension = D3D12EnumImageType(info.imageType).Get();
 		resourceDesc.Width = info.extent.width;
 		resourceDesc.Height = info.extent.height;
-		resourceDesc.DepthOrArraySize = info.extent.depth;
+		resourceDesc.DepthOrArraySize = info.arrayLayers > 1 ? info.arrayLayers : info.extent.depth;
 		resourceDesc.MipLevels = info.mipLevels;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		resourceDesc.SampleDesc.Count = D3D12EnumSampleCount(info.sampleCount).Get();
@@ -962,7 +962,7 @@ namespace engine {
 		temp.swap(renderPassResourceBarriers);
 	}
 
-	void D3D12WrapperCommandBuffer::BindPipeline(rhi::Pipeline& pipeline) {
+	void D3D12WrapperCommandBuffer::BindPipeline(rhi::Pipeline pipeline) {
 		this->pipeline = static_cast<D3D12WrapperPipeline*>(pipeline);
 		auto pipelineState = static_cast<D3D12WrapperPipeline*>(pipeline);
 		commandList->SetPipelineState(pipelineState->pipeline);
@@ -985,7 +985,7 @@ namespace engine {
 		vertexBindingInfo.dirty = true;
 	}
 
-	void D3D12WrapperCommandBuffer::BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) {
+	void D3D12WrapperCommandBuffer::BindIndexBuffer(rhi::Buffer buffer, uint64_t offset, rhi::IndexType indexType) {
 		auto indexBuffer = static_cast<D3D12WrapperBuffer*>(buffer);
 		D3D12_INDEX_BUFFER_VIEW indexBufferView = {};
 		indexBufferView.BufferLocation = indexBuffer->resource->GetGPUVirtualAddress();
@@ -1176,18 +1176,21 @@ namespace engine {
 
 	rhi::ImageCopyableFootprint D3D12WrapperImage::GetCopyableFootprint() const {
 		auto desc = resource->GetDesc();
-		auto subresource = static_cast<UINT>(desc.MipLevels) * desc.DepthOrArraySize;
+		auto subresourceCount = static_cast<UINT>(desc.MipLevels) * desc.DepthOrArraySize;
 
 		rhi::ImageCopyableFootprint result;
 
 		ID3D12Device* device = nullptr;
 		resource->GetDevice(IID_PPV_ARGS(&device));
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
-		device->GetCopyableFootprints(&desc, 0, subresource, 0, &footprint, nullptr, nullptr, &result.size);
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprint(subresourceCount);
+		device->GetCopyableFootprints(&desc, 0, subresourceCount, 0, footprint.data(), nullptr, nullptr, &result.size);
 		device->Release();
 
-		result.offset = footprint.Offset;
-		result.rowPitch = footprint.Footprint.RowPitch;
+		result.subresources.resize(subresourceCount);
+		for (UINT i = 0; i < subresourceCount; i++) {
+			result.subresources[i].offset = footprint[i].Offset;
+			result.subresources[i].rowPitch = footprint[i].Footprint.RowPitch;
+		}
 
 		return result;
 	}

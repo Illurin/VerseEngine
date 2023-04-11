@@ -2,8 +2,6 @@
 
 #include "base_pass.hpp"
 
-#include "runtime/resource/asset_loader/image/image_loader.hpp"
-
 namespace engine {
 
 	class ScenePass {
@@ -14,7 +12,8 @@ namespace engine {
 		void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer);
 
 		std::vector<rhi::DescriptorSetLayout> GetDescriptorSetLayouts() const { return descriptorSetLayouts; }
-		rhi::PipelineLayout GetPipelineLayout() const { return pipelineLayout; }
+		rhi::PipelineLayout                   GetPipelineLayout()       const { return pipelineLayout; }
+		rhi::RenderPass                       GetRenderPass()           const { return renderPass; }
 
 	private:
 		void BuildDescriptorLayout();
@@ -24,7 +23,7 @@ namespace engine {
 		void BuildFramebuffers();
 
 	private:
-		std::vector<rhi::DescriptorSetLayout> descriptorSetLayouts{ nullptr };
+		std::vector<rhi::DescriptorSetLayout> descriptorSetLayouts;
 		rhi::PipelineLayout                   pipelineLayout{ nullptr };
 		rhi::RenderPass                       renderPass{ nullptr };
 		rhi::Pipeline                         pipeline{ nullptr };

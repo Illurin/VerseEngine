@@ -6,6 +6,7 @@ namespace engine {
 
 	class IScene {
 	public:
+		IScene();
 		virtual ~IScene();
 
 		void Start();

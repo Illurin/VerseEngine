@@ -95,13 +95,13 @@ namespace engine {
 		uploaderBuffer = info.device->CreateBuffer(bufferInfo);
 
 		auto uploaderBufferPtr = reinterpret_cast<uint8_t*>(uploaderBuffer->Map());
-		if (footprint.rowPitch == 0) {
+		if (footprint.subresources.empty()) {
 			std::copy(rawImage.source.begin(), rawImage.source.end(), uploaderBufferPtr);
 		}
 		else {
 			for (uint32_t i = 0; i < rawImage.height; i++) {
 				auto rowBegin = rawImage.source.begin() + i * rawImage.rowPitch;
-				std::copy(rowBegin, rowBegin + rawImage.rowPitch, uploaderBufferPtr + i * footprint.rowPitch);
+				std::copy(rowBegin, rowBegin + rawImage.rowPitch, uploaderBufferPtr + i * footprint.subresources[0].rowPitch);
 			}
 		}
 		uploaderBuffer->Unmap();

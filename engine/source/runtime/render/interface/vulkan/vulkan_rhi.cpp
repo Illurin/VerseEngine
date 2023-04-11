@@ -540,7 +540,8 @@ namespace engine {
 			.setTiling(vk::ImageTiling::eOptimal)
 			.setArrayLayers(info.arrayLayers)
 			.setMipLevels(info.mipLevels)
-			.setSamples(VkEnumSampleCount(info.sampleCount).Get());
+			.setSamples(VkEnumSampleCount(info.sampleCount).Get())
+			.setFlags(info.arrayLayers == 6 ? vk::ImageCreateFlagBits::eCubeCompatible : vk::ImageCreateFlags());
 		
 		auto image = device.createImage(imageInfo);
 
@@ -1232,7 +1233,7 @@ namespace engine {
 		commandBuffer.endRenderPass();
 	}
 
-	void VkWrapperCommandBuffer::BindPipeline(rhi::Pipeline& pipeline) {
+	void VkWrapperCommandBuffer::BindPipeline(rhi::Pipeline pipeline) {
 		auto pipeline_ = static_cast<VkWrapperPipeline*>(pipeline);
 		commandBuffer.bindPipeline(pipeline_->pipelineType, pipeline_->pipeline);
 	}
@@ -1248,7 +1249,7 @@ namespace engine {
 		commandBuffer.bindVertexBuffers(firstBinding, bindingCount, vertexBuffers.data(), offsets.data());
 	}
 
-	void VkWrapperCommandBuffer::BindIndexBuffer(rhi::Buffer& buffer, uint64_t offset, rhi::IndexType indexType) {
+	void VkWrapperCommandBuffer::BindIndexBuffer(rhi::Buffer buffer, uint64_t offset, rhi::IndexType indexType) {
 		auto indexBuffer = static_cast<VkWrapperBuffer*>(buffer)->buffer;
 		commandBuffer.bindIndexBuffer(indexBuffer, offset, VkEnumIndexType(indexType).Get());
 	}
@@ -1500,8 +1501,6 @@ namespace engine {
 		auto memoryReqs = device.getImageMemoryRequirements(image);
 		
 		auto footprint = rhi::ImageCopyableFootprint()
-			.SetOffset(0)
-			.SetRowPitch(0)
 			.SetSize(memoryReqs.size);
 
 		return footprint;
@@ -1515,7 +1514,7 @@ namespace engine {
 		device.resetDescriptorPool(descriptorPool);
 		for (auto& descriptorSet : descriptorSets) {
 			auto descriptorSet_ = static_cast<VkWrapperDescriptorSet*>(descriptorSet);
-			if (descriptorSet_->imageView) device.destroy(descriptorSet_->imageView);
+			for (auto& [key, imageView] : descriptorSet_->imageViews) device.destroy(imageView);
 
 			delete descriptorSet;
 			descriptorSet = nullptr;
@@ -1526,7 +1525,7 @@ namespace engine {
 		std::vector<vk::DescriptorSet> freeDescriptorSets(descriptorCount);
 		for (uint32_t i = 0; i < descriptorCount; i++) {
 			auto descriptorSet = static_cast<VkWrapperDescriptorSet*>(pDescriptorSets[i]);
-			if (descriptorSet->imageView) device.destroy(descriptorSet->imageView);
+			for (auto& [key, imageView] : descriptorSet->imageViews) device.destroy(imageView);
 
 			freeDescriptorSets[i] = descriptorSet->descriptorSet;
 			descriptorSets[descriptorSet->poolIndex] = nullptr;
@@ -1598,9 +1597,8 @@ namespace engine {
 	}
 
 	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageLayout imageLayout, rhi::ImageViewInfo imageViewInfo) {
-		if (imageView) {
-			device.destroy(imageView);
-			imageView = nullptr;
+		if (imageViews.find(dstBinding) != imageViews.end()) {
+			device.destroy(imageViews[dstBinding]);
 		}
 		
 		auto imageViewCreateInfo = vk::ImageViewCreateInfo()
@@ -1619,14 +1617,14 @@ namespace engine {
 				imageViewInfo.subresourceRange.baseArrayLayer,
 				imageViewInfo.subresourceRange.arrayLayerCount));
 
-		imageView = device.createImageView(imageViewCreateInfo);
+		imageViews[dstBinding] = device.createImageView(imageViewCreateInfo);
 
-		if (!imageView) {
+		if (!imageViews[dstBinding]) {
 			throw std::runtime_error("Create image view failed");
 		}
 		
 		auto descriptorImageInfo = vk::DescriptorImageInfo()
-			.setImageView(imageView)
+			.setImageView(imageViews[dstBinding])
 			.setImageLayout(VkEnumImageLayout(imageLayout).Get());
 
 		auto writeDescriptorSet = vk::WriteDescriptorSet()
@@ -1748,7 +1746,8 @@ namespace engine {
 	void VkWrapperDescriptorPool::Destroy() {
 		device.destroy(descriptorPool);
 		for (auto& descriptorSet : descriptorSets) {
-			device.destroy(static_cast<VkWrapperDescriptorSet*>(descriptorSet)->imageView);
+			auto descriptorSet_ = static_cast<VkWrapperDescriptorSet*>(descriptorSet);
+			for (auto& [key, imageView] : descriptorSet_->imageViews) device.destroy(imageView);
 			if (descriptorSet) delete descriptorSet;
 		}
 		delete this;

@@ -108,9 +108,9 @@ namespace engine {
 			
 			virtual void BeginRenderPass(const RenderPassBeginInfo&) = 0;
 			virtual void EndRenderPass() = 0;
-			virtual void BindPipeline(Pipeline&) = 0;
+			virtual void BindPipeline(Pipeline) = 0;
 			virtual void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const Buffer* pBuffers) = 0;
-			virtual void BindIndexBuffer(Buffer& buffer, uint64_t offset, IndexType indexType) = 0;
+			virtual void BindIndexBuffer(Buffer buffer, uint64_t offset, IndexType indexType) = 0;
 			virtual void BindDescriptorSets(PipelineType pipelineType, PipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const DescriptorSet* pDescriptorSets) = 0;
 
 			virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;

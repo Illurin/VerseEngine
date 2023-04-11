@@ -6,8 +6,11 @@ struct FragmentIn {
     float3 posW : WorldPos;
 };
 
-Texture2D    tex          : register(t1, space1);
-SamplerState samplerState : register(s2, space1);
+Texture2D    tex           : register(t1, space1);
+SamplerState samplerState  : register(s2, space1);
+                           
+TextureCube  skybox        : register(t1, space2);
+SamplerState skyboxSampler : register(s2, space2);
 
 float4 main(FragmentIn input) : SV_Target0 {
     float4 diffuse = materialConstants.diffuseAlbedo * tex.Sample(samplerState, input.texCoord);

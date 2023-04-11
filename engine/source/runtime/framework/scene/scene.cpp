@@ -4,20 +4,22 @@
 #include "runtime/framework/system/resource_system.hpp"
 #include "runtime/framework/system/render_system.hpp"
 
+#include "runtime/render/geometry.hpp"
 #include "runtime/resource/asset_loader/model/model_loader.hpp"
 
 namespace engine {
 
-	void IScene::Start() {
-		for (auto& system : systems) {
-			system->Start(registry);
-		}
-	}
+	IScene::IScene() {
 
-	void IScene::Update() {
-		for (auto& system : systems) {
-			system->Update(registry);
-		}
+		// Systems
+
+		AddSystem(std::make_unique<ControlSystem>());
+		AddSystem(std::make_unique<ResourceSystem>());
+		AddSystem(std::make_unique<RenderSystem>());
+
+		// Singleton components
+
+		GetRegistry().ctx().emplace<EnvironmentComponent>();
 	}
 
 	IScene::~IScene() {
@@ -32,13 +34,30 @@ namespace engine {
 		});
 	}
 
+	void IScene::Start() {
+		for (auto& system : systems) {
+			system->Start(registry);
+		}
+	}
+
+	void IScene::Update() {
+		for (auto& system : systems) {
+			system->Update(registry);
+		}
+	}
+
 	MainScene::MainScene() {
+
+		// Environment
+
+		GetRegistry().ctx().get<EnvironmentComponent>() = EnvironmentComponent(math::Vector3f(0.2f, 0.2f, 0.2f),
+			                                                                   Path::GetAbsolutePath("asset/skybox.png"));
 
 		// Camera
 
 		auto aspect = static_cast<float>(RenderDevice::GetSwapchain()->GetImageExtent().width)
 			        / static_cast<float>(RenderDevice::GetSwapchain()->GetImageExtent().height);
-		CameraComponent cameraComponent(true, Camera(aspect), math::Vector3f(0.2f, 0.2f, 0.2f));
+		CameraComponent cameraComponent(true, Camera(aspect));
 		cameraComponent.camera.SetPosition(math::Vector3f(0.0f, 5.0f, 5.0f));
 		cameraComponent.camera.LookAt(math::Vector3f(0.0f, 5.0f, 5.0f), math::Vector3f(0.0f, 0.0f, 0.0f), math::Vector3f::UnitY());
 
@@ -110,6 +129,20 @@ namespace engine {
 
 		GetRegistry().emplace<MeshRendererComponent>(planeEntity, vertices, indices);
 		GetRegistry().emplace<MaterialComponent>(planeEntity, planeMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);
+		
+		// Object 1
+
+		auto sphereEntity = GetRegistry().create();
+
+		GetRegistry().emplace<TransformComponent>(sphereEntity, math::Vector3f(8.0f, 6.0f, 0.0f),
+			                                                    math::Vector3f(1.0f, 1.0f, 1.0f),
+			                                                    math::Vector3f(0.0f, 0.0f, 0.0f),
+			                                                    math::Vector3f(0.0f, 0.0f, 0.0f));
+
+		auto geosphereMesh = Geometry::CreateGeosphere(2.0f, 10);
+
+		GetRegistry().emplace<MeshRendererComponent>(sphereEntity, geosphereMesh.vertices, geosphereMesh.indices);
+		GetRegistry().emplace<MaterialComponent>(sphereEntity, planeMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);
 
 		// Marisa model
 
@@ -133,12 +166,6 @@ namespace engine {
 				                                     mesh.material.diffuseMap.has_value() ? mesh.material.diffuseMap.value().path : Path::GetAbsolutePath("asset/brickTexture.jpg"),
 				                                     mesh.material.diffuseMap.has_value() ? repeatSamplerInfo : borderSamplerInfo);
 		}
-
-		// Systems
-
-		AddSystem(std::make_unique<ControlSystem>());
-		AddSystem(std::make_unique<ResourceSystem>());
-		AddSystem(std::make_unique<RenderSystem>());
 	}
 
 }

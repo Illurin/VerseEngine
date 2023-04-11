@@ -1,5 +1,7 @@
 #include "render_system.hpp"
 
+#include "runtime/render/geometry.hpp"
+
 namespace engine {
 
 	RenderSystem::RenderSystem() {
@@ -12,6 +14,7 @@ namespace engine {
 		fence = RenderDevice::GetDevice()->CreateFence(rhi::FenceCreateInfo());
 
 		pScenePass = std::make_unique<ScenePass>();
+		pSkyboxPass = std::make_unique<SkyboxPass>(pScenePass->GetDescriptorSetLayouts()[2], pScenePass->GetRenderPass());
 	}
 
 	RenderSystem::~RenderSystem() {
@@ -46,6 +49,16 @@ namespace engine {
 			indices.insert(indices.end(), meshRenderer.indices.begin(), meshRenderer.indices.end());
 		});
 
+		// Skybox meshes
+
+		auto& skyboxRenderer = registry.ctx().emplace<SkyboxRendererComponent>();
+		skyboxRenderer.vertexOffset = static_cast<uint32_t>(vertices.size());
+		skyboxRenderer.firstIndex = static_cast<uint32_t>(indices.size());
+		auto skyboxGeosphere = Geometry::CreateGeosphere(1.0f, 0);
+		vertices.insert(vertices.end(), skyboxGeosphere.vertices.begin(), skyboxGeosphere.vertices.end());
+		indices.insert(indices.end(), skyboxGeosphere.indices.begin(), skyboxGeosphere.indices.end());
+		skyboxRenderer.indexCount = static_cast<uint32_t>(skyboxGeosphere.indices.size());
+
 		auto vertexBufferInfo = rhi::BufferCreateInfo()
 			.SetSize(sizeof(ObjectVertexData) * vertices.size())
 			.SetUsage(rhi::BufferUsage::VertexBuffer);
@@ -73,8 +86,8 @@ namespace engine {
 		std::vector<rhi::DescriptorPoolSize> descriptorPoolSizes = {
 			{ rhi::DescriptorType::UniformBuffer,
 			  static_cast<uint32_t>(transformView.size()) + static_cast<uint32_t>(materialView.size()) + 1 },
-			{ rhi::DescriptorType::SampledImage, static_cast<uint32_t>(materialView.size()) },
-			{ rhi::DescriptorType::Sampler, static_cast<uint32_t>(materialView.size()) },
+			{ rhi::DescriptorType::SampledImage, static_cast<uint32_t>(materialView.size()) + 1 },
+			{ rhi::DescriptorType::Sampler, static_cast<uint32_t>(materialView.size()) + 1 },
 		};
 
 		auto maxSetCount = static_cast<uint32_t>(transformView.size()) + static_cast<uint32_t>(materialView.size()) + 1;
@@ -85,6 +98,9 @@ namespace engine {
 		descriptorPool = RenderDevice::GetDevice()->CreateDescriptorPool(descriptorPoolInfo);
 
 		transformView.each([&](TransformComponent& transform) {
+
+			// Object constants
+
 			auto uniformBufferInfo = rhi::BufferCreateInfo()
 				.SetSize(sizeof(ObjectConstants))
 				.SetUsage(rhi::BufferUsage::UniformBuffer);
@@ -97,10 +113,14 @@ namespace engine {
 			auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
 
 			desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, transform.uniformBuffer);
+			
 			transform.descriptorSet = desriptorSets[0];
 		});
 
 		materialView.each([&](MaterialComponent& material) {
+
+			// Material constants
+
 			auto uniformBufferInfo = rhi::BufferCreateInfo()
 				.SetSize(sizeof(MaterialConstants))
 				.SetUsage(rhi::BufferUsage::UniformBuffer);
@@ -116,6 +136,10 @@ namespace engine {
 				.SetDescriptorSetLayouts(allocateLayouts);
 			auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
 
+			desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, material.uniformBuffer);
+
+			// Material texture and sampler
+
 			auto imageViewInfo = rhi::ImageViewInfo()
 				.SetImage(material.texture)
 				.SetFormat(rhi::Format::R8G8B8A8Unorm)
@@ -124,25 +148,45 @@ namespace engine {
 					.SetImageAspect(rhi::ImageAspect::Color)
 					.SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(1).SetMipLevelCount(1));
 
-			desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, material.uniformBuffer);
 			desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
 			desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, material.sampler);
+
 			material.descriptorSet = desriptorSets[0];
 		});
 
-		auto uniformBufferInfo = rhi::BufferCreateInfo()
-			.SetSize(sizeof(PassConstants))
-			.SetUsage(rhi::BufferUsage::UniformBuffer);
-		passUniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
+		{
+			// Pass constants
 
-		std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[2] };
+			auto uniformBufferInfo = rhi::BufferCreateInfo()
+				.SetSize(sizeof(PassConstants))
+				.SetUsage(rhi::BufferUsage::UniformBuffer);
+			passUniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
 
-		auto allocateInfo = rhi::DescriptorSetAllocateInfo()
-			.SetDescriptorSetLayouts(allocateLayouts);
-		auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
+			std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[2] };
 
-		desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, passUniformBuffer);
-		passDescriptorSet = desriptorSets[0];
+			auto allocateInfo = rhi::DescriptorSetAllocateInfo()
+				.SetDescriptorSetLayouts(allocateLayouts);
+			auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
+
+			desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, passUniformBuffer);
+
+			// Skybox texture and sampler
+
+			auto environment = registry.ctx().get<EnvironmentComponent>();
+
+			auto imageViewInfo = rhi::ImageViewInfo()
+				.SetImage(environment.skyboxTexture)
+				.SetFormat(rhi::Format::R8G8B8A8Unorm)
+				.SetViewType(rhi::ImageViewType::ImageCube)
+				.SetSubresourceRange(rhi::ImageSubresourceRange()
+					.SetImageAspect(rhi::ImageAspect::Color)
+					.SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(6).SetMipLevelCount(1));
+
+			desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
+			desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, environment.skyboxSampler);
+
+			passDescriptorSet = desriptorSets[0];
+		}
 	}
 
 	void RenderSystem::UpdateFrameResource(ecs::registry& registry) {
@@ -172,6 +216,11 @@ namespace engine {
 
 		auto p = reinterpret_cast<PassConstants*>(passUniformBuffer->Map());
 
+		auto& environment = registry.ctx().get<EnvironmentComponent>();
+		if (environment.dirty) {
+			p->ambientLight = environment.ambientLight;
+		}
+
 		cameraUpdateView.each([&](CameraComponent& camera) {
 			if (!camera.active) return;
 			if (!camera.dirty) return;
@@ -180,7 +229,6 @@ namespace engine {
 			p->viewMatrix = camera.camera.GetViewMatrix();
 			p->projMatrix = camera.camera.GetProjMatrix();
 			p->eyePos << camera.camera.GetPosition(), 1.0f;
-			p->ambientLight = camera.ambientLight;
 			camera.dirty = false;
 		});
 
@@ -194,11 +242,11 @@ namespace engine {
 		commandBuffer->Reset();
 		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
 
-		pScenePass->Begin(swapchainImageIndex, commandBuffer);
-
-		commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 2, 1, &passDescriptorSet);
 		commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
 		commandBuffer->BindIndexBuffer(indexBuffer, 0, rhi::IndexType::Uint32);
+
+		pScenePass->Begin(swapchainImageIndex, commandBuffer);
+		commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 2, 1, &passDescriptorSet);
 
 		auto renderView = registry.view<const TransformComponent, const MeshRendererComponent, const MaterialComponent>();
 
@@ -208,6 +256,12 @@ namespace engine {
 
 			commandBuffer->DrawIndexed(static_cast<uint32_t>(meshRenderer.indices.size()), 1, meshRenderer.firstIndex, meshRenderer.vertexOffset, 0);
 		});
+
+		commandBuffer->BindPipeline(pSkyboxPass->GetPipeline());
+		commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pSkyboxPass->GetPipelineLayout(), 0, 1, &passDescriptorSet);
+
+		auto& skyboxRenderer = registry.ctx().get<SkyboxRendererComponent>();
+		commandBuffer->DrawIndexed(skyboxRenderer.indexCount, 1, skyboxRenderer.firstIndex, skyboxRenderer.vertexOffset, 0);
 
 		commandBuffer->EndRenderPass();
 		commandBuffer->End();

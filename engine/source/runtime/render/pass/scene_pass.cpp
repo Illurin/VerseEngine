@@ -36,10 +36,16 @@ namespace engine {
 			                     .SetDescriptorType(rhi::DescriptorType::Sampler)
 			                     .SetShaderStage(rhi::ShaderStage::Fragment);
 
-		std::vector<rhi::DescriptorSetLayoutBindingInfo> passLayoutBindings(1);
+		std::vector<rhi::DescriptorSetLayoutBindingInfo> passLayoutBindings(3);
 		passLayoutBindings[0].SetBinding(0)
 			                 .SetDescriptorType(rhi::DescriptorType::UniformBuffer)
 			                 .SetShaderStage(rhi::ShaderStage::All);
+		passLayoutBindings[1].SetBinding(1)
+			                 .SetDescriptorType(rhi::DescriptorType::SampledImage)
+			                 .SetShaderStage(rhi::ShaderStage::Fragment);
+		passLayoutBindings[2].SetBinding(2)
+			                 .SetDescriptorType(rhi::DescriptorType::Sampler)
+			                 .SetShaderStage(rhi::ShaderStage::Fragment);
 
 		descriptorSetLayouts.resize(3);
 		descriptorSetLayouts[0] = RenderDevice::GetDevice()->CreateDescriptorSetLayout(rhi::DescriptorSetLayoutCreateInfo().SetBindings(objectLayoutBindings));

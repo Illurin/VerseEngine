@@ -17,6 +17,7 @@ namespace engine {
 
 	private:
 		std::unordered_map<std::string, rhi::Image>  images;
+		std::unordered_map<std::string, rhi::Image>  cubemaps;
 		std::vector<rhi::Sampler>                    samplers;
 	};
 

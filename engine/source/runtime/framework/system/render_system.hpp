@@ -37,6 +37,7 @@ namespace engine {
 		// Render pass				    
 									    
 		std::unique_ptr<ScenePass>      pScenePass;
+		std::unique_ptr<SkyboxPass>     pSkyboxPass;
 	};
 
 }

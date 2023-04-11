@@ -231,14 +231,20 @@ namespace engine {
 			SampleCount sampleCount;
 		};
 
-		struct ImageCopyableFootprint {
-			ImageCopyableFootprint& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
-			ImageCopyableFootprint& SetSize(uint64_t size) { this->size = size; return *this; }
-			ImageCopyableFootprint& SetRowPitch(uint64_t rowPitch) { this->rowPitch = rowPitch; return *this; }
+		struct ImageCopyableFootprintSubresource {
+			ImageCopyableFootprintSubresource& SetOffset(uint64_t offset) { this->offset = offset; return *this; }
+			ImageCopyableFootprintSubresource& SetRowPitch(uint64_t rowPitch) { this->rowPitch = rowPitch; return *this; }
 
 			uint64_t offset;
-			uint64_t size;
 			uint64_t rowPitch;
+		};
+
+		struct ImageCopyableFootprint {
+			ImageCopyableFootprint& SetSize(uint64_t size) { this->size = size; return *this; }
+			ImageCopyableFootprint& SetSubresources(std::vector<ImageCopyableFootprintSubresource>& subresources) { this->subresources = subresources; return *this; }
+
+			uint64_t size;
+			std::vector<ImageCopyableFootprintSubresource> subresources;
 		};
 
 		struct ImageSubresourceRange {

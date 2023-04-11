@@ -21,7 +21,7 @@ ConstantBuffer<ObjectConstants> objectConstants : register(b0, space0);
 
 VertexOut main(VertexIn input) {
     float3 posW = mul(objectConstants.worldMatrix, float4(input.posL, 1.0f)).xyz;
-    float4x4 viewProjMatrix = mul(passConstants.projMatrx, passConstants.viewMatrx);
+    float4x4 viewProjMatrix = mul(passConstants.projMatrix, passConstants.viewMatrix);
     
 	VertexOut output;
     output.posH = mul(viewProjMatrix, float4(posW, 1.0f));

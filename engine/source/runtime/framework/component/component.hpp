@@ -33,14 +33,22 @@ namespace engine {
 		MeshRendererComponent() = default;
 		MeshRendererComponent(const std::vector<ObjectVertexData>& vertices,
 			                  const std::vector<uint32_t>& indices) :
-			vertices(vertices),
-			indices(indices) { }
+			vertices(vertices), indices(indices) { }
 
 		std::vector<ObjectVertexData> vertices;
 		std::vector<uint32_t> indices;
 
 		uint32_t vertexOffset{ 0 };
 		uint32_t firstIndex{ 0 };
+	};
+
+
+	struct SkyboxRendererComponent : public IComponent {
+		SkyboxRendererComponent() = default;
+
+		uint32_t vertexOffset{ 0 };
+		uint32_t firstIndex{ 0 };
+		uint32_t indexCount{ 0 };
 	};
 
 	struct MaterialComponent : public IComponent {
@@ -64,12 +72,11 @@ namespace engine {
 
 	struct CameraComponent : public IComponent {
 		CameraComponent() = default;
-		CameraComponent(bool active, const Camera& camera, math::Vector3f ambientLight) :
-			active(active), camera(camera), ambientLight(ambientLight) { }
+		CameraComponent(bool active, const Camera& camera) :
+			active(active), camera(camera) { }
 
 		bool active{ false };
 		Camera camera;
-		math::Vector3f ambientLight;
 
 		bool dirty{ true };
 	};
@@ -83,4 +90,16 @@ namespace engine {
 		float rotateSpeed;
 	};
 
+	struct EnvironmentComponent : public IComponent {
+		EnvironmentComponent() = default;
+		EnvironmentComponent(math::Vector3f ambientLight, std::filesystem::path skyboxTexturePath) :
+			ambientLight(ambientLight), skyboxTexturePath(skyboxTexturePath) { }
+
+		math::Vector3f ambientLight;
+		std::filesystem::path skyboxTexturePath;
+
+		rhi::Image skyboxTexture{ nullptr };
+		rhi::Sampler skyboxSampler{ nullptr };
+		bool dirty{ true };
+	};
 }

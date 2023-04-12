@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base_pass.hpp"
+#include "../base_pass.hpp"
 
 namespace engine {
 

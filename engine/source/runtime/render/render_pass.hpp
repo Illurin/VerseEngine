@@ -1,6 +1,8 @@
 #pragma once
 
-#include "pass/debug_pass.hpp"
-#include "pass/raytracing_pass.hpp"
-#include "pass/scene_pass.hpp"
-#include "pass/skybox_pass.hpp"
+#include "pass/debug/debug_pass.hpp"
+#include "pass/raytracing/raytracing_pass.hpp"
+#include "pass/scene/scene_pass.hpp"
+#include "pass/skybox/skybox_pass.hpp"
+#include "pass/deferred/deferred_pass.hpp"
+#include "pass/post_processing/post_processing_pass.hpp"

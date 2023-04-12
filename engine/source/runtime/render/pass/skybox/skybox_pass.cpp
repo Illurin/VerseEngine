@@ -25,7 +25,6 @@ namespace engine {
 
 		auto shaderCompiler = RenderDevice::GetInstance()->CreateShaderCompiler();
 
-		shaderCompiler.AddIncludePath(Path::GetAbsolutePath("shader/skybox/hlsl"));
 		shaderCompiler.Compile(Path::GetAbsolutePath("shader/skybox/hlsl/vertex.hlsl"), L"main", ShaderCompileArgument::vs_profile);
 		shaderCompiler.GetSourceObject(shaderSource);
 

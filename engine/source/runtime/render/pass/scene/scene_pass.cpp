@@ -96,7 +96,6 @@ namespace engine {
 
 		auto shaderCompiler = RenderDevice::GetInstance()->CreateShaderCompiler();
 
-		shaderCompiler.AddIncludePath(Path::GetAbsolutePath("shader/scene/hlsl"));
 		shaderCompiler.Compile(Path::GetAbsolutePath("shader/scene/hlsl/vertex.hlsl"), L"main", ShaderCompileArgument::vs_profile);
 		shaderCompiler.GetSourceObject(shaderSource);
 

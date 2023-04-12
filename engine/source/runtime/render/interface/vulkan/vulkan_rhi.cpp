@@ -567,6 +567,8 @@ namespace engine {
 		imageWrapper->image = image;
 		imageWrapper->memory = memory;
 		imageWrapper->extent = info.extent;
+		imageWrapper->mipLevels = info.mipLevels;
+		imageWrapper->arrayLayers = info.arrayLayers;
 		return imageWrapper;
 	}
 
@@ -1499,7 +1501,7 @@ namespace engine {
 
 	rhi::ImageCopyableFootprint VkWrapperImage::GetCopyableFootprint() const {
 		auto memoryReqs = device.getImageMemoryRequirements(image);
-		
+
 		auto footprint = rhi::ImageCopyableFootprint()
 			.SetSize(memoryReqs.size);
 
@@ -1514,7 +1516,7 @@ namespace engine {
 		device.resetDescriptorPool(descriptorPool);
 		for (auto& descriptorSet : descriptorSets) {
 			auto descriptorSet_ = static_cast<VkWrapperDescriptorSet*>(descriptorSet);
-			for (auto& [key, imageView] : descriptorSet_->imageViews) device.destroy(imageView);
+			for (auto imageView : descriptorSet_->imageViews) device.destroy(imageView);
 
 			delete descriptorSet;
 			descriptorSet = nullptr;
@@ -1525,7 +1527,7 @@ namespace engine {
 		std::vector<vk::DescriptorSet> freeDescriptorSets(descriptorCount);
 		for (uint32_t i = 0; i < descriptorCount; i++) {
 			auto descriptorSet = static_cast<VkWrapperDescriptorSet*>(pDescriptorSets[i]);
-			for (auto& [key, imageView] : descriptorSet->imageViews) device.destroy(imageView);
+			for (auto imageView : descriptorSet->imageViews) device.destroy(imageView);
 
 			freeDescriptorSets[i] = descriptorSet->descriptorSet;
 			descriptorSets[descriptorSet->poolIndex] = nullptr;
@@ -1597,8 +1599,8 @@ namespace engine {
 	}
 
 	void VkWrapperDescriptorSet::Write(uint32_t dstBinding, rhi::DescriptorType descriptorType, rhi::ImageLayout imageLayout, rhi::ImageViewInfo imageViewInfo) {
-		if (imageViews.find(dstBinding) != imageViews.end()) {
-			device.destroy(imageViews[dstBinding]);
+		if (imageViews.size() <= dstBinding) {
+			imageViews.resize(dstBinding + 1);
 		}
 		
 		auto imageViewCreateInfo = vk::ImageViewCreateInfo()
@@ -1747,7 +1749,7 @@ namespace engine {
 		device.destroy(descriptorPool);
 		for (auto& descriptorSet : descriptorSets) {
 			auto descriptorSet_ = static_cast<VkWrapperDescriptorSet*>(descriptorSet);
-			for (auto& [key, imageView] : descriptorSet_->imageViews) device.destroy(imageView);
+			for (auto imageView : descriptorSet_->imageViews) device.destroy(imageView);
 			if (descriptorSet) delete descriptorSet;
 		}
 		delete this;

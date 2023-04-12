@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base_pass.hpp"
+#include "../base_pass.hpp"
 
 #include "runtime/resource/asset_loader/image/image_loader.hpp"
 #include "runtime/system/time.hpp"

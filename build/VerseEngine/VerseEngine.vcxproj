@@ -115,6 +115,8 @@
     </Link>
     <FxCompile>
       <AdditionalOptions>-Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+      <ShaderModel>6.6</ShaderModel>
+      <AdditionalIncludeDirectories>..\..\engine\shader\include\hlsl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -137,7 +139,10 @@
       <AdditionalDependencies>vulkan-1.lib;VkLayer_utils.lib;dxgi.lib;d3d12.lib;dxguid.lib;dxcompiler.lib;assimp-vc143-mt.lib;%(AdditionalDependencies);dinput8.lib</AdditionalDependencies>
     </Link>
     <FxCompile>
-      <AdditionalOptions>-Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>
+      </AdditionalOptions>
+      <ShaderModel>6.6</ShaderModel>
+      <AdditionalIncludeDirectories>..\..\engine\shader\include\hlsl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -152,10 +157,12 @@
     <ClCompile Include="..\..\engine\source\runtime\render\interface\rhi_instance.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_rhi.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_util.cpp" />
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\debug_pass.cpp" />
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing_pass.cpp" />
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\scene_pass.cpp" />
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\debug\debug_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\deferred\deferred_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\render_device.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\shader\shader_compiler.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.cpp" />
@@ -190,11 +197,13 @@
     <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_enum.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_rhi.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_util.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\debug_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\base_pass.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing_pass.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\scene_pass.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\debug\debug_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\deferred\deferred_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\render_data.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\render_device.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\render_pass.hpp" />
@@ -225,6 +234,26 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\include\hlsl\common.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\include\hlsl\lighting_util.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </AdditionalOptions>
@@ -277,29 +306,13 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </AdditionalOptions>
     </FxCompile>
-    <FxCompile Include="..\..\engine\shader\scene\hlsl\common.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
     <FxCompile Include="..\..\engine\shader\scene\hlsl\fragment.hlsl">
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </AdditionalOptions>
-    </FxCompile>
-    <FxCompile Include="..\..\engine\shader\scene\hlsl\lighting_util.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\scene\hlsl\vertex.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </AdditionalOptions>
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\skybox\hlsl\fragment.hlsl">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

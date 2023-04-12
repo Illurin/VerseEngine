@@ -1,4 +1,4 @@
-#include "common.hlsl"
+#include "..\..\include\hlsl\common.hlsl"
 
 struct VertexIn {
     float3 posL : LocalPos;

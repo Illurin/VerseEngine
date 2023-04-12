@@ -23,9 +23,9 @@ namespace engine {
 		arguments.emplace_back(macro);
 	}
 
-	void ShaderCompiler::AddIncludePath(std::filesystem::path includePath) {
+	void ShaderCompiler::AddIncludeDirectory(std::filesystem::path directory) {
 		arguments.emplace_back(L"-I");
-		arguments.emplace_back(includePath.native().c_str());
+		arguments.emplace_back(directory.native().c_str());
 	}
 
 	void ShaderCompiler::SetEncoding(const wchar_t* utf8_or_utf16) {
@@ -87,17 +87,19 @@ namespace engine {
 		{ decltype(profileArguments) temp; temp.swap(profileArguments); }
 	}
 
-	void ShaderCompiler::Compile(char* pSourceCode, uint32_t sourceCodeSize, const wchar_t* entryPoint, const wchar_t* profile) {
+	void ShaderCompiler::Compile(char* pSourceCode, uint32_t sourceCodeSize, const wchar_t* entryPoint, const wchar_t* profile, std::filesystem::path includeDirectory) {
 		std::vector<const wchar_t*> arguments;
 		arguments.emplace_back(L"-E");
 		arguments.emplace_back(entryPoint);
 		arguments.emplace_back(L"-T");
 		arguments.emplace_back(profile);
+		arguments.emplace_back(L"-I");
+		arguments.emplace_back(includeDirectory.native().c_str());
 
 		for (auto& argument : this->arguments) {
 			arguments.emplace_back(argument.c_str());
 		}
-		
+
 		if (profileArguments.find(profile) != profileArguments.end()) {
 			for (auto& argument : profileArguments.at(profile)) {
 				arguments.emplace_back(argument.c_str());
@@ -126,6 +128,10 @@ namespace engine {
 		dxcEncoding->Release();
 	}
 
+	void ShaderCompiler::Compile(char* pSourceCode, uint32_t sourceCodeSize, const wchar_t* entryPoint, const wchar_t* profile) {
+		Compile(pSourceCode, sourceCodeSize, entryPoint, profile, "");
+	}
+
 	void ShaderCompiler::Compile(std::filesystem::path sourcePath, const wchar_t* entryPoint, const wchar_t* profile) {
 		std::ifstream loadFile(sourcePath, std::ios::ate | std::ios::binary);
 
@@ -140,7 +146,7 @@ namespace engine {
 		loadFile.read(sourceCode.data(), sourceCodeSize);
 		loadFile.close();
 
-		Compile(sourceCode.data(), sourceCodeSize, entryPoint, profile);
+		Compile(sourceCode.data(), sourceCodeSize, entryPoint, profile, sourcePath.parent_path());
 	}
 
 	bool ShaderCompiler::GetSourceObject(std::vector<uint8_t>& sourceObject) const {

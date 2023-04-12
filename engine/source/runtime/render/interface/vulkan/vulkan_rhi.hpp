@@ -249,6 +249,8 @@ namespace engine {
 		vk::Image image{ nullptr };
 		vk::DeviceMemory memory{ nullptr };
 		rhi::Extent3D extent{};
+		uint32_t arrayLayers{ 0 };
+		uint32_t mipLevels{ 0 };
 	};
 
 	//
@@ -310,7 +312,7 @@ namespace engine {
 	private:
 		uint32_t poolIndex{ 0 };
 		vk::DescriptorSet descriptorSet{ nullptr };
-		std::unordered_map<uint32_t, vk::ImageView> imageViews;
+		std::vector<vk::ImageView> imageViews;
 	};
 
 	//

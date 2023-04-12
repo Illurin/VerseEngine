@@ -94,6 +94,42 @@
     <Filter Include="shader\skybox\hlsl">
       <UniqueIdentifier>{b87c5110-4fa8-43e5-8f34-97071ae2545f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shader\deferred">
+      <UniqueIdentifier>{b59cff39-d178-4296-bbc3-578a2c4f0c54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\deferred\hlsl">
+      <UniqueIdentifier>{b97a9f8c-cbab-4541-a0d5-fe0c6907fa6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\post_processing">
+      <UniqueIdentifier>{83611b61-51e6-47b7-bc78-85c634479dbc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\post_processing\hlsl">
+      <UniqueIdentifier>{d5337657-a7b9-4ef8-ac79-c44984368490}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass\scene">
+      <UniqueIdentifier>{d07e3c46-31f2-4b61-9767-31baa24af4fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass\debug">
+      <UniqueIdentifier>{d3433e5d-8f77-4ea4-9cc2-87495763e55c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass\post_processing">
+      <UniqueIdentifier>{2326b0ef-b897-4ad5-9c69-80c6b7e8528b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass\raytracing">
+      <UniqueIdentifier>{4d6431fb-a607-4854-bde5-f72a0f3b1539}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass\deferred">
+      <UniqueIdentifier>{8ba123f6-960d-46dd-84d7-95b42047c4b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass\skybox">
+      <UniqueIdentifier>{b8d5afe1-2831-4416-b1e6-98909b8a1bb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\include">
+      <UniqueIdentifier>{ac78933d-da6e-4038-9bf0-ae0bd52aa751}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\include\hlsl">
+      <UniqueIdentifier>{bb2dd7fc-cf4a-4033-9b15-ec7b5ae84842}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\engine\source\runtime\main.cpp">
@@ -123,9 +159,6 @@
     <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.cpp">
       <Filter>source\runtime\resource\asset_loader\image</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\debug_pass.cpp">
-      <Filter>source\runtime\render\pass</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.cpp">
       <Filter>source\runtime\resource\asset_loader\model</Filter>
     </ClCompile>
@@ -138,17 +171,11 @@
     <ClCompile Include="..\..\engine\source\runtime\system\platform\input_system.cpp">
       <Filter>source\runtime\system\platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing_pass.cpp">
-      <Filter>source\runtime\render\pass</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\framework\system\render_system.cpp">
       <Filter>source\runtime\framework\system</Filter>
     </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\framework\scene\scene.cpp">
       <Filter>source\runtime\framework\scene</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\scene_pass.cpp">
-      <Filter>source\runtime\render\pass</Filter>
     </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\render\render_device.cpp">
       <Filter>source\runtime\render</Filter>
@@ -162,11 +189,26 @@
     <ClCompile Include="..\..\engine\source\runtime\framework\system\resource_system.cpp">
       <Filter>source\runtime\framework\system</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox_pass.cpp">
-      <Filter>source\runtime\render\pass</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\render\geometry.cpp">
       <Filter>source\runtime\render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\debug\debug_pass.cpp">
+      <Filter>source\runtime\render\pass\debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\deferred\deferred_pass.cpp">
+      <Filter>source\runtime\render\pass\deferred</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.cpp">
+      <Filter>source\runtime\render\pass\skybox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.cpp">
+      <Filter>source\runtime\render\pass\raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.cpp">
+      <Filter>source\runtime\render\pass\post_processing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.cpp">
+      <Filter>source\runtime\render\pass\scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -227,12 +269,6 @@
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.hpp">
       <Filter>source\runtime\resource\asset_loader\image</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\debug_pass.hpp">
-      <Filter>source\runtime\render\pass</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\base_pass.hpp">
-      <Filter>source\runtime\render\pass</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.hpp">
       <Filter>source\runtime\resource\asset_loader\model</Filter>
     </ClInclude>
@@ -260,9 +296,6 @@
     <ClInclude Include="..\..\engine\source\runtime\system\time.hpp">
       <Filter>source\runtime\system</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing_pass.hpp">
-      <Filter>source\runtime\render\pass</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene.hpp">
       <Filter>source\runtime\framework\scene</Filter>
     </ClInclude>
@@ -277,9 +310,6 @@
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp">
       <Filter>source\runtime\framework\system</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\scene_pass.hpp">
-      <Filter>source\runtime\render\pass</Filter>
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\render\render_device.hpp">
       <Filter>source\runtime\render</Filter>
@@ -296,11 +326,29 @@
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\raw_model_data.hpp">
       <Filter>source\runtime\resource\asset_loader\model</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox_pass.hpp">
-      <Filter>source\runtime\render\pass</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\render\geometry.hpp">
       <Filter>source\runtime\render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\debug\debug_pass.hpp">
+      <Filter>source\runtime\render\pass\debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\deferred\deferred_pass.hpp">
+      <Filter>source\runtime\render\pass\deferred</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.hpp">
+      <Filter>source\runtime\render\pass\skybox</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.hpp">
+      <Filter>source\runtime\render\pass\raytracing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.hpp">
+      <Filter>source\runtime\render\pass\post_processing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.hpp">
+      <Filter>source\runtime\render\pass\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\base_pass.hpp">
+      <Filter>source\runtime\render\pass</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -328,23 +376,26 @@
     <FxCompile Include="..\..\engine\shader\raytracing\hlsl\callable.hlsl">
       <Filter>shader\raytracing\hlsl</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\engine\shader\scene\hlsl\fragment.hlsl">
-      <Filter>shader\scene\hlsl</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\engine\shader\scene\hlsl\vertex.hlsl">
-      <Filter>shader\scene\hlsl</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\engine\shader\scene\hlsl\common.hlsl">
-      <Filter>shader\scene\hlsl</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\engine\shader\scene\hlsl\lighting_util.hlsl">
-      <Filter>shader\scene\hlsl</Filter>
-    </FxCompile>
     <FxCompile Include="..\..\engine\shader\skybox\hlsl\fragment.hlsl">
       <Filter>shader\skybox\hlsl</Filter>
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\skybox\hlsl\vertex.hlsl">
       <Filter>shader\skybox\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute.hlsl">
+      <Filter>shader\post_processing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\include\hlsl\common.hlsl">
+      <Filter>shader\include\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\include\hlsl\lighting_util.hlsl">
+      <Filter>shader\include\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\fragment.hlsl">
+      <Filter>shader\scene\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\scene\hlsl\vertex.hlsl">
+      <Filter>shader\scene\hlsl</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

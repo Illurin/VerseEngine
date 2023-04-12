@@ -116,36 +116,35 @@ namespace engine {
 					std::copy(rawCubemap.back.begin(),   rawCubemap.back.end(),   pUploaderBuffer + 5 * rawCubemap.faceSize);
 				}
 				else {
-					auto copyDst = pUploaderBuffer;
 					for (uint32_t i = 0; i < rawCubemap.faceHeight; i++) {
 						auto rowBegin = rawCubemap.right.begin() + i * rawCubemap.faceRowPitch;
+						auto copyDst = pUploaderBuffer + footprint.subresources[0].offset + i * footprint.subresources[0].rowPitch;
 						std::copy(rowBegin, rowBegin + rawCubemap.faceRowPitch, copyDst);
-						copyDst += footprint.subresources[0].rowPitch;
 					}
 					for (uint32_t i = 0; i < rawCubemap.faceHeight; i++) {
 						auto rowBegin = rawCubemap.left.begin() + i * rawCubemap.faceRowPitch;
+						auto copyDst = pUploaderBuffer + footprint.subresources[1].offset + i * footprint.subresources[1].rowPitch;
 						std::copy(rowBegin, rowBegin + rawCubemap.faceRowPitch, copyDst);
-						copyDst += footprint.subresources[1].rowPitch;
 					}
 					for (uint32_t i = 0; i < rawCubemap.faceHeight; i++) {
 						auto rowBegin = rawCubemap.top.begin() + i * rawCubemap.faceRowPitch;
+						auto copyDst = pUploaderBuffer + footprint.subresources[2].offset + i * footprint.subresources[2].rowPitch;
 						std::copy(rowBegin, rowBegin + rawCubemap.faceRowPitch, copyDst);
-						copyDst += footprint.subresources[2].rowPitch;
 					}
 					for (uint32_t i = 0; i < rawCubemap.faceHeight; i++) {
 						auto rowBegin = rawCubemap.bottom.begin() + i * rawCubemap.faceRowPitch;
+						auto copyDst = pUploaderBuffer + footprint.subresources[3].offset + i * footprint.subresources[3].rowPitch;
 						std::copy(rowBegin, rowBegin + rawCubemap.faceRowPitch, copyDst);
-						copyDst += footprint.subresources[3].rowPitch;
 					}
 					for (uint32_t i = 0; i < rawCubemap.faceHeight; i++) {
 						auto rowBegin = rawCubemap.front.begin() + i * rawCubemap.faceRowPitch;
+						auto copyDst = pUploaderBuffer + footprint.subresources[4].offset + i * footprint.subresources[4].rowPitch;
 						std::copy(rowBegin, rowBegin + rawCubemap.faceRowPitch, copyDst);
-						copyDst += footprint.subresources[4].rowPitch;
 					}
 					for (uint32_t i = 0; i < rawCubemap.faceHeight; i++) {
 						auto rowBegin = rawCubemap.back.begin() + i * rawCubemap.faceRowPitch;
+						auto copyDst = pUploaderBuffer + footprint.subresources[5].offset + i * footprint.subresources[5].rowPitch;
 						std::copy(rowBegin, rowBegin + rawCubemap.faceRowPitch, copyDst);
-						copyDst += footprint.subresources[5].rowPitch;
 					}
 				}
 				uploaderBuffer->Unmap();

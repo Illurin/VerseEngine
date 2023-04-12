@@ -73,7 +73,7 @@ namespace engine {
 
 		// compiler arguments
 		void Define(const wchar_t* macro);
-		void AddIncludePath(std::filesystem::path includePath);
+		void AddIncludeDirectory(std::filesystem::path directory);
 		void SetEncoding(const wchar_t* utf8_or_utf16);
 
 		// spir-v code gen
@@ -91,6 +91,7 @@ namespace engine {
 		void AddArgument(const wchar_t* profile, const wchar_t* argument);
 		void ClearArguments();
 
+		void Compile(char* pSourceCode, uint32_t sourceCodeSize, const wchar_t* entryPoint, const wchar_t* profile, std::filesystem::path includeDirectory);
 		void Compile(char* pSourceCode, uint32_t sourceCodeSize, const wchar_t* entryPoint, const wchar_t* profile);
 		void Compile(std::filesystem::path sourcePath, const wchar_t* entryPoint, const wchar_t* profile);
 

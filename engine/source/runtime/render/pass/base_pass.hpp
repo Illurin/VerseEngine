@@ -6,10 +6,15 @@
 
 namespace engine {
 
-	class BasePass {
-	public:
-		virtual void Destroy() = 0;
-		virtual void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) = 0;
-	};
+    class BasePass {
+    public:
+        virtual void Destroy() = 0;
+        virtual void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) = 0;
+    };
+
+    class IRenderPass {
+    public:
+        virtual ~IRenderPass() { }
+    };
 
 }

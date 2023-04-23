@@ -10,26 +10,26 @@
 
 namespace engine {
 
-	class Engine {
-	public:
-		explicit Engine(const char* directory);
-		~Engine() = default;
+    class Engine {
+    public:
+        explicit Engine(const char* directory);
+        ~Engine() = default;
 
-		void Start(const PlatformInfo& platformInfo);
-		void Run();
-		void Exit();
+        void Start(const PlatformInfo& platformInfo);
+        void Run();
+        void Exit();
 
-	private:
-		void Tick();
-		
-		void CalculateDeltaTime();
-		void CalculateFps();
+    private:
+        void Tick();
+        
+        void CalculateDeltaTime();
+        void CalculateFps();
 
-	private:
-		std::chrono::time_point<std::chrono::steady_clock> timePoint;
+    private:
+        std::chrono::time_point<std::chrono::steady_clock> timePoint;
 
-	private:
-		std::unique_ptr<IScene> pScene;
-	};
+    private:
+        std::unique_ptr<IScene> pScene;
+    };
 
 }

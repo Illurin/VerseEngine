@@ -3,20 +3,20 @@
 #include "assimp_loader.hpp"
 
 namespace engine {
-	namespace asset {
+    namespace asset {
 
-		struct RawModel {
-			std::vector<RawModelMesh> meshes;
-		};
+        struct RawModel {
+            std::vector<RawModelMesh> meshes;
+        };
 
-		class ModelLoader {
-		public:
-			static RawModel Load(std::filesystem::path path) {
-				AssimpModelLoader loader(path);
-				auto& meshes = loader.GetMeshes();
-				return { meshes };
-			}
-		};
+        class ModelLoader {
+        public:
+            static RawModel Load(std::filesystem::path path) {
+                AssimpModelLoader loader(path);
+                auto& meshes = loader.GetMeshes();
+                return { meshes };
+            }
+        };
 
-	}
+    }
 }

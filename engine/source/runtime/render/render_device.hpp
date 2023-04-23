@@ -4,27 +4,27 @@
 
 namespace engine {
 
-	class RenderDevice {
-	public:
-		static void Initialize(const rhi::InstanceCreateInfo&);
-		static void Clear();
+    class RenderDevice {
+    public:
+        static void Initialize(const rhi::InstanceCreateInfo&);
+        static void Clear();
 
-		static void SetSwapchain(const rhi::SwapchainCreateInfo&);
+        static void SetSwapchain(const rhi::SwapchainCreateInfo&);
 
-		static rhi::Format GetSwapchainFormat() { return swapchainFormat; }
+        static rhi::Format GetSwapchainFormat() { return swapchainFormat; }
 
-		static rhi::Instance GetInstance() { return instance; }
-		static rhi::Device GetDevice() { return device; }
-		static rhi::Queue GetQueue() { return queue; }
-		static rhi::Swapchain GetSwapchain() { return swapchain; }
+        static rhi::Instance GetInstance() { return instance; }
+        static rhi::Device GetDevice() { return device; }
+        static rhi::Queue GetQueue() { return queue; }
+        static rhi::Swapchain GetSwapchain() { return swapchain; }
 
-	private:
-		static inline rhi::Format swapchainFormat{ rhi::Format::B8G8R8A8Unorm };
-		
-		static inline rhi::Instance instance{ nullptr };
-		static inline rhi::Device device{ nullptr };
-		static inline rhi::Queue queue{ nullptr };
-		static inline rhi::Swapchain swapchain{ nullptr };
-	};
+    private:
+        static inline rhi::Format swapchainFormat{ rhi::Format::B8G8R8A8Unorm };
+        
+        static inline rhi::Instance instance{ nullptr };
+        static inline rhi::Device device{ nullptr };
+        static inline rhi::Queue queue{ nullptr };
+        static inline rhi::Swapchain swapchain{ nullptr };
+    };
 
 }

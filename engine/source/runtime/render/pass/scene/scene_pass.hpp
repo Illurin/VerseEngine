@@ -4,31 +4,34 @@
 
 namespace engine {
 
-	class ScenePass {
-	public:
-		ScenePass();
-		~ScenePass();
+    class ScenePass {
+    public:
+        ScenePass();
+        ~ScenePass();
 
-		void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer);
+        void Begin(uint32_t frame, rhi::CommandBuffer commandBuffer);
 
-		std::vector<rhi::DescriptorSetLayout> GetDescriptorSetLayouts() const { return descriptorSetLayouts; }
-		rhi::PipelineLayout                   GetPipelineLayout()       const { return pipelineLayout; }
-		rhi::RenderPass                       GetRenderPass()           const { return renderPass; }
+        rhi::Image                            GetRenderTarget()         const { return renderTarget; }
+        std::vector<rhi::DescriptorSetLayout> GetDescriptorSetLayouts() const { return descriptorSetLayouts; }
+        rhi::PipelineLayout                   GetPipelineLayout()       const { return pipelineLayout; }
+        rhi::RenderPass                       GetRenderPass()           const { return renderPass; }
 
-	private:
-		void BuildDescriptorLayout();
-		void BuildRenderPass();
-		void BuildPipeline();
-		void BuildDepthImage();
-		void BuildFramebuffers();
+    private:
+        void BuildDescriptorLayout();
+        void BuildRenderPass();
+        void BuildPipeline();
+        void BuildRenderTarget();
+        void BuildDepthImage();
+        void BuildFramebuffers();
 
-	private:
-		std::vector<rhi::DescriptorSetLayout> descriptorSetLayouts;
-		rhi::PipelineLayout                   pipelineLayout{ nullptr };
-		rhi::RenderPass                       renderPass{ nullptr };
-		rhi::Pipeline                         pipeline{ nullptr };
-		rhi::Image                            depthImage{ nullptr };
-		std::vector<rhi::Framebuffer>         framebuffers;
-	};
+    private:
+        std::vector<rhi::DescriptorSetLayout> descriptorSetLayouts;
+        rhi::PipelineLayout                   pipelineLayout{ nullptr };
+        rhi::RenderPass                       renderPass{ nullptr };
+        rhi::Pipeline                         pipeline{ nullptr };
+        rhi::Image                            renderTarget{ nullptr };
+        rhi::Image                            depthImage{ nullptr };
+        std::vector<rhi::Framebuffer>         framebuffers;
+    };
 
 }

@@ -4,272 +4,282 @@
 
 namespace engine {
 
-	RenderSystem::RenderSystem() {
-		auto commandPoolInfo = rhi::CommandPoolCreateInfo()
-			.SetQueue(RenderDevice::GetQueue());
-		commandPool = RenderDevice::GetDevice()->CreateCommandPool(commandPoolInfo);
-
-		commandBuffers = commandPool->AllocateCommandBuffers(static_cast<uint32_t>(RenderDevice::GetSwapchain()->GetImages().size()));
-
-		fence = RenderDevice::GetDevice()->CreateFence(rhi::FenceCreateInfo());
-
-		pScenePass = std::make_unique<ScenePass>();
-		pSkyboxPass = std::make_unique<SkyboxPass>(pScenePass->GetDescriptorSetLayouts()[2], pScenePass->GetRenderPass());
-	}
-
-	RenderSystem::~RenderSystem() {
-		commandPool->Destroy();
-		fence->Destroy();
-		if (vertexBuffer) vertexBuffer->Destroy();
-		if (indexBuffer) indexBuffer->Destroy();
-		if (passUniformBuffer) passUniformBuffer->Destroy();
-		if (descriptorPool) descriptorPool->Destroy();
-	}
-
-	void RenderSystem::Start(ecs::registry& registry) {
-		BuildMeshes(registry);
-		BuildDescriptors(registry);
-	}
-
-	void RenderSystem::Update(ecs::registry& registry) {
-		UpdateFrameResource(registry);
-		UpdateRendering(registry);
-	}
-
-	void RenderSystem::BuildMeshes(ecs::registry& registry) {
-		auto view = registry.view<MeshRendererComponent>();
-
-		std::vector<ObjectVertexData> vertices;
-		std::vector<uint32_t> indices;
-
-		view.each([&](MeshRendererComponent& meshRenderer) {
-			meshRenderer.vertexOffset = static_cast<uint32_t>(vertices.size());
-			meshRenderer.firstIndex = static_cast<uint32_t>(indices.size());
-			vertices.insert(vertices.end(), meshRenderer.vertices.begin(), meshRenderer.vertices.end());
-			indices.insert(indices.end(), meshRenderer.indices.begin(), meshRenderer.indices.end());
-		});
-
-		// Skybox meshes
-
-		auto& skyboxRenderer = registry.ctx().emplace<SkyboxRendererComponent>();
-		skyboxRenderer.vertexOffset = static_cast<uint32_t>(vertices.size());
-		skyboxRenderer.firstIndex = static_cast<uint32_t>(indices.size());
-		auto skyboxGeosphere = Geometry::CreateGeosphere(1.0f, 0);
-		vertices.insert(vertices.end(), skyboxGeosphere.vertices.begin(), skyboxGeosphere.vertices.end());
-		indices.insert(indices.end(), skyboxGeosphere.indices.begin(), skyboxGeosphere.indices.end());
-		skyboxRenderer.indexCount = static_cast<uint32_t>(skyboxGeosphere.indices.size());
-
-		auto vertexBufferInfo = rhi::BufferCreateInfo()
-			.SetSize(sizeof(ObjectVertexData) * vertices.size())
-			.SetUsage(rhi::BufferUsage::VertexBuffer);
-		vertexBuffer = RenderDevice::GetDevice()->CreateBuffer(vertexBufferInfo);
-
-		auto indexBufferInfo = rhi::BufferCreateInfo()
-			.SetSize(sizeof(uint32_t) * indices.size())
-			.SetUsage(rhi::BufferUsage::IndexBuffer);
-		indexBuffer = RenderDevice::GetDevice()->CreateBuffer(indexBufferInfo);
-
-		auto pVertexBuffer = reinterpret_cast<ObjectVertexData*>(vertexBuffer->Map());
-		std::copy(vertices.begin(), vertices.end(), pVertexBuffer);
-		vertexBuffer->Unmap();
+    RenderSystem::RenderSystem() {
+        auto commandPoolInfo = rhi::CommandPoolCreateInfo()
+            .SetQueue(RenderDevice::GetQueue());
+        commandPool = RenderDevice::GetDevice()->CreateCommandPool(commandPoolInfo);
+
+        commandBuffers = commandPool->AllocateCommandBuffers(static_cast<uint32_t>(RenderDevice::GetSwapchain()->GetImages().size()));
+
+        fence = RenderDevice::GetDevice()->CreateFence(rhi::FenceCreateInfo());
+
+        pScenePass = std::make_unique<ScenePass>();
+        pSkyboxPass = std::make_unique<SkyboxPass>(pScenePass->GetDescriptorSetLayouts()[2], pScenePass->GetRenderPass());
+        pPostProcessingPass = std::make_unique<PostProcessingPass>(pScenePass->GetRenderTarget());
+    }
+
+    RenderSystem::~RenderSystem() {
+        commandPool->Destroy();
+        fence->Destroy();
+        if (vertexBuffer) vertexBuffer->Destroy();
+        if (indexBuffer) indexBuffer->Destroy();
+        if (passUniformBuffer) passUniformBuffer->Destroy();
+        if (descriptorPool) descriptorPool->Destroy();
+    }
+
+    void RenderSystem::Start(ecs::registry& registry) {
+        BuildMeshes(registry);
+        BuildDescriptors(registry);
+    }
+
+    void RenderSystem::Update(ecs::registry& registry) {
+        UpdateFrameResource(registry);
+        UpdateCommandBuffers(registry);
+        UpdateRendering();
+    }
+
+    void RenderSystem::BuildMeshes(ecs::registry& registry) {
+        auto view = registry.view<MeshRendererComponent>();
+
+        std::vector<ObjectVertexData> vertices;
+        std::vector<uint32_t> indices;
+
+        view.each([&](MeshRendererComponent& meshRenderer) {
+            meshRenderer.vertexOffset = static_cast<uint32_t>(vertices.size());
+            meshRenderer.firstIndex = static_cast<uint32_t>(indices.size());
+            vertices.insert(vertices.end(), meshRenderer.vertices.begin(), meshRenderer.vertices.end());
+            indices.insert(indices.end(), meshRenderer.indices.begin(), meshRenderer.indices.end());
+        });
+
+        // Skybox meshes
+
+        auto& skyboxRenderer = registry.ctx().emplace<SkyboxRendererComponent>();
+        skyboxRenderer.vertexOffset = static_cast<uint32_t>(vertices.size());
+        skyboxRenderer.firstIndex = static_cast<uint32_t>(indices.size());
+        auto skyboxGeosphere = Geometry::CreateGeosphere(1.0f, 0);
+        vertices.insert(vertices.end(), skyboxGeosphere.vertices.begin(), skyboxGeosphere.vertices.end());
+        indices.insert(indices.end(), skyboxGeosphere.indices.begin(), skyboxGeosphere.indices.end());
+        skyboxRenderer.indexCount = static_cast<uint32_t>(skyboxGeosphere.indices.size());
+
+        auto vertexBufferInfo = rhi::BufferCreateInfo()
+            .SetSize(sizeof(ObjectVertexData) * vertices.size())
+            .SetUsage(rhi::BufferUsage::VertexBuffer);
+        vertexBuffer = RenderDevice::GetDevice()->CreateBuffer(vertexBufferInfo);
+
+        auto indexBufferInfo = rhi::BufferCreateInfo()
+            .SetSize(sizeof(uint32_t) * indices.size())
+            .SetUsage(rhi::BufferUsage::IndexBuffer);
+        indexBuffer = RenderDevice::GetDevice()->CreateBuffer(indexBufferInfo);
+
+        auto pVertexBuffer = reinterpret_cast<ObjectVertexData*>(vertexBuffer->Map());
+        std::copy(vertices.begin(), vertices.end(), pVertexBuffer);
+        vertexBuffer->Unmap();
+
+        auto pIndexBuffer = reinterpret_cast<uint32_t*>(indexBuffer->Map());
+        std::copy(indices.begin(), indices.end(), pIndexBuffer);
+        indexBuffer->Unmap();
+    }
+
+    void RenderSystem::BuildDescriptors(ecs::registry& registry) {
+        auto transformView = registry.view<TransformComponent>();
+        auto materialView = registry.view<MaterialComponent>();
+        auto cameraView = registry.view<CameraComponent>();
+        
+        std::vector<rhi::DescriptorPoolSize> descriptorPoolSizes = {
+            { rhi::DescriptorType::UniformBuffer,
+              static_cast<uint32_t>(transformView.size()) + static_cast<uint32_t>(materialView.size()) + 1 },
+            { rhi::DescriptorType::SampledImage, static_cast<uint32_t>(materialView.size()) + 1 },
+            { rhi::DescriptorType::Sampler, static_cast<uint32_t>(materialView.size()) + 1 },
+        };
+
+        auto maxSetCount = static_cast<uint32_t>(transformView.size()) + static_cast<uint32_t>(materialView.size()) + 1;
+
+        auto descriptorPoolInfo = rhi::DescriptorPoolCreateInfo()
+            .SetPoolSizes(descriptorPoolSizes)
+            .SetMaxSetCount(maxSetCount);
+        descriptorPool = RenderDevice::GetDevice()->CreateDescriptorPool(descriptorPoolInfo);
+
+        transformView.each([&](TransformComponent& transform) {
+
+            // Object constants
+
+            auto uniformBufferInfo = rhi::BufferCreateInfo()
+                .SetSize(sizeof(ObjectConstants))
+                .SetUsage(rhi::BufferUsage::UniformBuffer);
+            transform.uniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
 
-		auto pIndexBuffer = reinterpret_cast<uint32_t*>(indexBuffer->Map());
-		std::copy(indices.begin(), indices.end(), pIndexBuffer);
-		indexBuffer->Unmap();
-	}
-
-	void RenderSystem::BuildDescriptors(ecs::registry& registry) {
-		auto transformView = registry.view<TransformComponent>();
-		auto materialView = registry.view<MaterialComponent>();
-		auto cameraView = registry.view<CameraComponent>();
-		
-		std::vector<rhi::DescriptorPoolSize> descriptorPoolSizes = {
-			{ rhi::DescriptorType::UniformBuffer,
-			  static_cast<uint32_t>(transformView.size()) + static_cast<uint32_t>(materialView.size()) + 1 },
-			{ rhi::DescriptorType::SampledImage, static_cast<uint32_t>(materialView.size()) + 1 },
-			{ rhi::DescriptorType::Sampler, static_cast<uint32_t>(materialView.size()) + 1 },
-		};
-
-		auto maxSetCount = static_cast<uint32_t>(transformView.size()) + static_cast<uint32_t>(materialView.size()) + 1;
-
-		auto descriptorPoolInfo = rhi::DescriptorPoolCreateInfo()
-			.SetPoolSizes(descriptorPoolSizes)
-			.SetMaxSetCount(maxSetCount);
-		descriptorPool = RenderDevice::GetDevice()->CreateDescriptorPool(descriptorPoolInfo);
+            std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[0] };
 
-		transformView.each([&](TransformComponent& transform) {
-
-			// Object constants
-
-			auto uniformBufferInfo = rhi::BufferCreateInfo()
-				.SetSize(sizeof(ObjectConstants))
-				.SetUsage(rhi::BufferUsage::UniformBuffer);
-			transform.uniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
+            auto allocateInfo = rhi::DescriptorSetAllocateInfo()
+                .SetDescriptorSetLayouts(allocateLayouts);
+            auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
 
-			std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[0] };
+            desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, transform.uniformBuffer);
+            
+            transform.descriptorSet = desriptorSets[0];
+        });
 
-			auto allocateInfo = rhi::DescriptorSetAllocateInfo()
-				.SetDescriptorSetLayouts(allocateLayouts);
-			auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
+        materialView.each([&](MaterialComponent& material) {
 
-			desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, transform.uniformBuffer);
-			
-			transform.descriptorSet = desriptorSets[0];
-		});
+            // Material constants
 
-		materialView.each([&](MaterialComponent& material) {
+            auto uniformBufferInfo = rhi::BufferCreateInfo()
+                .SetSize(sizeof(MaterialConstants))
+                .SetUsage(rhi::BufferUsage::UniformBuffer);
+            material.uniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
 
-			// Material constants
+            auto p = reinterpret_cast<MaterialConstants*>(material.uniformBuffer->Map());
+            *p = material.constants;
+            material.uniformBuffer->Unmap();
 
-			auto uniformBufferInfo = rhi::BufferCreateInfo()
-				.SetSize(sizeof(MaterialConstants))
-				.SetUsage(rhi::BufferUsage::UniformBuffer);
-			material.uniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
+            std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[1] };
 
-			auto p = reinterpret_cast<MaterialConstants*>(material.uniformBuffer->Map());
-			*p = material.constants;
-			material.uniformBuffer->Unmap();
+            auto allocateInfo = rhi::DescriptorSetAllocateInfo()
+                .SetDescriptorSetLayouts(allocateLayouts);
+            auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
 
-			std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[1] };
+            desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, material.uniformBuffer);
 
-			auto allocateInfo = rhi::DescriptorSetAllocateInfo()
-				.SetDescriptorSetLayouts(allocateLayouts);
-			auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
+            // Material texture and sampler
 
-			desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, material.uniformBuffer);
+            auto imageViewInfo = rhi::ImageViewInfo()
+                .SetImage(material.texture)
+                .SetFormat(rhi::Format::R8G8B8A8Unorm)
+                .SetViewType(rhi::ImageViewType::Image2D)
+                .SetSubresourceRange(rhi::ImageSubresourceRange()
+                    .SetImageAspect(rhi::ImageAspect::Color)
+                    .SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(1).SetMipLevelCount(1));
 
-			// Material texture and sampler
+            desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
+            desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, material.sampler);
 
-			auto imageViewInfo = rhi::ImageViewInfo()
-				.SetImage(material.texture)
-				.SetFormat(rhi::Format::R8G8B8A8Unorm)
-				.SetViewType(rhi::ImageViewType::Image2D)
-				.SetSubresourceRange(rhi::ImageSubresourceRange()
-					.SetImageAspect(rhi::ImageAspect::Color)
-					.SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(1).SetMipLevelCount(1));
+            material.descriptorSet = desriptorSets[0];
+        });
 
-			desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
-			desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, material.sampler);
+        {
+            // Pass constants
 
-			material.descriptorSet = desriptorSets[0];
-		});
+            auto uniformBufferInfo = rhi::BufferCreateInfo()
+                .SetSize(sizeof(PassConstants))
+                .SetUsage(rhi::BufferUsage::UniformBuffer);
+            passUniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
 
-		{
-			// Pass constants
+            std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[2] };
 
-			auto uniformBufferInfo = rhi::BufferCreateInfo()
-				.SetSize(sizeof(PassConstants))
-				.SetUsage(rhi::BufferUsage::UniformBuffer);
-			passUniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
+            auto allocateInfo = rhi::DescriptorSetAllocateInfo()
+                .SetDescriptorSetLayouts(allocateLayouts);
+            auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
 
-			std::vector allocateLayouts = { pScenePass->GetDescriptorSetLayouts()[2] };
+            desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, passUniformBuffer);
 
-			auto allocateInfo = rhi::DescriptorSetAllocateInfo()
-				.SetDescriptorSetLayouts(allocateLayouts);
-			auto desriptorSets = descriptorPool->AllocateDescriptorSets(allocateInfo);
+            // Skybox texture and sampler
 
-			desriptorSets[0]->Write(0, rhi::DescriptorType::UniformBuffer, passUniformBuffer);
+            auto environment = registry.ctx().get<EnvironmentComponent>();
 
-			// Skybox texture and sampler
+            auto imageViewInfo = rhi::ImageViewInfo()
+                .SetImage(environment.skyboxTexture)
+                .SetFormat(rhi::Format::R8G8B8A8Unorm)
+                .SetViewType(rhi::ImageViewType::ImageCube)
+                .SetSubresourceRange(rhi::ImageSubresourceRange()
+                    .SetImageAspect(rhi::ImageAspect::Color)
+                    .SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(6).SetMipLevelCount(1));
 
-			auto environment = registry.ctx().get<EnvironmentComponent>();
+            desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
+            desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, environment.skyboxSampler);
 
-			auto imageViewInfo = rhi::ImageViewInfo()
-				.SetImage(environment.skyboxTexture)
-				.SetFormat(rhi::Format::R8G8B8A8Unorm)
-				.SetViewType(rhi::ImageViewType::ImageCube)
-				.SetSubresourceRange(rhi::ImageSubresourceRange()
-					.SetImageAspect(rhi::ImageAspect::Color)
-					.SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(6).SetMipLevelCount(1));
+            passDescriptorSet = desriptorSets[0];
+        }
+    }
 
-			desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
-			desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, environment.skyboxSampler);
+    void RenderSystem::UpdateFrameResource(ecs::registry& registry) {
+        auto transformUpdateView = registry.view<TransformComponent>();
 
-			passDescriptorSet = desriptorSets[0];
-		}
-	}
+        transformUpdateView.each([&](TransformComponent& transform) {
+            if (!transform.dirty) return;
 
-	void RenderSystem::UpdateFrameResource(ecs::registry& registry) {
-		auto transformUpdateView = registry.view<TransformComponent>();
+            auto s = math::AlignedScaling3f(transform.scale);
+            auto lr = math::AngleAxisf(transform.localEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
+                    * math::AngleAxisf(transform.localEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
+                    * math::AngleAxisf(transform.localEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
+            auto t = math::Translation3f(transform.position);
+            auto gr = math::AngleAxisf(transform.globalEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
+                    * math::AngleAxisf(transform.globalEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
+                    * math::AngleAxisf(transform.globalEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
+            math::Affine3f affine(gr * t * lr * s);
+            
+            auto p = reinterpret_cast<ObjectConstants*>(transform.uniformBuffer->Map());
+            p->worldMatrix = affine.matrix();
+            transform.uniformBuffer->Unmap();
 
-		transformUpdateView.each([&](TransformComponent& transform) {
-			if (!transform.dirty) return;
+            transform.dirty = false;
+        });
 
-			auto s = math::AlignedScaling3f(transform.scale);
-			auto lr = math::AngleAxisf(transform.localEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
-				    * math::AngleAxisf(transform.localEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
-				    * math::AngleAxisf(transform.localEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
-			auto t = math::Translation3f(transform.position);
-			auto gr = math::AngleAxisf(transform.globalEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
-				    * math::AngleAxisf(transform.globalEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
-				    * math::AngleAxisf(transform.globalEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
-			math::Affine3f affine(gr * t * lr * s);
-			
-			auto p = reinterpret_cast<ObjectConstants*>(transform.uniformBuffer->Map());
-			p->worldMatrix = affine.matrix();
-			transform.uniformBuffer->Unmap();
+        auto cameraUpdateView = registry.view<CameraComponent>();
 
-			transform.dirty = false;
-		});
+        auto p = reinterpret_cast<PassConstants*>(passUniformBuffer->Map());
 
-		auto cameraUpdateView = registry.view<CameraComponent>();
+        auto& environment = registry.ctx().get<EnvironmentComponent>();
+        if (environment.dirty) {
+            p->ambientLight = environment.ambientLight;
+        }
 
-		auto p = reinterpret_cast<PassConstants*>(passUniformBuffer->Map());
+        cameraUpdateView.each([&](CameraComponent& camera) {
+            if (!camera.active) return;
+            if (!camera.dirty) return;
 
-		auto& environment = registry.ctx().get<EnvironmentComponent>();
-		if (environment.dirty) {
-			p->ambientLight = environment.ambientLight;
-		}
+            camera.camera.UpdataViewMatrix();
+            p->viewMatrix = camera.camera.GetViewMatrix();
+            p->projMatrix = camera.camera.GetProjMatrix();
+            p->eyePos << camera.camera.GetPosition(), 1.0f;
+            camera.dirty = false;
+        });
 
-		cameraUpdateView.each([&](CameraComponent& camera) {
-			if (!camera.active) return;
-			if (!camera.dirty) return;
+        passUniformBuffer->Unmap();
+    }
 
-			camera.camera.UpdataViewMatrix();
-			p->viewMatrix = camera.camera.GetViewMatrix();
-			p->projMatrix = camera.camera.GetProjMatrix();
-			p->eyePos << camera.camera.GetPosition(), 1.0f;
-			camera.dirty = false;
-		});
+    void RenderSystem::UpdateCommandBuffers(ecs::registry& registry) {
+        if (prepared) return;
+        prepared = true;
 
-		passUniformBuffer->Unmap();
-	}
+        for (uint32_t i = 0; i < RenderDevice::GetSwapchain()->GetImages().size(); i++) {
+            auto& commandBuffer = commandBuffers[i];
 
-	void RenderSystem::UpdateRendering(ecs::registry& registry) {
-		uint32_t swapchainImageIndex = RenderDevice::GetQueue()->AcquireNextImage(RenderDevice::GetSwapchain());
-		auto& commandBuffer = commandBuffers[swapchainImageIndex];
+            commandBuffer->Reset();
+            commandBuffer->Begin(rhi::CommandBufferBeginInfo());
 
-		commandBuffer->Reset();
-		commandBuffer->Begin(rhi::CommandBufferBeginInfo());
+            commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
+            commandBuffer->BindIndexBuffer(indexBuffer, 0, rhi::IndexType::Uint32);
 
-		commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
-		commandBuffer->BindIndexBuffer(indexBuffer, 0, rhi::IndexType::Uint32);
+            pScenePass->Begin(i, commandBuffer);
+            commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 2, 1, &passDescriptorSet);
 
-		pScenePass->Begin(swapchainImageIndex, commandBuffer);
-		commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 2, 1, &passDescriptorSet);
+            auto renderView = registry.view<const TransformComponent, const MeshRendererComponent, const MaterialComponent>();
 
-		auto renderView = registry.view<const TransformComponent, const MeshRendererComponent, const MaterialComponent>();
+            renderView.each([&](const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const MaterialComponent& material) {
+                commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 0, 1, &transform.descriptorSet);
+                commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 1, 1, &material.descriptorSet);
 
-		renderView.each([&](const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const MaterialComponent& material) {
-			commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 0, 1, &transform.descriptorSet);
-			commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 1, 1, &material.descriptorSet);
+                commandBuffer->DrawIndexed(static_cast<uint32_t>(meshRenderer.indices.size()), 1, meshRenderer.firstIndex, meshRenderer.vertexOffset, 0);
+            });
 
-			commandBuffer->DrawIndexed(static_cast<uint32_t>(meshRenderer.indices.size()), 1, meshRenderer.firstIndex, meshRenderer.vertexOffset, 0);
-		});
+            commandBuffer->BindPipeline(pSkyboxPass->GetPipeline());
+            commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pSkyboxPass->GetPipelineLayout(), 0, 1, &passDescriptorSet);
 
-		commandBuffer->BindPipeline(pSkyboxPass->GetPipeline());
-		commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pSkyboxPass->GetPipelineLayout(), 0, 1, &passDescriptorSet);
+            auto& skyboxRenderer = registry.ctx().get<SkyboxRendererComponent>();
+            commandBuffer->DrawIndexed(skyboxRenderer.indexCount, 1, skyboxRenderer.firstIndex, skyboxRenderer.vertexOffset, 0);
 
-		auto& skyboxRenderer = registry.ctx().get<SkyboxRendererComponent>();
-		commandBuffer->DrawIndexed(skyboxRenderer.indexCount, 1, skyboxRenderer.firstIndex, skyboxRenderer.vertexOffset, 0);
+            commandBuffer->EndRenderPass();
+            commandBuffer->End();
+        }
+    }
 
-		commandBuffer->EndRenderPass();
-		commandBuffer->End();
+    void RenderSystem::UpdateRendering() {
+        uint32_t swapchainImageIndex = RenderDevice::GetQueue()->AcquireNextImage(RenderDevice::GetSwapchain());
 
-		fence->Reset();
-		RenderDevice::GetQueue()->Submit(1, &commandBuffer, fence);
-		fence->Wait();
-		RenderDevice::GetQueue()->Present(RenderDevice::GetSwapchain(), swapchainImageIndex);
-	}
+        fence->Reset();
+        RenderDevice::GetQueue()->Submit(1, &commandBuffers[swapchainImageIndex], fence);
+        fence->Wait();
+        RenderDevice::GetQueue()->Present(RenderDevice::GetSwapchain(), swapchainImageIndex);
+    }
 
 }

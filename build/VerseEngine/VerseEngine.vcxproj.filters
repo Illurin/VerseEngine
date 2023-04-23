@@ -130,6 +130,9 @@
     <Filter Include="shader\include\hlsl">
       <UniqueIdentifier>{bb2dd7fc-cf4a-4033-9b15-ec7b5ae84842}</UniqueIdentifier>
     </Filter>
+    <Filter Include="source\runtime\render\graph">
+      <UniqueIdentifier>{e6151240-23bc-44e9-9bb5-94d9af6ea53d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\engine\source\runtime\main.cpp">
@@ -209,6 +212,9 @@
     </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.cpp">
       <Filter>source\runtime\render\pass\scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\graph\render_graph.cpp">
+      <Filter>source\runtime\render\graph</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -344,11 +350,14 @@
     <ClInclude Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.hpp">
       <Filter>source\runtime\render\pass\post_processing</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\base_pass.hpp">
+      <Filter>source\runtime\render\pass</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.hpp">
       <Filter>source\runtime\render\pass\scene</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\base_pass.hpp">
-      <Filter>source\runtime\render\pass</Filter>
+    <ClInclude Include="..\..\engine\source\runtime\render\graph\render_graph.hpp">
+      <Filter>source\runtime\render\graph</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

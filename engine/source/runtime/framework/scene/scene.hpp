@@ -4,27 +4,27 @@
 
 namespace engine {
 
-	class IScene {
-	public:
-		IScene();
-		virtual ~IScene();
+    class IScene {
+    public:
+        IScene();
+        virtual ~IScene();
 
-		void Start();
-		void Update();
+        void Start();
+        void Update();
 
-		ecs::registry& GetRegistry() { return registry; }
-		
-		void AddSystem(std::unique_ptr<ISystem> pSystem) { systems.emplace_back(std::move(pSystem)); }
+        ecs::registry& GetRegistry() { return registry; }
+        
+        void AddSystem(std::unique_ptr<ISystem> pSystem) { systems.emplace_back(std::move(pSystem)); }
 
-	private:
-		ecs::registry registry;
-		std::vector<std::unique_ptr<ISystem>> systems;
-	};
+    private:
+        ecs::registry registry;
+        std::vector<std::unique_ptr<ISystem>> systems;
+    };
 
-	class MainScene final : public IScene {
-	public:
-		MainScene();
-		~MainScene() {}
-	};
+    class MainScene final : public IScene {
+    public:
+        MainScene();
+        ~MainScene() {}
+    };
 
 }

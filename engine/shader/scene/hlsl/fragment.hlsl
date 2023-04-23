@@ -2,18 +2,18 @@
 #include "..\..\include\hlsl\lighting_util.hlsl"
 
 struct FragmentIn {
-    float3 normal : Normal;
-	float2 texCoord : TexCoord;
-    float3 posW : WorldPos;
+    float3 normal   : Normal;
+    float2 texCoord : TexCoord;
+    float3 posW     : WorldPos;
 };
 
 ConstantBuffer<MaterialConstants> materialConstants : register(b0, space1);
 Texture2D                         tex               : register(t1, space1);
 SamplerState                      samplerState      : register(s2, space1);
 
-                           
-TextureCube  skybox        : register(t1, space2);
-SamplerState skyboxSampler : register(s2, space2);
+ConstantBuffer<PassConstants> passConstants : register(b0, space2);
+TextureCube                   skybox        : register(t1, space2);
+SamplerState                  skyboxSampler : register(s2, space2);
 
 float4 main(FragmentIn input) : SV_Target0 {
     float4 diffuse = materialConstants.diffuseAlbedo * tex.Sample(samplerState, input.texCoord);
@@ -26,6 +26,10 @@ float4 main(FragmentIn input) : SV_Target0 {
     light.attenuation = 0.3f;
     float3 lightingResult = ComputePointLight(light, input.posW, normal, toEye, materialConstants);
     
-    float3 litColor = diffuse.rgb * (passConstants.ambientLight + lightingResult);
+    float3 reflectionVec = reflect(-toEye, input.normal);
+    float3 reflectionColor = skybox.Sample(skyboxSampler, reflectionVec).rgb;
+    reflectionColor *= materialConstants.shiniess * SchlickFresnel(materialConstants.fresnelR0, input.normal, reflectionVec);
+    
+    float3 litColor = diffuse.rgb * (passConstants.ambientLight + lightingResult) + reflectionColor;
     return float4(litColor, diffuse.a);
 }

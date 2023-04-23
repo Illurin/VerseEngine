@@ -1,5 +1,5 @@
 struct Payload {
-	float4 color;
+    float4 color;
 };
 
 RaytracingAccelerationStructure rs : register(t0);
@@ -7,8 +7,8 @@ RWTexture2D<float4> renderTarget : register(u1);
 
 [shader("raygeneration")]
 void main() {
-	Payload myPayload = { float4(0.0f, 0.0f, 0.0f, 0.0f) };
-	
+    Payload myPayload = { float4(0.0f, 0.0f, 0.0f, 0.0f) };
+    
     // œ‡ª˙ Ù–‘
     const float aspect = (float) DispatchRaysDimensions().x / (float) DispatchRaysDimensions().y;
     const float halfFovY = 0.25f * 3.1415962f;

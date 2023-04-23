@@ -1,3 +1,5 @@
+#include "../../include/hlsl/common.hlsl"
+
 struct VertexIn {
     float3 posL : LocalPos;
 };
@@ -5,13 +7,6 @@ struct VertexIn {
 struct VertexOut {
     float3 posL : LocalPos;
     float4 posH : SV_Position;
-};
-
-struct PassConstants {
-    float4x4 viewMatrix;
-    float4x4 projMatrix;
-    float4 eyePos;
-    float3 ambientLight;
 };
 
 ConstantBuffer<PassConstants> passConstants : register(b0);

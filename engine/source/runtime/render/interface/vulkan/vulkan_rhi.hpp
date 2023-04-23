@@ -6,470 +6,473 @@
 
 namespace engine {
 
-	//
-	// Vulkan handle wrapper for RHI Instance
-	//
-	class VkWrapperInstance final : public rhi::Instance_T {
-	public:
-		void Init(const rhi::InstanceCreateInfo&) override;
-		void Destroy() override;
+    //
+    // Vulkan handle wrapper for RHI Instance
+    //
+    class VkWrapperInstance final : public rhi::Instance_T {
+    public:
+        void Init(const rhi::InstanceCreateInfo&) override;
+        void Destroy() override;
 
-		std::vector<rhi::PhysicalDeviceInfo> GetPhysicalDeviceInfo() const override;
+        std::vector<rhi::PhysicalDeviceInfo> GetPhysicalDeviceInfo() const override;
 
-		rhi::Device CreateDevice(const rhi::DeviceCreateInfo&) const override;
-		ShaderCompiler CreateShaderCompiler() const override;
+        rhi::Device CreateDevice(const rhi::DeviceCreateInfo&) const override;
+        ShaderCompiler CreateShaderCompiler() const override;
 
-	private:
-		void CreateInstance(const rhi::InstanceCreateInfo&);
+    private:
+        void CreateInstance(const rhi::InstanceCreateInfo&);
 
-	private:
-		vk::Instance instance{ nullptr };
+    private:
+        vk::Instance instance{ nullptr };
 
-		struct {
-			std::vector<const char*> instance;
-			std::vector<const char*> device;
-		} extensions;
+        struct {
+            std::vector<const char*> instance;
+            std::vector<const char*> device;
+        } extensions;
 
-		struct {
-			const char* apiName{ nullptr };
-			const char* applicationName{ nullptr };
-			uint32_t applicationVersion{ 0 };
-		} info;
+        struct {
+            const char* apiName{ nullptr };
+            const char* applicationName{ nullptr };
+            uint32_t applicationVersion{ 0 };
+        } info;
 
-		std::vector<const char*> validationLayers;
+        std::vector<const char*> validationLayers;
 
 #ifdef _DEBUG
-		vk::DebugUtilsMessengerEXT debugMessenger{ nullptr };
+        vk::DebugUtilsMessengerEXT debugMessenger{ nullptr };
 #endif // _DEBUG
 
-		vk::DispatchLoaderDynamic dispatcher{};
-	};
-
-	//
-	// Vulkan handle wrapper for RHI Device
-	//
-	class VkWrapperDevice final : public rhi::Device_T {
-
-		friend class VkWrapperInstance;
-
-		vk::Instance instance{ nullptr };
-
-	public:
-		void Destroy() override;
-		
-		rhi::Queue GetQueue(uint32_t queueIndex) const override;
-		rhi::AccelerationStructureBuildSizesInfo GetAccelerationStructureBuildSizes(const rhi::AccelerationStructureBuildGeometryInfo&,
-			                                                                        const uint32_t* pMaxPrimitiveCounts) const override;
-		rhi::RayTracingShaderGroupHandleRequirement GetRayTracingShaderGroupHandleRequirement() const override;
-		std::vector<uint8_t> GetRayTracingShaderGroupHandles(rhi::Pipeline pipeline, uint32_t firstGroup, uint32_t groupCount) const override;
-		rhi::Swapchain CreateSwapchain(const rhi::SwapchainCreateInfo&) const override;
-		rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
-		rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
-		rhi::Buffer CreateBuffer(uint32_t instanceCount, const rhi::AccelerationStructureGeometryInstance*) const override;
-		rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
-		rhi::AccelerationStructure CreateAccelerationStructure(const rhi::AccelerationStructureCreateInfo&) const override;
-		rhi::Sampler CreateSampler(const rhi::SamplerCreateInfo&) const override;
-		rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
-		rhi::DescriptorSetLayout CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo&) const override;
-		rhi::PipelineLayout CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo&) const override;
-		rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
-		rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
-		rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
-		rhi::Pipeline CreateRayTracingPipeline(const rhi::RayTracingPipelineCreateInfo&) const override;
-		rhi::Framebuffer CreateFramebuffer(const rhi::FramebufferCreateInfo&) const override;
-		rhi::Fence CreateFence(const rhi::FenceCreateInfo&) const override;
-
-	private:
-		vk::PhysicalDevice physicalDevice{ nullptr };
-		vk::Device device{ nullptr };
-		std::vector<rhi::Queue> queues;
-
-		vk::DispatchLoaderDynamic dispatcher{};
-	};
-
-	//
-	// Vulkan handle wrapper for RHI Queue
-	//
-	class VkWrapperQueue final : public rhi::Queue_T {
-
-		friend class VkWrapperInstance;
-		friend class VkWrapperDevice;
-
-		vk::Device device{ nullptr };
-
-	public:
-		void Submit(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) override;
-		void Present(rhi::Swapchain swapchain, uint32_t imageIndex) override;
-
-		uint32_t AcquireNextImage(rhi::Swapchain) override;
-
-	private:
-		vk::Queue queue{ nullptr };
-		uint32_t queueFamilyIndex{ 0 };
-		vk::Semaphore semaphore{ nullptr };
-		bool waitForSemaphore{ false };
-	};
-
-	//
-	// Vulkan handle wrapper for RHI Swapchain
-	//
-	class VkWrapperSwapchain final : public rhi::Swapchain_T {
-
-		friend class VkWrapperDevice;
-		friend class VkWrapperQueue;
-
-		vk::Instance instance{ nullptr };
-		vk::Device device{ nullptr };
-
-	public:
-		void Destroy() override;
-
-		rhi::Format GetFormat() const override;
-		rhi::Extent2D GetImageExtent() const override;
-		std::vector<rhi::Image> GetImages() const override;
-
-	private:
-		vk::SurfaceKHR surface{ nullptr };
-		vk::SwapchainKHR swapchain{ nullptr };
-		std::vector<rhi::Image> images;
-		rhi::Format format{ 0 };
-		rhi::Extent2D imageExtent{};
-		uint32_t currentImageIndex{ 0 };
-	};
-
-	//
-	// Vulkan handle wrapper for RHI CommandPool
-	//
-	class VkWrapperCommandPool final : public rhi::CommandPool_T {
-
-		friend class VkWrapperDevice;
-
-		vk::Device device{ nullptr };
+        vk::DispatchLoaderDynamic dispatcher{};
+    };
+
+    //
+    // Vulkan handle wrapper for RHI Device
+    //
+    class VkWrapperDevice final : public rhi::Device_T {
+
+        friend class VkWrapperInstance;
+
+        vk::Instance instance{ nullptr };
+
+    public:
+        void Destroy() override;
+        
+        rhi::Queue GetQueue(uint32_t queueIndex) const override;
+        rhi::AccelerationStructureBuildSizesInfo GetAccelerationStructureBuildSizes(const rhi::AccelerationStructureBuildGeometryInfo&,
+                                                                                    const uint32_t* pMaxPrimitiveCounts) const override;
+        rhi::RayTracingShaderGroupHandleRequirement GetRayTracingShaderGroupHandleRequirement() const override;
+        std::vector<uint8_t> GetRayTracingShaderGroupHandles(rhi::Pipeline pipeline, uint32_t firstGroup, uint32_t groupCount) const override;
+        rhi::Swapchain CreateSwapchain(const rhi::SwapchainCreateInfo&) const override;
+        rhi::CommandPool CreateCommandPool(const rhi::CommandPoolCreateInfo&) const override;
+        rhi::Buffer CreateBuffer(const rhi::BufferCreateInfo&) const override;
+        rhi::Buffer CreateBuffer(uint32_t instanceCount, const rhi::AccelerationStructureGeometryInstance*) const override;
+        rhi::Image CreateImage(const rhi::ImageCreateInfo&) const override;
+        rhi::AccelerationStructure CreateAccelerationStructure(const rhi::AccelerationStructureCreateInfo&) const override;
+        rhi::Sampler CreateSampler(const rhi::SamplerCreateInfo&) const override;
+        rhi::DescriptorPool CreateDescriptorPool(const rhi::DescriptorPoolCreateInfo&) const override;
+        rhi::DescriptorSetLayout CreateDescriptorSetLayout(const rhi::DescriptorSetLayoutCreateInfo&) const override;
+        rhi::PipelineLayout CreatePipelineLayout(const rhi::PipelineLayoutCreateInfo&) const override;
+        rhi::RenderPass CreateRenderPass(const rhi::RenderPassCreateInfo&) const override;
+        rhi::ShaderModule CreateShaderModule(const rhi::ShaderModuleCreateInfo&) const override;
+        rhi::Pipeline CreateGraphicsPipeline(const rhi::GraphicsPipelineCreateInfo&) const override;
+        rhi::Pipeline CreateComputePipeline(const rhi::ComputePipelineCreateInfo&) const override;
+        rhi::Pipeline CreateRayTracingPipeline(const rhi::RayTracingPipelineCreateInfo&) const override;
+        rhi::Framebuffer CreateFramebuffer(const rhi::FramebufferCreateInfo&) const override;
+        rhi::Fence CreateFence(const rhi::FenceCreateInfo&) const override;
+
+    private:
+        vk::PhysicalDevice physicalDevice{ nullptr };
+        vk::Device device{ nullptr };
+        std::vector<rhi::Queue> queues;
+
+        vk::DispatchLoaderDynamic dispatcher{};
+    };
+
+    //
+    // Vulkan handle wrapper for RHI Queue
+    //
+    class VkWrapperQueue final : public rhi::Queue_T {
+
+        friend class VkWrapperInstance;
+        friend class VkWrapperDevice;
+
+        vk::Device device{ nullptr };
+
+    public:
+        void Submit(uint32_t commandBufferCount, rhi::CommandBuffer* commandBuffers, rhi::Fence fence) override;
+        void Present(rhi::Swapchain swapchain, uint32_t imageIndex) override;
+
+        uint32_t AcquireNextImage(rhi::Swapchain) override;
+
+    private:
+        vk::Queue queue{ nullptr };
+        uint32_t queueFamilyIndex{ 0 };
+        vk::Semaphore semaphore{ nullptr };
+        bool waitForSemaphore{ false };
+    };
+
+    //
+    // Vulkan handle wrapper for RHI Swapchain
+    //
+    class VkWrapperSwapchain final : public rhi::Swapchain_T {
+
+        friend class VkWrapperDevice;
+        friend class VkWrapperQueue;
+
+        vk::Instance instance{ nullptr };
+        vk::Device device{ nullptr };
+
+    public:
+        void Destroy() override;
+
+        rhi::Format GetFormat() const override;
+        rhi::Extent2D GetImageExtent() const override;
+        std::vector<rhi::Image> GetImages() const override;
+
+    private:
+        vk::SurfaceKHR surface{ nullptr };
+        vk::SwapchainKHR swapchain{ nullptr };
+        std::vector<rhi::Image> images;
+        rhi::Format format{ 0 };
+        rhi::Extent2D imageExtent{};
+        uint32_t currentImageIndex{ 0 };
+    };
+
+    //
+    // Vulkan handle wrapper for RHI CommandPool
+    //
+    class VkWrapperCommandPool final : public rhi::CommandPool_T {
+
+        friend class VkWrapperDevice;
 
-	public:
-		void Destroy() override;
-
-		void Reset() override;
-		void Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) override;
-		
-		std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) override;
-
-	private:
-		vk::CommandPool commandPool{ nullptr };
-		std::vector<rhi::CommandBuffer> commandBuffers;
-
-		vk::DispatchLoaderDynamic dispatcher{};
-	};
-
-	//
-	// Vulkan handle wrapper for RHI CommandBuffer
-	//
-	class VkWrapperCommandBuffer final : public rhi::CommandBuffer_T {
-
-		friend class VkWrapperCommandPool;
-		friend class VkWrapperQueue;
-
-		vk::Device device{ nullptr };
-		vk::CommandPool commandPool{ nullptr };
-
-	public:
-		void Reset() override;
-		void Begin(const rhi::CommandBufferBeginInfo&) override;
-		void End() override;
-
-		void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
-		void EndRenderPass() override;
-		void BindPipeline(rhi::Pipeline) override;
-		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) override;
-		void BindIndexBuffer(rhi::Buffer buffer, uint64_t offset, rhi::IndexType indexType) override;
-		void BindDescriptorSets(rhi::PipelineType pipelineType, rhi::PipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const rhi::DescriptorSet* pDescriptorSets) override;
+        vk::Device device{ nullptr };
 
-		void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
-		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
+    public:
+        void Destroy() override;
 
-		void ResourceBarrier(const rhi::ImageMemoryBarrierInfo&) override;
-		void CopyBufferToImage(const rhi::BufferCopyRegion&, const rhi::ImageCopyRegion&) override;
+        void Reset() override;
+        void Free(uint32_t commandBufferCount, rhi::CommandBuffer* pCommandBuffers) override;
+        
+        std::vector<rhi::CommandBuffer> AllocateCommandBuffers(uint32_t bufferCount) override;
 
-		void BuildAccelerationStructures(uint32_t infoCount,
-			                             const rhi::AccelerationStructureBuildGeometryInfo*,
-			                             const rhi::AccelerationStructureBuildRangeInfo* const*) override;
-		void TraceRays(const rhi::BufferStridedRegion& raygenShaderBindingTable,
-			           const rhi::BufferStridedRegion& missShaderBindingTable,
-			           const rhi::BufferStridedRegion& hitShaderBindingTable,
-				       const rhi::BufferStridedRegion& callableShaderBindingTable,
-				       uint32_t width, uint32_t height, uint32_t depth) override;
+    private:
+        vk::CommandPool commandPool{ nullptr };
+        std::vector<rhi::CommandBuffer> commandBuffers;
 
-	private:
-		uint32_t poolIndex{ 0 };
-		vk::CommandBuffer commandBuffer{ nullptr };
-		vk::DispatchLoaderDynamic dispatcher{};
-	};
+        vk::DispatchLoaderDynamic dispatcher{};
+    };
 
-	//
-	// Vulkan handle wrapper for RHI Buffer
-	//
-	class VkWrapperBuffer final : public rhi::Buffer_T {
+    //
+    // Vulkan handle wrapper for RHI CommandBuffer
+    //
+    class VkWrapperCommandBuffer final : public rhi::CommandBuffer_T {
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperCommandBuffer;
-		friend class VkWrapperDescriptorSet;
+        friend class VkWrapperCommandPool;
+        friend class VkWrapperQueue;
 
-		vk::Device device{ nullptr };
+        vk::Device device{ nullptr };
+        vk::CommandPool commandPool{ nullptr };
 
-	public:
-		void Destroy() override;
+    public:
+        void Reset() override;
+        void Begin(const rhi::CommandBufferBeginInfo&) override;
+        void End() override;
 
-		void* Map() override;
-		void* Map(uint64_t offset, uint64_t size) override;
-		void Unmap() override;
+        void BeginRenderPass(const rhi::RenderPassBeginInfo&) override;
+        void EndRenderPass() override;
+        void BindPipeline(rhi::Pipeline) override;
+        void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) override;
+        void BindIndexBuffer(rhi::Buffer buffer, uint64_t offset, rhi::IndexType indexType) override;
+        void BindDescriptorSets(rhi::PipelineType pipelineType, rhi::PipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const rhi::DescriptorSet* pDescriptorSets) override;
 
-	private:
-		vk::Buffer buffer{ nullptr };
-		vk::DeviceMemory memory{ nullptr };
-	};
+        void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
 
-	//
-	// Vulkan handle wrapper for RHI Image
-	//
-	class VkWrapperImage final : public rhi::Image_T {
+        void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperCommandBuffer;
-		friend class VkWrapperDescriptorSet;
+        void ResourceBarrier(const rhi::ImageMemoryBarrierInfo&) override;
+        void CopyBufferToImage(const rhi::BufferCopyRegion&, const rhi::ImageCopyRegion&) override;
 
-		vk::Device device{ nullptr };
+        void BuildAccelerationStructures(uint32_t infoCount,
+                                         const rhi::AccelerationStructureBuildGeometryInfo*,
+                                         const rhi::AccelerationStructureBuildRangeInfo* const*) override;
+        void TraceRays(const rhi::BufferStridedRegion& raygenShaderBindingTable,
+                       const rhi::BufferStridedRegion& missShaderBindingTable,
+                       const rhi::BufferStridedRegion& hitShaderBindingTable,
+                       const rhi::BufferStridedRegion& callableShaderBindingTable,
+                       uint32_t width, uint32_t height, uint32_t depth) override;
 
-	public:
-		void Destroy() override;
+    private:
+        uint32_t poolIndex{ 0 };
+        vk::CommandBuffer commandBuffer{ nullptr };
+        vk::DispatchLoaderDynamic dispatcher{};
+    };
 
-		rhi::Extent3D GetExtent() const;
-		rhi::ImageCopyableFootprint GetCopyableFootprint() const;
+    //
+    // Vulkan handle wrapper for RHI Buffer
+    //
+    class VkWrapperBuffer final : public rhi::Buffer_T {
 
-	private:
-		vk::Image image{ nullptr };
-		vk::DeviceMemory memory{ nullptr };
-		rhi::Extent3D extent{};
-		uint32_t arrayLayers{ 0 };
-		uint32_t mipLevels{ 0 };
-	};
+        friend class VkWrapperDevice;
+        friend class VkWrapperCommandBuffer;
+        friend class VkWrapperDescriptorSet;
 
-	//
-	// Vulkan handle wrapper for RHI Sampler
-	//
-	class VkWrapperSampler final : public rhi::Sampler_T {
+        vk::Device device{ nullptr };
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperDescriptorSet;
+    public:
+        void Destroy() override;
 
-		vk::Device device{ nullptr };
+        void* Map() override;
+        void* Map(uint64_t offset, uint64_t size) override;
+        void Unmap() override;
 
-	public:
-		void Destroy() override;
+    private:
+        vk::Buffer buffer{ nullptr };
+        vk::DeviceMemory memory{ nullptr };
+    };
 
-	private:
-		vk::Sampler sampler{ nullptr };
-	};
+    //
+    // Vulkan handle wrapper for RHI Image
+    //
+    class VkWrapperImage final : public rhi::Image_T {
 
-	//
-	// Vulkan handle wrapper for RHI DescriptorPool
-	//
-	class VkWrapperDescriptorPool final : public rhi::DescriptorPool_T {
+        friend class VkWrapperDevice;
+        friend class VkWrapperCommandBuffer;
+        friend class VkWrapperDescriptorSet;
 
-		friend class VkWrapperDevice;
+        vk::Device device{ nullptr };
 
-		vk::Device device{ nullptr };
+    public:
+        void Destroy() override;
 
-	public:
-		void Destroy() override;
+        rhi::Extent3D GetExtent() const;
+        rhi::ImageCopyableFootprint GetCopyableFootprint() const;
 
-		void Reset() override;
-		void Free(uint32_t descriptorCount, rhi::DescriptorSet* pDescriptorSets) override;
+    private:
+        vk::Image image{ nullptr };
+        vk::DeviceMemory memory{ nullptr };
+        rhi::Extent3D extent{};
+        uint32_t arrayLayers{ 0 };
+        uint32_t mipLevels{ 0 };
+    };
 
-		std::vector<rhi::DescriptorSet> AllocateDescriptorSets(const rhi::DescriptorSetAllocateInfo& info) override;
+    //
+    // Vulkan handle wrapper for RHI Sampler
+    //
+    class VkWrapperSampler final : public rhi::Sampler_T {
 
-	private:
-		vk::DescriptorPool descriptorPool{ nullptr };
-		std::vector<rhi::DescriptorSet> descriptorSets;
-	};
+        friend class VkWrapperDevice;
+        friend class VkWrapperDescriptorSet;
 
-	//
-	// Vulkan handle wrapper for RHI DescriptorSet
-	//
-	class VkWrapperDescriptorSet final : public rhi::DescriptorSet_T {
+        vk::Device device{ nullptr };
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperDescriptorPool;
-		friend class VkWrapperCommandBuffer;
+    public:
+        void Destroy() override;
 
-		vk::Device device{ nullptr };
+    private:
+        vk::Sampler sampler{ nullptr };
+    };
 
-	public:
-		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
-		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::ImageLayout, rhi::ImageViewInfo) override;
-		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Sampler) override;
-		void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::AccelerationStructure) override;
+    //
+    // Vulkan handle wrapper for RHI DescriptorPool
+    //
+    class VkWrapperDescriptorPool final : public rhi::DescriptorPool_T {
 
-	private:
-		uint32_t poolIndex{ 0 };
-		vk::DescriptorSet descriptorSet{ nullptr };
-		std::vector<vk::ImageView> imageViews;
-	};
+        friend class VkWrapperDevice;
 
-	//
-	// Vulkan handle wrapper for RHI DescriptorSetLayout
-	//
-	class VkWrapperDescriptorSetLayout final : public rhi::DescriptorSetLayout_T {
+        vk::Device device{ nullptr };
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperDescriptorPool;
+    public:
+        void Destroy() override;
 
-		vk::Device device{ nullptr };
+        void Reset() override;
+        void Free(uint32_t descriptorCount, rhi::DescriptorSet* pDescriptorSets) override;
 
-	public:
-		void Destroy() override;
+        std::vector<rhi::DescriptorSet> AllocateDescriptorSets(const rhi::DescriptorSetAllocateInfo& info) override;
 
-	private:
-		vk::DescriptorSetLayout descriptorSetLayout{ nullptr };
-		std::vector<vk::Sampler> samplers;
-	};
+    private:
+        vk::DescriptorPool descriptorPool{ nullptr };
+        std::vector<rhi::DescriptorSet> descriptorSets;
+    };
 
-	//
-	// Vulkan handle wrapper for RHI PipelineLayout
-	//
-	class VkWrapperPipelineLayout final : public rhi::PipelineLayout_T {
+    //
+    // Vulkan handle wrapper for RHI DescriptorSet
+    //
+    class VkWrapperDescriptorSet final : public rhi::DescriptorSet_T {
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperPipeline;
-		friend class VkWrapperCommandBuffer;
+        friend class VkWrapperDevice;
+        friend class VkWrapperDescriptorPool;
+        friend class VkWrapperCommandBuffer;
 
-		vk::Device device{ nullptr };
+        vk::Device device{ nullptr };
 
-	public:
-		void Destroy() override;
+    public:
+        void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Buffer) override;
+        void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::ImageLayout, rhi::ImageViewInfo) override;
+        void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::Sampler) override;
+        void Write(uint32_t dstBinding, rhi::DescriptorType, rhi::AccelerationStructure) override;
 
-	private:
-		vk::PipelineLayout pipelineLayout{ nullptr };
-	};
+    private:
+        uint32_t poolIndex{ 0 };
+        vk::DescriptorSet descriptorSet{ nullptr };
+        std::vector<vk::ImageView> imageViews;
+    };
 
-	//
-	// Vulkan handle wrapper for RHI RenderPass
-	//
-	class VkWrapperRenderPass final : public rhi::RenderPass_T {
+    //
+    // Vulkan handle wrapper for RHI DescriptorSetLayout
+    //
+    class VkWrapperDescriptorSetLayout final : public rhi::DescriptorSetLayout_T {
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperCommandBuffer;
+        friend class VkWrapperDevice;
+        friend class VkWrapperDescriptorPool;
 
-		vk::Device device{ nullptr };
+        vk::Device device{ nullptr };
 
-	public:
-		void Destroy() override;
+    public:
+        void Destroy() override;
 
-	private:
-		vk::RenderPass renderPass{ nullptr };
-	};
+    private:
+        vk::DescriptorSetLayout descriptorSetLayout{ nullptr };
+        std::vector<vk::Sampler> samplers;
+    };
 
-	//
-	// Vulkan handle wrapper for RHI ShaderModule
-	//
-	class VkWrapperShaderModule final : public rhi::ShaderModule_T {
+    //
+    // Vulkan handle wrapper for RHI PipelineLayout
+    //
+    class VkWrapperPipelineLayout final : public rhi::PipelineLayout_T {
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperPipeline;
+        friend class VkWrapperDevice;
+        friend class VkWrapperPipeline;
+        friend class VkWrapperCommandBuffer;
 
-		vk::Device device{ nullptr };
+        vk::Device device{ nullptr };
 
-	public:
-		void Destroy() override;
+    public:
+        void Destroy() override;
 
-	private:
-		vk::ShaderModule shaderModule{ nullptr };
-		const char* entryPoint{ nullptr };
-		rhi::ShaderStage shaderStage{ 0 };
-	};
+    private:
+        vk::PipelineLayout pipelineLayout{ nullptr };
+    };
 
-	//
-	// Vulkan handle wrapper for RHI Pipeline
-	//
-	class VkWrapperPipeline final : public rhi::Pipeline_T {
+    //
+    // Vulkan handle wrapper for RHI RenderPass
+    //
+    class VkWrapperRenderPass final : public rhi::RenderPass_T {
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperCommandBuffer;
+        friend class VkWrapperDevice;
+        friend class VkWrapperCommandBuffer;
 
-		vk::Device device{ nullptr };
+        vk::Device device{ nullptr };
 
-	public:
-		void Destroy() override;
+    public:
+        void Destroy() override;
 
-	private:
-		vk::Pipeline pipeline{ nullptr };
-		vk::PipelineBindPoint pipelineType{ 0 };
-	};
+    private:
+        vk::RenderPass renderPass{ nullptr };
+    };
 
-	//
-	// Vulkan handle wrapper for RHI Framebuffer
-	//
-	class VkWrapperFramebuffer final : public rhi::Framebuffer_T {
+    //
+    // Vulkan handle wrapper for RHI ShaderModule
+    //
+    class VkWrapperShaderModule final : public rhi::ShaderModule_T {
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperCommandBuffer;
+        friend class VkWrapperDevice;
+        friend class VkWrapperPipeline;
 
-		vk::Device device{ nullptr };
+        vk::Device device{ nullptr };
 
-	public:
-		void Destroy() override;
+    public:
+        void Destroy() override;
 
-	private:
-		vk::Framebuffer framebuffer{ nullptr };
-		std::vector<vk::ImageView> colorAttachments;
-		vk::ImageView depthStencilAttachment{ nullptr };
-		uint32_t width{ 0 }, height{ 0 }, layers{ 0 };
-	};
+    private:
+        vk::ShaderModule shaderModule{ nullptr };
+        const char* entryPoint{ nullptr };
+        rhi::ShaderStage shaderStage{ 0 };
+    };
 
-	//
-	// Vulkan handle wrapper for RHI Fence
-	//
-	class VkWrapperFence final : public rhi::Fence_T {
+    //
+    // Vulkan handle wrapper for RHI Pipeline
+    //
+    class VkWrapperPipeline final : public rhi::Pipeline_T {
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperQueue;
-		friend class VkWrapperSwapchain;
+        friend class VkWrapperDevice;
+        friend class VkWrapperCommandBuffer;
 
-		vk::Device device{ nullptr };
+        vk::Device device{ nullptr };
 
-	public:
-		void Destroy() override;
+    public:
+        void Destroy() override;
 
-		void Reset() override;
-		void Wait() override;
+    private:
+        vk::Pipeline pipeline{ nullptr };
+        vk::PipelineBindPoint pipelineType{ 0 };
+    };
 
-		bool GetCurrentStatus() const override;
+    //
+    // Vulkan handle wrapper for RHI Framebuffer
+    //
+    class VkWrapperFramebuffer final : public rhi::Framebuffer_T {
 
-	private:
-		vk::Fence fence{ nullptr };
-	};
+        friend class VkWrapperDevice;
+        friend class VkWrapperCommandBuffer;
 
-	//
-	// Vulkan handle wrapper for RHI Image
-	//
-	class VkWrapperAccelerationStructure final : public rhi::AccelerationStructure_T {
+        vk::Device device{ nullptr };
 
-		friend class VkWrapperDevice;
-		friend class VkWrapperCommandBuffer;
-		friend class VkWrapperDescriptorSet;
+    public:
+        void Destroy() override;
 
-		vk::Device device{ nullptr };
+    private:
+        vk::Framebuffer framebuffer{ nullptr };
+        std::vector<vk::ImageView> colorAttachments;
+        vk::ImageView depthStencilAttachment{ nullptr };
+        uint32_t width{ 0 }, height{ 0 }, layers{ 0 };
+    };
 
-	public:
-		void Destroy() override;
+    //
+    // Vulkan handle wrapper for RHI Fence
+    //
+    class VkWrapperFence final : public rhi::Fence_T {
 
-	private:
-		vk::AccelerationStructureKHR accelerationStructure{ nullptr };
-		vk::Buffer instancesDataBuffer{ nullptr };
-		vk::DeviceMemory instancesDataMemory{ nullptr };
+        friend class VkWrapperDevice;
+        friend class VkWrapperQueue;
+        friend class VkWrapperSwapchain;
 
-		vk::DispatchLoaderDynamic dispatcher{};
-	};
-	
+        vk::Device device{ nullptr };
+
+    public:
+        void Destroy() override;
+
+        void Reset() override;
+        void Wait() override;
+
+        bool GetCurrentStatus() const override;
+
+    private:
+        vk::Fence fence{ nullptr };
+    };
+
+    //
+    // Vulkan handle wrapper for RHI Image
+    //
+    class VkWrapperAccelerationStructure final : public rhi::AccelerationStructure_T {
+
+        friend class VkWrapperDevice;
+        friend class VkWrapperCommandBuffer;
+        friend class VkWrapperDescriptorSet;
+
+        vk::Device device{ nullptr };
+
+    public:
+        void Destroy() override;
+
+    private:
+        vk::AccelerationStructureKHR accelerationStructure{ nullptr };
+        vk::Buffer instancesDataBuffer{ nullptr };
+        vk::DeviceMemory instancesDataMemory{ nullptr };
+
+        vk::DispatchLoaderDynamic dispatcher{};
+    };
+    
 }
 
 #endif // _VULKAN

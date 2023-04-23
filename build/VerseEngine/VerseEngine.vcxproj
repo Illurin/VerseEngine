@@ -153,6 +153,7 @@
     <ClCompile Include="..\..\engine\source\runtime\main.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\camera.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\geometry.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\graph\render_graph.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_rhi.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\interface\rhi_instance.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\interface\vulkan\vulkan_rhi.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="..\..\engine\source\runtime\math\projection.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\camera.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\geometry.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\graph\render_graph.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_enum.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_pipeline.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\interface\d3d12\d3d12_rhi.hpp" />

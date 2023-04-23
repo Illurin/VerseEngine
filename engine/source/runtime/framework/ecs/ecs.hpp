@@ -3,9 +3,9 @@
 #include "entt/entity/registry.hpp"
 
 namespace engine {
-	namespace ecs {
+    namespace ecs {
 
-		using namespace entt;
+        using namespace entt;
 
-	}
+    }
 }

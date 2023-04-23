@@ -4,9 +4,9 @@
 #include "runtime/render/interface/vulkan/vulkan_rhi.hpp"
 
 namespace engine {
-	namespace rhi {
+    namespace rhi {
 
-		Instance CreateInstance(const InstanceCreateInfo&);
+        Instance CreateInstance(const InstanceCreateInfo&);
 
-	}
+    }
 }

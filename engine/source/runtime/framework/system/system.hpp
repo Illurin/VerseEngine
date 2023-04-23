@@ -5,12 +5,12 @@
 
 namespace engine {
 
-	class ISystem {
-	public:
-		virtual ~ISystem() {}
+    class ISystem {
+    public:
+        virtual ~ISystem() {}
 
-		virtual void Start(ecs::registry&) = 0;
-		virtual void Update(ecs::registry&) = 0;
-	};
+        virtual void Start(ecs::registry&) = 0;
+        virtual void Update(ecs::registry&) = 0;
+    };
 
 }

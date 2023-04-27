@@ -16,6 +16,7 @@ namespace engine {
         pScenePass = std::make_unique<ScenePass>();
         pSkyboxPass = std::make_unique<SkyboxPass>(pScenePass->GetDescriptorSetLayouts()[2], pScenePass->GetRenderPass());
         pPostProcessingPass = std::make_unique<PostProcessingPass>(pScenePass->GetRenderTarget());
+        pScreenQuadPass = std::make_unique<ScreenQuadPass>(pPostProcessingPass->GetRenderTarget());
     }
 
     RenderSystem::~RenderSystem() {
@@ -30,6 +31,7 @@ namespace engine {
     void RenderSystem::Start(ecs::registry& registry) {
         BuildMeshes(registry);
         BuildDescriptors(registry);
+        PrepareRendering();
     }
 
     void RenderSystem::Update(ecs::registry& registry) {
@@ -100,7 +102,7 @@ namespace engine {
         descriptorPool = RenderDevice::GetDevice()->CreateDescriptorPool(descriptorPoolInfo);
 
         transformView.each([&](TransformComponent& transform) {
-
+            
             // Object constants
 
             auto uniformBufferInfo = rhi::BufferCreateInfo()
@@ -188,6 +190,10 @@ namespace engine {
             desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, environment.skyboxSampler);
 
             passDescriptorSet = desriptorSets[0];
+
+            // Post processing constants
+
+            
         }
     }
 
@@ -247,10 +253,13 @@ namespace engine {
             commandBuffer->Reset();
             commandBuffer->Begin(rhi::CommandBufferBeginInfo());
 
+            // Pass 0
+
+            pScenePass->Begin(commandBuffer);
+
             commandBuffer->BindVertexBuffer(0, 1, &vertexBuffer);
             commandBuffer->BindIndexBuffer(indexBuffer, 0, rhi::IndexType::Uint32);
 
-            pScenePass->Begin(i, commandBuffer);
             commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 2, 1, &passDescriptorSet);
 
             auto renderView = registry.view<const TransformComponent, const MeshRendererComponent, const MaterialComponent>();
@@ -269,8 +278,31 @@ namespace engine {
             commandBuffer->DrawIndexed(skyboxRenderer.indexCount, 1, skyboxRenderer.firstIndex, skyboxRenderer.vertexOffset, 0);
 
             commandBuffer->EndRenderPass();
+
+            // Pass 1
+
+            pPostProcessingPass->Execute(commandBuffer);
+
+            // Pass 2
+
+            pScreenQuadPass->Execute(i, commandBuffer);
+
             commandBuffer->End();
         }
+    }
+
+    void RenderSystem::PrepareRendering() {
+        auto& commandBuffer = commandBuffers[0];
+
+        commandBuffer->Reset();
+        commandBuffer->Begin(rhi::CommandBufferBeginInfo());
+        pScenePass->Prepare(commandBuffer);
+        pPostProcessingPass->Prepare(commandBuffer);
+        commandBuffer->End();
+
+        fence->Reset();
+        RenderDevice::GetQueue()->Submit(1, &commandBuffer, fence);
+        fence->Wait();
     }
 
     void RenderSystem::UpdateRendering() {

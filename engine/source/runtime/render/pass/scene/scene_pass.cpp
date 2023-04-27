@@ -18,7 +18,7 @@ namespace engine {
         if (pipeline) pipeline->Destroy();
         if (renderTarget) renderTarget->Destroy();
         if (depthImage) depthImage->Destroy();
-        for (auto& framebuffer : framebuffers) framebuffer->Destroy();
+        if (framebuffer) framebuffer->Destroy();
     }
 
     void ScenePass::BuildDescriptorLayout() {
@@ -57,13 +57,13 @@ namespace engine {
     
     void ScenePass::BuildRenderPass() {
         auto colorAttachmentDescription = rhi::AttachmentDescription()
-            .SetFormat(RenderDevice::GetSwapchainFormat())
+            .SetFormat(renderTargetFormat)
             .SetSampleCount(rhi::SampleCount::Count1)
             .SetLoadOp(rhi::AttachmentLoadOp::Clear)
             .SetStoreOp(rhi::AttachmentStoreOp::Store)
-            .SetInitialLayout(rhi::ImageLayout::Undefined)
+            .SetInitialLayout(rhi::ImageLayout::General)
             .SetPassLayout(rhi::ImageLayout::ColorAttachment)
-            .SetFinalLayout(rhi::ImageLayout::Present);
+            .SetFinalLayout(rhi::ImageLayout::General);
 
         auto depthStencilDescription = rhi::AttachmentDescription()
             .SetFormat(rhi::Format::D32Sfloat)
@@ -105,7 +105,6 @@ namespace engine {
             .SetSourceCode(shaderSource)
             .SetPEntryPoint("main")
             .SetShaderStage(rhi::ShaderStage::Vertex);
-
         auto vertexShaderModule = RenderDevice::GetDevice()->CreateShaderModule(shaderModuleInfo);
 
         shaderCompiler.Compile(Path::GetAbsolutePath("shader/scene/hlsl/fragment.hlsl"), L"main", ShaderCompileArgument::ps_profile);
@@ -115,7 +114,6 @@ namespace engine {
             .SetSourceCode(shaderSource)
             .SetPEntryPoint("main")
             .SetShaderStage(rhi::ShaderStage::Fragment);
-
         auto fragmentShaderModule = RenderDevice::GetDevice()->CreateShaderModule(shaderModuleInfo);
 
         // Pipeline shader stages
@@ -238,15 +236,14 @@ namespace engine {
 
     void ScenePass::BuildRenderTarget() {
         auto imageInfo = rhi::ImageCreateInfo()
-            .SetFormat(rhi::Format::R8G8B8A8Unorm)
+            .SetFormat(renderTargetFormat)
             .SetImageType(rhi::ImageType::Image2D)
             .SetExtent(rhi::Extent3D().SetWidth(RenderDevice::GetSwapchain()->GetImageExtent().width)
-                                      .SetHeight(RenderDevice::GetSwapchain()->GetImageExtent().height)
-                                      .SetDepth(1))
+                .SetHeight(RenderDevice::GetSwapchain()->GetImageExtent().height)
+                .SetDepth(1))
             .SetArrayLayers(1)
             .SetMipLevels(1)
-            .SetUsage(rhi::ImageUsage::ColorAttachmentAndStorage)
-            .SetImageLayout(rhi::ImageLayout::ColorAttachment);
+            .SetUsage(rhi::ImageUsage::ColorAttachmentAndStorage);
         renderTarget = RenderDevice::GetDevice()->CreateImage(imageInfo);
     }
 
@@ -259,57 +256,79 @@ namespace engine {
                                       .SetDepth(1))
             .SetArrayLayers(1)
             .SetMipLevels(1)
-            .SetUsage(rhi::ImageUsage::DepthStencilAttachment)
-            .SetImageLayout(rhi::ImageLayout::DepthStencilAttachment);
+            .SetUsage(rhi::ImageUsage::DepthStencilAttachment);
         depthImage = RenderDevice::GetDevice()->CreateImage(imageInfo);
     }
 
     void ScenePass::BuildFramebuffers() {
-        auto colorAttachments = RenderDevice::GetSwapchain()->GetImages();
+        auto colorImageViewInfo = rhi::ImageViewInfo()
+            .SetImage(renderTarget)
+            .SetFormat(renderTargetFormat)
+            .SetViewType(rhi::ImageViewType::Image2D)
+            .SetSubresourceRange(rhi::ImageSubresourceRange()
+                .SetImageAspect(rhi::ImageAspect::Color)
+                .SetBaseMipLevel(0)
+                .SetMipLevelCount(1)
+                .SetBaseArrayLayer(0)
+                .SetArrayLayerCount(1));
 
-        for (auto& colorAttachment : colorAttachments) {
-            auto colorImageViewInfo = rhi::ImageViewInfo()
-                .SetImage(colorAttachment)
-                .SetFormat(RenderDevice::GetSwapchainFormat())
-                .SetViewType(rhi::ImageViewType::Image2D)
-                .SetSubresourceRange(rhi::ImageSubresourceRange()
-                    .SetImageAspect(rhi::ImageAspect::Color)
-                    .SetBaseMipLevel(0)
-                    .SetMipLevelCount(1)
-                    .SetBaseArrayLayer(0)
-                    .SetArrayLayerCount(1));
+        auto depthImageViewInfo = rhi::ImageViewInfo()
+            .SetImage(depthImage)
+            .SetFormat(rhi::Format::D32Sfloat)
+            .SetViewType(rhi::ImageViewType::Image2D)
+            .SetSubresourceRange(rhi::ImageSubresourceRange()
+                .SetImageAspect(rhi::ImageAspect::Depth)
+                .SetBaseMipLevel(0)
+                .SetMipLevelCount(1)
+                .SetBaseArrayLayer(0)
+                .SetArrayLayerCount(1));
 
-            auto depthImageViewInfo = rhi::ImageViewInfo()
-                .SetImage(depthImage)
-                .SetFormat(rhi::Format::D32Sfloat)
-                .SetViewType(rhi::ImageViewType::Image2D)
-                .SetSubresourceRange(rhi::ImageSubresourceRange()
-                    .SetImageAspect(rhi::ImageAspect::Depth)
-                    .SetBaseMipLevel(0)
-                    .SetMipLevelCount(1)
-                    .SetBaseArrayLayer(0)
-                    .SetArrayLayerCount(1));
+        auto framebufferInfo = rhi::FramebufferCreateInfo()
+            .SetWidth(RenderDevice::GetSwapchain()->GetImageExtent().width)
+            .SetHeight(RenderDevice::GetSwapchain()->GetImageExtent().height)
+            .SetLayers(1)
+            .SetColorAttachmentCount(1)
+            .SetPColorAttachments(&colorImageViewInfo)
+            .SetPDepthStencilAttachments(&depthImageViewInfo)
+            .SetRenderPass(renderPass);
 
-            auto framebufferInfo = rhi::FramebufferCreateInfo()
-                .SetWidth(RenderDevice::GetSwapchain()->GetImageExtent().width)
-                .SetHeight(RenderDevice::GetSwapchain()->GetImageExtent().height)
-                .SetLayers(1)
-                .SetColorAttachmentCount(1)
-                .SetPColorAttachments(&colorImageViewInfo)
-                .SetPDepthStencilAttachments(&depthImageViewInfo)
-                .SetRenderPass(renderPass);
-
-            framebuffers.emplace_back(RenderDevice::GetDevice()->CreateFramebuffer(framebufferInfo));
-        }
+        framebuffer = RenderDevice::GetDevice()->CreateFramebuffer(framebufferInfo);
     }
 
-    void ScenePass::Begin(uint32_t frame, rhi::CommandBuffer commandBuffer) {
+    void ScenePass::Prepare(rhi::CommandBuffer commandBuffer) {
+        auto renderTargetBarrier = rhi::ImageMemoryBarrierInfo()
+            .SetImage(renderTarget)
+            .SetOldLayout(rhi::ImageLayout::Undefined)
+            .SetNewLayout(rhi::ImageLayout::General)
+            .SetSubresourceRange(rhi::ImageSubresourceRange()
+                .SetImageAspect(rhi::ImageAspect::Color)
+                .SetBaseMipLevel(0)
+                .SetMipLevelCount(1)
+                .SetBaseArrayLayer(0)
+                .SetArrayLayerCount(1));
+
+        auto depthImageBarrier = rhi::ImageMemoryBarrierInfo()
+            .SetImage(depthImage)
+            .SetOldLayout(rhi::ImageLayout::Undefined)
+            .SetNewLayout(rhi::ImageLayout::DepthStencilAttachment)
+            .SetSubresourceRange(rhi::ImageSubresourceRange()
+                .SetImageAspect(rhi::ImageAspect::Depth)
+                .SetBaseMipLevel(0)
+                .SetMipLevelCount(1)
+                .SetBaseArrayLayer(0)
+                .SetArrayLayerCount(1));
+
+        commandBuffer->ResourceBarrier(renderTargetBarrier);
+        commandBuffer->ResourceBarrier(depthImageBarrier);
+    }
+
+    void ScenePass::Begin(rhi::CommandBuffer commandBuffer) {
         auto clearColorValue = rhi::ClearColorValue().SetColorValue(std::array<float, 4>({ 0.0f, 0.0f, 0.0f, 0.0f }));
         auto clearDepthValue = rhi::ClearDepthStencilValue().SetDepthValue(1.0f);
 
         auto renderPassBeginInfo = rhi::RenderPassBeginInfo()
             .SetRenderPass(renderPass)
-            .SetFramebuffer(framebuffers[frame])
+            .SetFramebuffer(framebuffer)
             .SetPClearColorValues(&clearColorValue)
             .SetClearDepthStencilValue(clearDepthValue);
         commandBuffer->BeginRenderPass(renderPassBeginInfo);

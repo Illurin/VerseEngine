@@ -6,7 +6,7 @@
 
 namespace engine {
 
-    struct IComponent { };
+    struct IComponent {};
 
     struct TransformComponent : public IComponent {
         TransformComponent() = default;
@@ -17,7 +17,7 @@ namespace engine {
             position(position),
             scale(scale),
             localEulerAngle(localEulerAngle),
-            globalEulerAngle(globalEulerAngle) { }
+            globalEulerAngle(globalEulerAngle) {}
 
         math::Vector3f position;
         math::Vector3f scale;
@@ -33,7 +33,7 @@ namespace engine {
         MeshRendererComponent() = default;
         MeshRendererComponent(const std::vector<ObjectVertexData>& vertices,
                               const std::vector<uint32_t>& indices) :
-            vertices(vertices), indices(indices) { }
+            vertices(vertices), indices(indices) {}
 
         std::vector<ObjectVertexData> vertices;
         std::vector<uint32_t> indices;
@@ -58,7 +58,7 @@ namespace engine {
                           rhi::SamplerCreateInfo samplerInfo) :
             constants(constants),
             texturePath(texturePath),
-            samplerInfo(samplerInfo) { }
+            samplerInfo(samplerInfo) {}
 
         MaterialConstants constants;
         std::filesystem::path texturePath;
@@ -73,7 +73,7 @@ namespace engine {
     struct CameraComponent : public IComponent {
         CameraComponent() = default;
         CameraComponent(bool active, const Camera& camera) :
-            active(active), camera(camera) { }
+            active(active), camera(camera) {}
 
         bool active{ false };
         Camera camera;
@@ -84,7 +84,7 @@ namespace engine {
     struct ControllerComponent : public IComponent {
         ControllerComponent() = default;
         ControllerComponent(float moveSpeed, float rotateSpeed) :
-            moveSpeed(moveSpeed), rotateSpeed(rotateSpeed) { }
+            moveSpeed(moveSpeed), rotateSpeed(rotateSpeed) {}
 
         float moveSpeed;
         float rotateSpeed;
@@ -93,7 +93,7 @@ namespace engine {
     struct EnvironmentComponent : public IComponent {
         EnvironmentComponent() = default;
         EnvironmentComponent(math::Vector3f ambientLight, std::filesystem::path skyboxTexturePath) :
-            ambientLight(ambientLight), skyboxTexturePath(skyboxTexturePath) { }
+            ambientLight(ambientLight), skyboxTexturePath(skyboxTexturePath) {}
 
         math::Vector3f ambientLight;
         std::filesystem::path skyboxTexturePath;
@@ -101,5 +101,17 @@ namespace engine {
         rhi::Image skyboxTexture{ nullptr };
         rhi::Sampler skyboxSampler{ nullptr };
         bool dirty{ true };
+    };
+
+    struct PostProcessingComponent : public IComponent {
+        PostProcessingComponent() = default;
+        PostProcessingComponent(float exposure, float gamma) :
+            exposure(exposure), gamma(gamma) {}
+
+        float exposure;
+        float gamma;
+
+        rhi::Buffer uniformBuffer{ nullptr };
+        rhi::DescriptorSet descriptorSet{ nullptr };
     };
 }

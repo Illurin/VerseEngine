@@ -221,7 +221,6 @@ namespace engine {
             ImageCreateInfo& SetMipLevels(uint32_t mipLevels) { this->mipLevels = mipLevels; return *this; }
             ImageCreateInfo& SetArrayLayers(uint32_t arrayLayers) { this->arrayLayers = arrayLayers; return *this; }
             ImageCreateInfo& SetSampleCount(SampleCount sampleCount) { this->sampleCount = sampleCount; return *this; }
-            ImageCreateInfo& SetImageLayout(ImageLayout initialLayout) { this->initialLayout = initialLayout; return *this; }
 
             Format format;
             ImageType imageType;
@@ -230,7 +229,6 @@ namespace engine {
             uint32_t mipLevels;
             uint32_t arrayLayers;
             SampleCount sampleCount;
-            ImageLayout initialLayout;
         };
 
         struct ImageCopyableFootprintSubresource {

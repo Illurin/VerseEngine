@@ -245,7 +245,7 @@ namespace engine {
             &heapProperties,
             D3D12_HEAP_FLAG_NONE,
             &resourceDesc,
-            D3D12EnumResourceStates(info.initialLayout).Get(),
+            D3D12_RESOURCE_STATE_COMMON,
             nullptr,
             IID_PPV_ARGS(&resource)))) {
             throw std::runtime_error("Create image failed");
@@ -995,11 +995,17 @@ namespace engine {
         this->pipeline = static_cast<D3D12WrapperPipeline*>(pipeline);
         auto pipelineState = static_cast<D3D12WrapperPipeline*>(pipeline);
         commandList->SetPipelineState(pipelineState->pipeline);
-        commandList->RSSetScissorRects(static_cast<UINT>(pipelineState->pGraphics->scissors.size()), pipelineState->pGraphics->scissors.data());
-        commandList->RSSetViewports(static_cast<UINT>(pipelineState->pGraphics->viewports.size()), pipelineState->pGraphics->viewports.data());
-        commandList->OMSetDepthBounds(pipelineState->pGraphics->depthStencilInfo.minDepthBounds, pipelineState->pGraphics->depthStencilInfo.maxDepthBounds);
-        commandList->IASetPrimitiveTopology(pipelineState->pGraphics->primitiveTopology);
-        commandList->SetGraphicsRootSignature(pipelineState->rootSignature);
+
+        if (pipelineState->pGraphics) {
+            commandList->RSSetScissorRects(static_cast<UINT>(pipelineState->pGraphics->scissors.size()), pipelineState->pGraphics->scissors.data());
+            commandList->RSSetViewports(static_cast<UINT>(pipelineState->pGraphics->viewports.size()), pipelineState->pGraphics->viewports.data());
+            commandList->OMSetDepthBounds(pipelineState->pGraphics->depthStencilInfo.minDepthBounds, pipelineState->pGraphics->depthStencilInfo.maxDepthBounds);
+            commandList->IASetPrimitiveTopology(pipelineState->pGraphics->primitiveTopology);
+            commandList->SetGraphicsRootSignature(pipelineState->rootSignature);
+        }
+        else {
+            commandList->SetComputeRootSignature(pipelineState->rootSignature);
+        }
     }
 
     void D3D12WrapperCommandBuffer::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const rhi::Buffer* pBuffers) {
@@ -1056,7 +1062,10 @@ namespace engine {
                 }
 
                 auto pipelineLayout = static_cast<D3D12WrapperPipelineLayout*>(layout);
-                commandList->SetGraphicsRootDescriptorTable(pipelineLayout->sets[firstSet + i].baseIndex + binding.binding, gpuHandle);
+                if (pipelineType == rhi::PipelineType::Graphics)
+                    commandList->SetGraphicsRootDescriptorTable(pipelineLayout->sets[firstSet + i].baseIndex + binding.binding, gpuHandle);
+                else if (pipelineType == rhi::PipelineType::Compute)
+                    commandList->SetComputeRootDescriptorTable(pipelineLayout->sets[firstSet + i].baseIndex + binding.binding, gpuHandle);
             }
         }
     }
@@ -1093,6 +1102,14 @@ namespace engine {
         auto& resource = static_cast<D3D12WrapperImage*>(info.image)->resource;
         auto imageDesc = resource->GetDesc();
 
+        if (info.oldLayout == info.newLayout) {
+            if (info.newLayout == rhi::ImageLayout::General) {
+                auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(resource);
+                commandList->ResourceBarrier(1, &barrier);
+            }
+            return;
+        }
+
         std::vector<D3D12_RESOURCE_BARRIER> barriers;
 
         if (info.subresourceRange.baseMipLevel == 0 &&
@@ -1103,6 +1120,7 @@ namespace engine {
                                                                        D3D12EnumResourceStates(info.oldLayout).Get(),
                                                                        D3D12EnumResourceStates(info.newLayout).Get(),
                                                                        D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES));
+            
         }
         else {
             auto beginSubresource = D3D12CalcSubresource(info.subresourceRange.baseMipLevel,

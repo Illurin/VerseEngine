@@ -144,7 +144,7 @@ namespace engine {
         D3D12EnumResourceStates(rhi::ImageLayout imageLayout) {
             switch (imageLayout) {
             case rhi::ImageLayout::Undefined: resourceStates = D3D12_RESOURCE_STATE_COMMON; break;
-            case rhi::ImageLayout::General: resourceStates = D3D12_RESOURCE_STATE_COMMON; break;
+            case rhi::ImageLayout::General: resourceStates = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
             case rhi::ImageLayout::ColorAttachment: resourceStates = D3D12_RESOURCE_STATE_RENDER_TARGET; break;
             case rhi::ImageLayout::DepthStencilAttachment: resourceStates = D3D12_RESOURCE_STATE_DEPTH_WRITE; break;
             case rhi::ImageLayout::DepthStencilReadOnly: resourceStates = D3D12_RESOURCE_STATE_DEPTH_READ; break;
@@ -336,8 +336,8 @@ namespace engine {
             switch (descriptorType) {
             case rhi::DescriptorType::UniformBuffer: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
             case rhi::DescriptorType::SampledImage: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
-            case rhi::DescriptorType::StorageImage:
-            case rhi::DescriptorType::StorageBuffer: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
+            case rhi::DescriptorType::StorageBuffer:
+            case rhi::DescriptorType::StorageImage: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
             case rhi::DescriptorType::Sampler: descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
             }
         }
@@ -354,8 +354,8 @@ namespace engine {
             switch (descriptorType) {
             case rhi::DescriptorType::UniformBuffer:
             case rhi::DescriptorType::SampledImage:
-            case rhi::DescriptorType::StorageImage:
-            case rhi::DescriptorType::StorageBuffer: descriptorHeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
+            case rhi::DescriptorType::StorageBuffer:
+            case rhi::DescriptorType::StorageImage: descriptorHeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; break;
             case rhi::DescriptorType::Sampler: descriptorHeapType = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER; break;
             }
         }

@@ -133,6 +133,15 @@
     <Filter Include="source\runtime\render\graph">
       <UniqueIdentifier>{e6151240-23bc-44e9-9bb5-94d9af6ea53d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shader\screen_quad">
+      <UniqueIdentifier>{180aba93-f453-4aa2-bcfc-fea18c6bf102}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shader\screen_quad\hlsl">
+      <UniqueIdentifier>{30ec813c-3265-4088-b3c8-5f6242159e4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\runtime\render\pass\screen_quad">
+      <UniqueIdentifier>{05466bab-4242-4bf7-9b02-f8937b16df84}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\engine\source\runtime\main.cpp">
@@ -215,6 +224,9 @@
     </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\render\graph\render_graph.cpp">
       <Filter>source\runtime\render\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\screen_quad\screen_quad_pass.cpp">
+      <Filter>source\runtime\render\pass\screen_quad</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -359,6 +371,9 @@
     <ClInclude Include="..\..\engine\source\runtime\render\graph\render_graph.hpp">
       <Filter>source\runtime\render\graph</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\screen_quad\screen_quad_pass.hpp">
+      <Filter>source\runtime\render\pass\screen_quad</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\engine\shader\debug\hlsl\fragment.hlsl">
@@ -391,9 +406,6 @@
     <FxCompile Include="..\..\engine\shader\skybox\hlsl\vertex.hlsl">
       <Filter>shader\skybox\hlsl</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute.hlsl">
-      <Filter>shader\post_processing\hlsl</Filter>
-    </FxCompile>
     <FxCompile Include="..\..\engine\shader\include\hlsl\common.hlsl">
       <Filter>shader\include\hlsl</Filter>
     </FxCompile>
@@ -405,6 +417,24 @@
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\scene\hlsl\vertex.hlsl">
       <Filter>shader\scene\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_blur_h.hlsl">
+      <Filter>shader\post_processing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_blur_v.hlsl">
+      <Filter>shader\post_processing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\screen_quad\hlsl\vertex.hlsl">
+      <Filter>shader\screen_quad\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\screen_quad\hlsl\fragment.hlsl">
+      <Filter>shader\screen_quad\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_bloom.hlsl">
+      <Filter>shader\post_processing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_extract.hlsl">
+      <Filter>shader\post_processing\hlsl</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

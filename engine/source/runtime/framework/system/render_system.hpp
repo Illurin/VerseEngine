@@ -6,6 +6,31 @@
 
 namespace engine {
 
+    //
+    // Pass 0: Scene pass
+    // 
+    //   - Input:
+    //   - Output: color attachment, depth attachment
+    // 
+    //   - Pipeline 0: Scene pipeline
+    //   - Pipeline 1: Skybox pipeline
+    // 
+    // Pass 1: Post processing pass
+    // 
+    //   - Input: color attachment
+    //   - Output: storage image
+    // 
+    //   - Pipeline 0: Blur H pipeline
+    //   - Pipeline 1: Blur V pipeline
+    //
+    // Pass 2: Screen quad pass
+    //
+    //   - Input: render target
+    //   - output: swapchain image
+    //
+    //   - Pipeline 0: Screen quad pipeline
+    //
+
     class RenderSystem final : public ISystem {
     public:
         RenderSystem();
@@ -17,9 +42,10 @@ namespace engine {
     private:
         void BuildMeshes(ecs::registry& registry);
         void BuildDescriptors(ecs::registry& registry);
-
+        
         void UpdateFrameResource(ecs::registry& registry);
         void UpdateCommandBuffers(ecs::registry& registry);
+        void PrepareRendering();
         void UpdateRendering();
 
     private:
@@ -42,6 +68,7 @@ namespace engine {
         std::unique_ptr<ScenePass>          pScenePass;
         std::unique_ptr<SkyboxPass>         pSkyboxPass;
         std::unique_ptr<PostProcessingPass> pPostProcessingPass;
+        std::unique_ptr<ScreenQuadPass>     pScreenQuadPass;
     };
 
 }

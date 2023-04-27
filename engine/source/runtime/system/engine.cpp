@@ -17,7 +17,7 @@ namespace engine {
         RenderDevice::Initialize(instanceInfo);
 
         auto swapchainInfo = rhi::SwapchainCreateInfo()
-            .SetFrameCount(2)
+            .SetFrameCount(3)
             .SetAlphaMode(rhi::AlphaMode::Opaque)
             .SetImageUsage(rhi::ImageUsage::ColorAttachment)
             .SetPlatformInfo(platformInfo)

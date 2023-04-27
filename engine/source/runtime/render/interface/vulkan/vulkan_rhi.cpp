@@ -39,9 +39,8 @@ namespace engine {
 
 #ifdef _DEBUG
         auto debugMessengerInfo = vk::DebugUtilsMessengerCreateInfoEXT()
-            .setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-                vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+            .setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+                                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
             .setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
                 vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
                 vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
@@ -541,7 +540,6 @@ namespace engine {
             .setArrayLayers(info.arrayLayers)
             .setMipLevels(info.mipLevels)
             .setSamples(VkEnumSampleCount(info.sampleCount).Get())
-            .setInitialLayout(VkEnumImageLayout(info.initialLayout).Get())
             .setFlags(info.arrayLayers == 6 ? vk::ImageCreateFlagBits::eCubeCompatible : vk::ImageCreateFlags());
         
         auto image = device.createImage(imageInfo);
@@ -745,10 +743,18 @@ namespace engine {
                 .setStencilStoreOp(VkEnumAttachmentStoreOp(info.pDepthStencilAttachment->stencilStoreOp).Get()));
         }
         
+        std::array<vk::SubpassDependency, 1> subpassDependencies;
+
+        subpassDependencies[0].setSrcSubpass(0)
+                              .setDstSubpass(VK_SUBPASS_EXTERNAL)
+                              .setSrcStageMask(vk::PipelineStageFlagBits::eAllGraphics)
+                              .setDstStageMask(vk::PipelineStageFlagBits::eAllCommands)
+                              .setDependencyFlags(vk::DependencyFlagBits::eByRegion);
+
         auto renderPassInfo = vk::RenderPassCreateInfo()
             .setAttachments(attachmentDescriptions)
-            .setSubpassCount(1)
-            .setPSubpasses(&subpassInfo);
+            .setSubpasses(subpassInfo)
+            .setDependencies(subpassDependencies);
 
         auto renderPass = device.createRenderPass(renderPassInfo);
 
@@ -1313,6 +1319,8 @@ namespace engine {
             .setImage(static_cast<VkWrapperImage*>(info.image)->image)
             .setOldLayout(VkEnumImageLayout(info.oldLayout).Get())
             .setNewLayout(VkEnumImageLayout(info.newLayout).Get())
+            .setSrcAccessMask(vk::AccessFlagBits::eMemoryWrite)
+            .setDstAccessMask(vk::AccessFlagBits::eMemoryRead)
             .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
             .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
             .setSubresourceRange(vk::ImageSubresourceRange()

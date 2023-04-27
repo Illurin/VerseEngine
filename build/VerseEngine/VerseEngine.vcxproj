@@ -163,6 +163,7 @@
     <ClCompile Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\screen_quad\screen_quad_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\render_device.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\shader\shader_compiler.cpp" />
@@ -205,6 +206,7 @@
     <ClInclude Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\screen_quad\screen_quad_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\render_data.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\render_device.hpp" />
@@ -248,17 +250,21 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute.hlsl">
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_bloom.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_blur_h.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_blur_v.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_extract.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\raytracing\hlsl\anyhit.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
@@ -314,6 +320,18 @@
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\scene\hlsl\vertex.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\screen_quad\hlsl\fragment.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\screen_quad\hlsl\vertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\skybox\hlsl\fragment.hlsl">

@@ -34,6 +34,7 @@ public:
         void* pUserData) {
 #ifdef _WIN32
         OutputDebugStringA(pCallbackData->pMessage);
+        OutputDebugStringA("\n");
 #endif // _WIN32
         return VK_FALSE;
     }

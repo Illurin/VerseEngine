@@ -36,6 +36,6 @@ void main(uint3 groupThreadId    : SV_GroupThreadID,
         blurColor += weights[i] * sharedMemory[groupThreadId.y + blurRadius + i];
     }
     
-    // renderTarget[dispatchThreadId.xy] = blurColor;
-    renderTarget[dispatchThreadId.xy] = shaderRead[dispatchThreadId.xy];
+    renderTarget[dispatchThreadId.xy] = blurColor;
+    // renderTarget[dispatchThreadId.xy] = shaderRead[dispatchThreadId.xy];
 }

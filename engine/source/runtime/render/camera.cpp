@@ -3,7 +3,7 @@
 namespace engine {
 
     Camera::Camera(float aspect) : aspect(aspect) {
-        SetLens(0.25f * math::Pi<float>(), aspect, 1.0f, 100.0f);
+        SetLens(0.25f * math::Pi<float>(), aspect, 1.0f, 1000.0f);
     }
 
     void Camera::SetLens(float fovY, float aspect, float nearZ, float farZ) {

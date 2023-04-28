@@ -630,8 +630,8 @@ namespace engine {
         };
 
         struct ComputePipelineCreateInfo {
-            ComputePipelineCreateInfo SetShaderModule(ShaderModule shaderModule) { this->shaderModule = shaderModule; return *this; }
-            ComputePipelineCreateInfo SetLayout(PipelineLayout layout) { this->layout = layout; return *this; }
+            ComputePipelineCreateInfo& SetShaderModule(ShaderModule shaderModule) { this->shaderModule = shaderModule; return *this; }
+            ComputePipelineCreateInfo& SetLayout(PipelineLayout layout) { this->layout = layout; return *this; }
 
             ShaderModule shaderModule;
             PipelineLayout layout;

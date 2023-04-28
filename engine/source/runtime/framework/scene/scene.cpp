@@ -50,7 +50,7 @@ namespace engine {
 
         // Environment
 
-        GetRegistry().ctx().get<EnvironmentComponent>() = EnvironmentComponent(math::Vector3f(0.2f, 0.2f, 0.2f),
+        GetRegistry().ctx().get<EnvironmentComponent>() = EnvironmentComponent(math::Vector3f(0.1f, 0.1f, 0.1f),
                                                                                Path::GetAbsolutePath("asset/skybox.png"));
 
         // Camera
@@ -63,7 +63,7 @@ namespace engine {
 
         auto cameraEntity = GetRegistry().create();
         GetRegistry().emplace<CameraComponent>(cameraEntity, cameraComponent);
-        GetRegistry().emplace<ControllerComponent>(cameraEntity, 10.0f, 2.0f);
+        GetRegistry().emplace<ControllerComponent>(cameraEntity, 20.0f, 2.0f);
 
         // Sampler
 
@@ -97,12 +97,12 @@ namespace engine {
 
         MaterialConstants modelMaterialConstants;
         modelMaterialConstants.diffuseAlbedo = math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-        modelMaterialConstants.fresnelR0 = math::Vector3f(0.9f, 0.9f, 0.9f);
+        modelMaterialConstants.fresnelR0 = math::Vector3f(0.1f, 0.1f, 0.1f);
         modelMaterialConstants.shiniess = 0.1f;
 
         // Object 0
 
-        auto planeEntity = GetRegistry().create();
+        /*auto planeEntity = GetRegistry().create();
 
         GetRegistry().emplace<TransformComponent>(planeEntity, math::Vector3f(0.0f, 0.0f, 0.0f),
                                                                math::Vector3f(1.0f, 1.0f, 1.0f),
@@ -128,11 +128,11 @@ namespace engine {
         };
 
         GetRegistry().emplace<MeshRendererComponent>(planeEntity, vertices, indices);
-        GetRegistry().emplace<MaterialComponent>(planeEntity, planeMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);
+        GetRegistry().emplace<MaterialComponent>(planeEntity, planeMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);*/
         
         // Object 1
 
-        auto sphereEntity = GetRegistry().create();
+        /*auto sphereEntity = GetRegistry().create();
 
         GetRegistry().emplace<TransformComponent>(sphereEntity, math::Vector3f(8.0f, 6.0f, 0.0f),
                                                                 math::Vector3f(1.0f, 1.0f, 1.0f),
@@ -142,7 +142,7 @@ namespace engine {
         auto geosphereMesh = Geometry::CreateGeosphere(2.0f, 10);
 
         GetRegistry().emplace<MeshRendererComponent>(sphereEntity, geosphereMesh.vertices, geosphereMesh.indices);
-        GetRegistry().emplace<MaterialComponent>(sphereEntity, planeMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);
+        GetRegistry().emplace<MaterialComponent>(sphereEntity, planeMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);*/
 
         // Marisa model
 
@@ -166,6 +166,32 @@ namespace engine {
             GetRegistry().emplace<MaterialComponent>(meshEntity, modelMaterialConstants,
                                                      mesh.material.diffuseMap.has_value() ? mesh.material.diffuseMap.value().path : Path::GetAbsolutePath("asset/brickTexture.jpg"),
                                                      mesh.material.diffuseMap.has_value() ? repeatSamplerInfo : borderSamplerInfo);
+        }
+
+        // Deferred scene
+
+        auto deferredSceneModel = asset::ModelLoader::Load(Path::GetAbsolutePath("asset/Deferred/Deferred.gltf"));
+
+        for (auto& mesh : deferredSceneModel.meshes) {
+            if (!mesh.material.diffuseMap.has_value()) continue;
+
+            auto meshEntity = GetRegistry().create();
+
+            GetRegistry().emplace<TransformComponent>(meshEntity, math::Vector3f(0.0f, 0.0f, 0.0f),
+                                                                  math::Vector3f(0.1f, 0.1f, 0.1f),
+                                                                  math::Vector3f(0.0f, 0.0f, 0.0f),
+                                                                  math::Vector3f(0.0f, 0.0f, 0.0f));
+            std::vector<ObjectVertexData> meshVertices(mesh.vertices.size());
+            for (size_t i = 0; i < mesh.vertices.size(); i++) {
+                meshVertices[i].localPos = mesh.vertices[i].position;
+                meshVertices[i].normal = mesh.vertices[i].normal;
+                meshVertices[i].tangent = mesh.vertices[i].tangent;
+                meshVertices[i].texCoord = mesh.vertices[i].texCoord;
+            }
+            GetRegistry().emplace<MeshRendererComponent>(meshEntity, meshVertices, mesh.indices);
+            GetRegistry().emplace<MaterialComponent>(meshEntity, modelMaterialConstants,
+                                                     mesh.material.diffuseMap.value().path,
+                                                     repeatSamplerInfo);
         }
     }
 

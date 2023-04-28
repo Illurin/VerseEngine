@@ -21,15 +21,15 @@ float4 main(FragmentIn input) : SV_Target0 {
     float3 toEye = normalize(passConstants.eyePos.xyz - input.posW);
     
     Light light;
-    light.position = float3(3.0f, 7.0f, 0.0f);
-    light.strength = float3(0.8f, 0.8f, 1.0f);
-    light.attenuation = 0.3f;
+    light.position = float3(9.0f, 8.0f, 0.0f);
+    light.strength = float3(0.8f, 0.8f, 2.0f);
+    light.attenuation = 0.1f;
     float3 lightingResult = ComputePointLight(light, input.posW, normal, toEye, materialConstants);
     
     float3 reflectionVec = reflect(-toEye, input.normal);
     float3 reflectionColor = skybox.Sample(skyboxSampler, reflectionVec).rgb;
     reflectionColor *= materialConstants.shiniess * SchlickFresnel(materialConstants.fresnelR0, input.normal, reflectionVec);
     
-    float3 litColor = diffuse.rgb * (passConstants.ambientLight + lightingResult) + reflectionColor;
+    float3 litColor = diffuse.rgb * (passConstants.ambientLight + lightingResult)/* * reflectionColor*/;
     return float4(litColor, diffuse.a);
 }

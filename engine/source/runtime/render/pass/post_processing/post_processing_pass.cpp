@@ -105,7 +105,7 @@ namespace engine {
         storageImageDescriptorSets[2]->Write(1, rhi::DescriptorType::StorageImage, rhi::ImageLayout::General, imageViews[1]);
         storageImageDescriptorSets[3]->Write(0, rhi::DescriptorType::StorageImage, rhi::ImageLayout::General, imageViews[0]);
         storageImageDescriptorSets[3]->Write(1, rhi::DescriptorType::StorageImage, rhi::ImageLayout::General, imageViews[1]);
-        storageImageDescriptorSets[3]->Write(1, rhi::DescriptorType::StorageImage, rhi::ImageLayout::General, imageViews[2]);
+        storageImageDescriptorSets[3]->Write(2, rhi::DescriptorType::StorageImage, rhi::ImageLayout::General, imageViews[2]);
     }
 
     void PostProcessingPass::BuildPipeline() {
@@ -242,8 +242,8 @@ namespace engine {
 
         auto width = RenderDevice::GetSwapchain()->GetImageExtent().width;
         auto height = RenderDevice::GetSwapchain()->GetImageExtent().height;
-        auto groupCountX = static_cast<uint32_t>(std::ceil(width / 32.0));
-        auto groupCountY = static_cast<uint32_t>(std::ceil(height / 32.0));
+        auto groupCountX = static_cast<uint32_t>(std::ceil(width / 16.0));
+        auto groupCountY = static_cast<uint32_t>(std::ceil(height / 16.0));
         auto blurGroupCountX = static_cast<uint32_t>(std::ceil(width / 256.0));
         auto blurGroupCountY = static_cast<uint32_t>(std::ceil(height / 256.0));
             

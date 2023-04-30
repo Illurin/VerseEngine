@@ -9,6 +9,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
     uint32_t initialWidth = 640;
     uint32_t initialHeight = 480;
+    //uint32_t initialWidth = 1440;
+    //uint32_t initialHeight = 960;
 
     // Initialize window system
 

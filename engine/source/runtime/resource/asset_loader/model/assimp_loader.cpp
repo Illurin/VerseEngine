@@ -16,14 +16,26 @@ namespace engine {
         }
 
         void AssimpModelLoader::ProcessNode(const aiScene* scene, aiNode* node) {
+            RawModelNode rawModelNode;
+
+            auto transformation = node->mTransformation;
+            aiVector3D position, rotation, scaling;
+            transformation.Decompose(scaling, rotation, position);
+            rawModelNode.transform.position = { position.x, position.y, position.z };
+            rawModelNode.transform.rotation = { rotation.x, rotation.y, rotation.z };
+            rawModelNode.transform.scale = { scaling.x, scaling.y, scaling.z };
+
+            rawModelNode.meshes.resize(node->mNumMeshes);
             for (uint32_t i = 0; i < node->mNumMeshes; i++) {
                 auto mesh = scene->mMeshes[node->mMeshes[i]];
-                meshes.emplace_back(ProcessMesh(scene, mesh));
+                rawModelNode.meshes[i] = ProcessMesh(scene, mesh);
             }
 
             for (uint32_t i = 0; i < node->mNumChildren; i++) {
                 ProcessNode(scene, node->mChildren[i]);
             }
+
+            this->scene.nodes.emplace_back(rawModelNode);
         }
 
         RawModelMesh AssimpModelLoader::ProcessMesh(const aiScene* scene, aiMesh* mesh) {
@@ -36,7 +48,7 @@ namespace engine {
                 vertex.position[0] = mesh->mVertices[i].x;
                 vertex.position[1] = mesh->mVertices[i].y;
                 vertex.position[2] = mesh->mVertices[i].z;
-
+                
                 vertex.normal[0] = mesh->mNormals[i].x;
                 vertex.normal[1] = mesh->mNormals[i].y;
                 vertex.normal[2] = mesh->mNormals[i].z;
@@ -61,14 +73,51 @@ namespace engine {
                 for (std::size_t j = 0; j < face.mNumIndices; j++)
                     result.indices.push_back(face.mIndices[j]);
             }
-
+            
             if (mesh->mMaterialIndex >= 0) {
                 auto mat = scene->mMaterials[mesh->mMaterialIndex];
-                auto textures = ProcessTexture(mat, aiTextureType_DIFFUSE);
-                if (textures.empty())
+
+                // base color
+
+                aiColor3D baseColor;
+                mat->Get(AI_MATKEY_BASE_COLOR, baseColor);
+                result.material.baseColor = { baseColor.r, baseColor.g, baseColor.b };
+
+                // specular
+
+                aiColor3D colorSpecular;
+                mat->Get(AI_MATKEY_COLOR_SPECULAR, colorSpecular);
+                result.material.specular = { colorSpecular.r, colorSpecular.g, colorSpecular.b };
+
+                // emission
+
+                aiColor3D colorEmissive;
+                mat->Get(AI_MATKEY_COLOR_EMISSIVE, colorEmissive);
+                result.material.emission = { colorEmissive.r, colorEmissive.g, colorEmissive.b };
+
+                // metallic
+
+                mat->Get(AI_MATKEY_METALLIC_FACTOR, result.material.metallic);
+                
+                // roughness
+
+                mat->Get(AI_MATKEY_ROUGHNESS_FACTOR, result.material.roughness);
+
+                // diffuse maps
+
+                auto diffuseMaps = ProcessTexture(mat, aiTextureType_DIFFUSE);
+                if (diffuseMaps.empty())
                     result.material.diffuseMap = std::nullopt;
                 else
-                    result.material.diffuseMap = textures[0];
+                    result.material.diffuseMap = diffuseMaps[0];
+
+                // normal maps
+
+                auto normalMaps = ProcessTexture(mat, aiTextureType_NORMALS);
+                if (normalMaps.empty())
+                    result.material.normalMap = std::nullopt;
+                else
+                    result.material.normalMap = normalMaps[0];
             }
             
             return result;

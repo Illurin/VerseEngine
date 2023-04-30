@@ -9,15 +9,17 @@ namespace engine {
         ResourceSystem() {}
         ~ResourceSystem();
 
-        void Start(ecs::registry& registry) override;
-        void Update(ecs::registry& registry) override;
+        void Start() override;
+        void Update() override;
 
     private:
-        void BuildMaterials(ecs::registry& registry);
+        rhi::Sampler AddSampler(rhi::SamplerCreateInfo);
+        void BuildMaterials();
 
     private:
         std::unordered_map<std::string, rhi::Image>  images;
         std::unordered_map<std::string, rhi::Image>  cubemaps;
+        std::vector<rhi::SamplerCreateInfo>          samplerInfos;
         std::vector<rhi::Sampler>                    samplers;
     };
 

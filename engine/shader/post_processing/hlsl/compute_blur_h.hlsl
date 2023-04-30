@@ -31,11 +31,10 @@ void main(uint3 groupThreadId    : SV_GroupThreadID,
     GroupMemoryBarrierWithGroupSync();
     
     float4 blurColor = weights[0] * sharedMemory[groupThreadId.x + blurRadius];
-    for (int i = 1; i <= blurRadius; ++i) {
+    [unroll] for (int i = 1; i <= blurRadius; ++i) {
         blurColor += weights[i] * sharedMemory[groupThreadId.x + blurRadius - i];
         blurColor += weights[i] * sharedMemory[groupThreadId.x + blurRadius + i];
     }
     
     renderTarget[dispatchThreadId.xy] = blurColor;
-    // renderTarget[dispatchThreadId.xy] = shaderRead[dispatchThreadId.xy];
 }

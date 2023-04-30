@@ -11,8 +11,8 @@ namespace engine {
         static void SetFps(double fps) { Time::fps = fps; }
 
     private:
-        static inline double deltaTime{ 0.0 };
-        static inline double fps{ 0.0 };
+        inline static double deltaTime{ 0.0 };
+        inline static double fps{ 0.0 };
     };
 
 }

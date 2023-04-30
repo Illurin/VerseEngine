@@ -17,19 +17,47 @@ SamplerState                  skyboxSampler : register(s2, space2);
 
 float4 main(FragmentIn input) : SV_Target0 {
     float4 diffuse = materialConstants.diffuseAlbedo * tex.Sample(samplerState, input.texCoord);
+    
+    if (diffuse.a <= 0.0f) discard;
+    
     float3 normal = normalize(input.normal);
     float3 toEye = normalize(passConstants.eyePos.xyz - input.posW);
     
-    Light light;
-    light.position = float3(9.0f, 8.0f, 0.0f);
-    light.strength = float3(0.8f, 0.8f, 2.0f);
-    light.attenuation = 0.1f;
-    float3 lightingResult = ComputePointLight(light, input.posW, normal, toEye, materialConstants);
+    float3 lightingResult = (float3) 0.0f;
+    
+    uint i = 0;
+    [unroll] for (i = 0; i < MAX_DIRECTIONAL_LIGHTS; i++) {
+        Light light;
+        LightConstants lightConstants = passConstants.lights[i];
+        light.strength = lightConstants.intensity * lightConstants.color;
+        light.direction = lightConstants.direction;
+        lightingResult += ComputeDirectionalLight(light, normal, toEye, materialConstants);
+    }
+    
+    [unroll] for (i = 0; i < MAX_POINT_LIGHTS; i++) {
+        Light light;
+        LightConstants lightConstants = passConstants.lights[i + MAX_DIRECTIONAL_LIGHTS];
+        light.strength = lightConstants.intensity * lightConstants.color;
+        light.position = lightConstants.position;
+        light.attenuation = lightConstants.attenuation;
+        lightingResult += ComputePointLight(light, input.posW, normal, toEye, materialConstants);
+    }
+    
+    [unroll] for (i = 0; i < MAX_SPOT_LIGHTS; i++) {
+        Light light;
+        LightConstants lightConstants = passConstants.lights[i + MAX_DIRECTIONAL_LIGHTS + MAX_POINT_LIGHTS];
+        light.strength = lightConstants.intensity * lightConstants.color;
+        light.direction = lightConstants.direction;
+        light.position = lightConstants.position;
+        light.attenuation = lightConstants.attenuation;
+        light.spotPower = lightConstants.spotPower;
+        lightingResult += ComputeSpotLight(light, input.posW, normal, toEye, materialConstants);
+    }
     
     float3 reflectionVec = reflect(-toEye, input.normal);
     float3 reflectionColor = skybox.Sample(skyboxSampler, reflectionVec).rgb;
     reflectionColor *= materialConstants.shiniess * SchlickFresnel(materialConstants.fresnelR0, input.normal, reflectionVec);
     
-    float3 litColor = diffuse.rgb * (passConstants.ambientLight + lightingResult)/* * reflectionColor*/;
+    float3 litColor = diffuse.rgb * (passConstants.ambientLight.rgb + lightingResult)/* * reflectionColor*/;
     return float4(litColor, diffuse.a);
 }

@@ -142,6 +142,9 @@
     <Filter Include="source\runtime\render\pass\screen_quad">
       <UniqueIdentifier>{05466bab-4242-4bf7-9b02-f8937b16df84}</UniqueIdentifier>
     </Filter>
+    <Filter Include="demo">
+      <UniqueIdentifier>{0ca4cf11-b7e8-4b4c-acbe-fd98a0207ca9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\engine\source\runtime\main.cpp">
@@ -195,9 +198,6 @@
     <ClCompile Include="..\..\engine\source\runtime\system\file_system\path.cpp">
       <Filter>source\runtime\system\file_system</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\engine\source\runtime\framework\system\control_system.cpp">
-      <Filter>source\runtime\framework\system</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\framework\system\resource_system.cpp">
       <Filter>source\runtime\framework\system</Filter>
     </ClCompile>
@@ -227,6 +227,9 @@
     </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\render\pass\screen_quad\screen_quad_pass.cpp">
       <Filter>source\runtime\render\pass\screen_quad</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\demo\demo.cpp">
+      <Filter>demo</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -335,9 +338,6 @@
     <ClInclude Include="..\..\engine\source\runtime\system\file_system\path.hpp">
       <Filter>source\runtime\system\file_system</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\framework\system\control_system.hpp">
-      <Filter>source\runtime\framework\system</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\framework\system\resource_system.hpp">
       <Filter>source\runtime\framework\system</Filter>
     </ClInclude>
@@ -373,6 +373,12 @@
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.hpp">
       <Filter>source\runtime\render\pass\post_processing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene_manager.hpp">
+      <Filter>source\runtime\framework\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\ecs\entity.hpp">
+      <Filter>source\runtime\framework\ecs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

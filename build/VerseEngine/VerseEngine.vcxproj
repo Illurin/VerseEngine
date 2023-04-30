@@ -146,8 +146,8 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\engine\source\demo\demo.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\framework\scene\scene.cpp" />
-    <ClCompile Include="..\..\engine\source\runtime\framework\system\control_system.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\framework\system\render_system.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\framework\system\resource_system.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\main.cpp" />
@@ -178,8 +178,9 @@
   <ItemGroup>
     <ClInclude Include="..\..\engine\source\runtime\framework\component\component.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\ecs\ecs.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\ecs\entity.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\framework\system\control_system.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene_manager.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\system\resource_system.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\system\system.hpp" />

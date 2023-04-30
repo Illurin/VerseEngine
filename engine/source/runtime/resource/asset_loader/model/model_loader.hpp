@@ -6,15 +6,15 @@ namespace engine {
     namespace asset {
 
         struct RawModel {
-            std::vector<RawModelMesh> meshes;
+            RawModelScene scene;
         };
 
         class ModelLoader {
         public:
             static RawModel Load(std::filesystem::path path) {
                 AssimpModelLoader loader(path);
-                auto& meshes = loader.GetMeshes();
-                return { meshes };
+                auto& scene = loader.GetScene();
+                return { scene };
             }
         };
 

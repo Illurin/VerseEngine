@@ -30,7 +30,7 @@ float3 ComputeDirectionalLight(Light light, float3 normal, float3 toEye, Materia
     float3 lightVec = -light.direction;
     float lambert = max(dot(lightVec, normal), 0.0f);
     float3 lightStrength = lambert * light.strength;
-    return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+    return max(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 0.0f);
 }
 
 float3 ComputePointLight(Light light, float3 position, float3 normal, float3 toEye, MaterialConstants mat) {
@@ -42,7 +42,7 @@ float3 ComputePointLight(Light light, float3 position, float3 normal, float3 toE
     float lambert = max(dot(lightVec, normal), 0.0f);
     float3 lightStrength = lambert * light.strength / (distance * distance);
     
-    return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+    return max(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 0.0f);
 }
 
 float3 ComputeSpotLight(Light light, float3 position, float3 normal, float3 toEye, MaterialConstants mat) {
@@ -55,5 +55,5 @@ float3 ComputeSpotLight(Light light, float3 position, float3 normal, float3 toEy
     float3 lightStrength = lambert * light.strength / (distance * distance);
     lightStrength *= pow(max(dot(-lightVec, light.direction), 0.0f), light.spotPower);
 
-    return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+    return max(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 0.0f);
 }

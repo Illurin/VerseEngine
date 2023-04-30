@@ -1,9 +1,13 @@
 #include "camera.hpp"
 
+#include "render_device.hpp"
+
 namespace engine {
 
-    Camera::Camera(float aspect) : aspect(aspect) {
-        SetLens(0.25f * math::Pi<float>(), aspect, 1.0f, 1000.0f);
+    Camera::Camera() {
+        auto aspect = static_cast<float>(RenderDevice::GetSwapchain()->GetImageExtent().width)
+                    / static_cast<float>(RenderDevice::GetSwapchain()->GetImageExtent().height);
+        SetLens(0.25f * math::Pi<float>(), aspect, 0.1f, 1000.0f);
     }
 
     void Camera::SetLens(float fovY, float aspect, float nearZ, float farZ) {
@@ -35,7 +39,7 @@ namespace engine {
         }
     }
 
-    void Camera::LookAt(math::Vector3f position, math::Vector3f target, math::Vector3f worldUp) {
+    void Camera::LookAt(math::Vector3f target, math::Vector3f worldUp) {
         look = math::Vector3f(target.x() - position.x(), target.y() - position.y(), target.z() - position.z()).normalized();
         right = look.cross(worldUp);
         up = right.cross(look);

@@ -13,14 +13,14 @@ namespace engine {
         public:
             AssimpModelLoader(std::filesystem::path path);
 
-            const std::vector<RawModelMesh>& GetMeshes() const { return meshes; }
+            const RawModelScene& GetScene() const { return scene; }
 
         private:
             void ProcessNode(const aiScene* scene, aiNode* node);
             RawModelMesh ProcessMesh(const aiScene* scene, aiMesh* node);
             std::vector<RawModelTexture> ProcessTexture(aiMaterial* material, aiTextureType textureType);
 
-            std::vector<RawModelMesh> meshes;
+            RawModelScene scene;
             std::vector<RawModelTexture> textures;
 
             std::filesystem::path directory;

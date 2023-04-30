@@ -30,6 +30,4 @@ namespace engine {
 #endif // _WIN32
     }
 
-    std::filesystem::path Path::directory{};
-
 }

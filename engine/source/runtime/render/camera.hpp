@@ -6,8 +6,7 @@ namespace engine {
 
     class Camera {
     public:
-        Camera() {}
-        explicit Camera(float aspect);
+        Camera();
 
         math::Vector3f GetPosition() const { return position; }
         math::Matrix4f GetViewMatrix() const { return viewMatrix; }
@@ -18,7 +17,7 @@ namespace engine {
 
         void UpdataViewMatrix();
 
-        void LookAt(math::Vector3f position, math::Vector3f target, math::Vector3f worldUp);
+        void LookAt(math::Vector3f target, math::Vector3f worldUp);
         void Walk(float distance);
         void Strafe(float distance);
         void Pitch(float angle);

@@ -7,24 +7,29 @@ namespace engine {
     class IScene {
     public:
         IScene();
-        virtual ~IScene();
+        virtual ~IScene() {}
+
+        // Engine call
 
         void Start();
         void Update();
 
-        ecs::registry& GetRegistry() { return registry; }
-        
-        void AddSystem(std::unique_ptr<ISystem> pSystem) { systems.emplace_back(std::move(pSystem)); }
+        // ECS
+
+        ecs::registry& GetRegistry();
+        Entity         CreateEntity();
+
+        // System
+
+        template<typename Type>
+        void AddSystem() {
+            systems.emplace_back(std::make_unique<Type>());
+            systems.back()->pRegistry = &registry;
+        }
 
     private:
         ecs::registry registry;
         std::vector<std::unique_ptr<ISystem>> systems;
-    };
-
-    class MainScene final : public IScene {
-    public:
-        MainScene();
-        ~MainScene() {}
     };
 
 }

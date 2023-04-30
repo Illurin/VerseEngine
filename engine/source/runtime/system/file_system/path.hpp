@@ -14,7 +14,7 @@ namespace engine {
         static std::filesystem::path GetAbsolutePath(std::filesystem::path path) { return directory / path; }
 
     private:
-        static std::filesystem::path directory;
+        inline static std::filesystem::path directory{};
     };
 
 }

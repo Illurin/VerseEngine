@@ -24,10 +24,10 @@ namespace engine {
             .SetQueue(RenderDevice::GetQueue());
         RenderDevice::SetSwapchain(swapchainInfo);
 
-        // Create main scene
+        // Initialize scene manager
 
-        pScene = std::make_unique<MainScene>();
-        pScene->Start();
+        pSceneManager = std::make_unique<SceneManager>();
+        pSceneManager->Entry();
     }
 
     void Engine::Run() {
@@ -37,12 +37,12 @@ namespace engine {
     }
 
     void Engine::Exit() {
-        pScene.reset();
+        pSceneManager.reset();
         RenderDevice::Clear();
     }
 
     void Engine::Tick() {
-        pScene->Update();
+        pSceneManager->Update();
     }
 
     void Engine::CalculateDeltaTime() {

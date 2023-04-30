@@ -258,19 +258,22 @@ namespace engine {
         commandBuffer->Dispatch(groupCountX, groupCountY, 1);
         commandBuffer->ResourceBarrier(storageImageBarriers[0]);
 
-        // storage image 0 -> storage image 1
+        for (uint32_t i = 0; i < 3; i++) {
 
-        commandBuffer->BindPipeline(blurPipelines[0]);
-        commandBuffer->BindDescriptorSets(rhi::PipelineType::Compute, blurPipelineLayout, 0, 1, &storageImageDescriptorSets[1]);
-        commandBuffer->Dispatch(blurGroupCountX, height, 1);
-        commandBuffer->ResourceBarrier(storageImageBarriers[1]);
+            // storage image 0 -> storage image 1
 
-        // storage image 1 -> storage image 0
+            commandBuffer->BindPipeline(blurPipelines[0]);
+            commandBuffer->BindDescriptorSets(rhi::PipelineType::Compute, blurPipelineLayout, 0, 1, &storageImageDescriptorSets[1]);
+            commandBuffer->Dispatch(blurGroupCountX, height, 1);
+            commandBuffer->ResourceBarrier(storageImageBarriers[1]);
 
-        commandBuffer->BindPipeline(blurPipelines[1]);
-        commandBuffer->BindDescriptorSets(rhi::PipelineType::Compute, blurPipelineLayout, 0, 1, &storageImageDescriptorSets[2]);
-        commandBuffer->Dispatch(width, blurGroupCountY, 1);
-        commandBuffer->ResourceBarrier(storageImageBarriers[0]);
+            // storage image 1 -> storage image 0
+
+            commandBuffer->BindPipeline(blurPipelines[1]);
+            commandBuffer->BindDescriptorSets(rhi::PipelineType::Compute, blurPipelineLayout, 0, 1, &storageImageDescriptorSets[2]);
+            commandBuffer->Dispatch(width, blurGroupCountY, 1);
+            commandBuffer->ResourceBarrier(storageImageBarriers[0]);
+        }
 
         // storage image 0 -> storage image 1
         

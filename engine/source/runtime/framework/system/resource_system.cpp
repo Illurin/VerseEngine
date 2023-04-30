@@ -17,22 +17,46 @@ namespace engine {
         }
     }
 
-    void ResourceSystem::Start(ecs::registry& registry) {
-        BuildMaterials(registry);
+    void ResourceSystem::Start() {
+        BuildMaterials();
     }
 
-    void ResourceSystem::Update(ecs::registry& registry) {
+    void ResourceSystem::Update() {
         
     }
 
-    void ResourceSystem::BuildMaterials(ecs::registry& registry) {
+    rhi::Sampler ResourceSystem::AddSampler(rhi::SamplerCreateInfo info) {
+        for (std::size_t i = 0; i < samplerInfos.size(); i++) {
+            auto& samplerInfo = samplerInfos[i];
+            if (samplerInfo.minFilter == info.minFilter,
+                samplerInfo.magFilter == info.magFilter,
+                samplerInfo.mipFilter == info.mipFilter,
+                samplerInfo.addressModeU == info.addressModeU,
+                samplerInfo.addressModeV == info.addressModeV,
+                samplerInfo.addressModeW == info.addressModeW,
+                samplerInfo.mipLodBias == info.mipLodBias,
+                samplerInfo.minLod == info.minLod,
+                samplerInfo.maxLod == info.maxLod,
+                samplerInfo.anisotropyEnable == info.anisotropyEnable,
+                samplerInfo.maxAnisotropy == info.maxAnisotropy,
+                samplerInfo.compareEnable == info.compareEnable,
+                samplerInfo.compareOp == info.compareOp,
+                samplerInfo.borderColor == info.borderColor) {
+                return samplers[i];
+            }
+        }
+        auto sampler = RenderDevice::GetDevice()->CreateSampler(info);
+        samplerInfos.emplace_back(info);
+        samplers.emplace_back(sampler);
+        return sampler;
+    }
+
+    void ResourceSystem::BuildMaterials() {
         std::unordered_map<std::string, rhi::Buffer> uploaderBuffers;
 
         // Prepare object textures
 
-        auto materialView = registry.view<MaterialComponent>();
-
-        materialView.each([&](MaterialComponent& material) {
+        for (auto [entity, material] : GetEntities<MaterialComponent>().each()) {
 
             // Load image
 
@@ -75,13 +99,12 @@ namespace engine {
 
             // Build sampler
 
-            material.sampler = RenderDevice::GetDevice()->CreateSampler(material.samplerInfo);
-            samplers.emplace_back(material.sampler);
-        });
+            material.sampler = AddSampler(material.samplerInfo);
+        }
 
         // Prepare cubemaps
 
-        auto& environment = registry.ctx().get<EnvironmentComponent>();
+        auto& environment = Entity::GetSingletonComponents<EnvironmentComponent>();
 
         {
             // Load image
@@ -165,8 +188,7 @@ namespace engine {
                 .SetAddressModeW(rhi::SamplerAddressMode::Repeat)
                 .SetMinLod(0.0f)
                 .SetMaxLod(1.0f);
-            environment.skyboxSampler = RenderDevice::GetDevice()->CreateSampler(samplerInfo);
-            samplers.emplace_back(environment.skyboxSampler);
+            environment.skyboxSampler = AddSampler(samplerInfo);
         }
 
         // Copy pixel data to the images

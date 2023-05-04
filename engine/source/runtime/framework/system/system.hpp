@@ -25,7 +25,7 @@ namespace engine {
 
     private:
         friend class IScene;
-        ecs::registry* pRegistry;
+        ecs::registry* pRegistry{ nullptr };
     };
 
 }

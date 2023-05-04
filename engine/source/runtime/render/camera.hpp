@@ -15,9 +15,9 @@ namespace engine {
         void SetLens(float fovY, float aspect, float nearZ, float farZ);
         void SetPosition(math::Vector3f position);
 
-        void UpdataViewMatrix();
+        void UpdateViewMatrix();
 
-        void LookAt(math::Vector3f target, math::Vector3f worldUp);
+        void LookAt(math::Vector3f target);
         void Walk(float distance);
         void Strafe(float distance);
         void Pitch(float angle);
@@ -38,7 +38,7 @@ namespace engine {
         float aspect{ 0.0f };
         float fovY{ 0.0f };
 
-        bool viewDirty{ false };
+        bool viewDirty{ true };
     };
 
 }

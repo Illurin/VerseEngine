@@ -145,6 +145,9 @@
     <Filter Include="demo">
       <UniqueIdentifier>{0ca4cf11-b7e8-4b4c-acbe-fd98a0207ca9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="source\runtime\resource\data_type">
+      <UniqueIdentifier>{34b1980d-1cf5-40ac-b4e2-a5ef626ed213}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\engine\source\runtime\main.cpp">
@@ -186,9 +189,6 @@
     <ClCompile Include="..\..\engine\source\runtime\system\platform\input_system.cpp">
       <Filter>source\runtime\system\platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\engine\source\runtime\framework\system\render_system.cpp">
-      <Filter>source\runtime\framework\system</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\framework\scene\scene.cpp">
       <Filter>source\runtime\framework\scene</Filter>
     </ClCompile>
@@ -197,9 +197,6 @@
     </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\system\file_system\path.cpp">
       <Filter>source\runtime\system\file_system</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\engine\source\runtime\framework\system\resource_system.cpp">
-      <Filter>source\runtime\framework\system</Filter>
     </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\render\geometry.cpp">
       <Filter>source\runtime\render</Filter>
@@ -230,6 +227,15 @@
     </ClCompile>
     <ClCompile Include="..\..\engine\source\demo\demo.cpp">
       <Filter>demo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\demo\scene_rendering.cpp">
+      <Filter>demo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\resource\resource_manager.cpp">
+      <Filter>source\runtime\resource</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\source\runtime\framework\system\render_system.cpp">
+      <Filter>source\runtime\framework\system</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -323,23 +329,14 @@
     <ClInclude Include="..\..\engine\source\runtime\framework\component\component.hpp">
       <Filter>source\runtime\framework\component</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\framework\system\system.hpp">
-      <Filter>source\runtime\framework\system</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\framework\ecs\ecs.hpp">
       <Filter>source\runtime\framework\ecs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp">
-      <Filter>source\runtime\framework\system</Filter>
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\render\render_device.hpp">
       <Filter>source\runtime\render</Filter>
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\system\file_system\path.hpp">
       <Filter>source\runtime\system\file_system</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\framework\system\resource_system.hpp">
-      <Filter>source\runtime\framework\system</Filter>
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\raw_model_data.hpp">
       <Filter>source\runtime\resource\asset_loader\model</Filter>
@@ -379,6 +376,27 @@
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\framework\ecs\entity.hpp">
       <Filter>source\runtime\framework\ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\resource_manager.hpp">
+      <Filter>source\runtime\resource</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\material_data.hpp">
+      <Filter>source\runtime\resource\data_type</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\renderer_data.hpp">
+      <Filter>source\runtime\resource\data_type</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\transform_data.hpp">
+      <Filter>source\runtime\resource\data_type</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\data.hpp">
+      <Filter>source\runtime\resource\data_type</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp">
+      <Filter>source\runtime\framework\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\system\system.hpp">
+      <Filter>source\runtime\framework\system</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

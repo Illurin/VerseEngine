@@ -147,9 +147,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\engine\source\demo\demo.cpp" />
+    <ClCompile Include="..\..\engine\source\demo\scene_rendering.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\framework\scene\scene.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\framework\system\render_system.cpp" />
-    <ClCompile Include="..\..\engine\source\runtime\framework\system\resource_system.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\main.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\camera.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\geometry.cpp" />
@@ -169,6 +169,7 @@
     <ClCompile Include="..\..\engine\source\runtime\render\shader\shader_compiler.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\image\stb_loader.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\resource\resource_manager.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\system\engine.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\system\file_system\path.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\system\platform\input_system.cpp" />
@@ -182,7 +183,6 @@
     <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene_manager.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\framework\system\resource_system.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\system\system.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\math\math.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\math\projection.hpp" />
@@ -218,6 +218,11 @@
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\model_loader.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\raw_model_data.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\data.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\material_data.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\renderer_data.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\transform_data.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\resource\resource_manager.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\system\engine.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\system\file_system\path.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\system\platform\input_system.hpp" />

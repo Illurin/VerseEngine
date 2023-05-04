@@ -1,15 +1,25 @@
 #include "runtime/framework/scene/scene_manager.hpp"
 
-#include "runtime/render/geometry.hpp"
 #include "runtime/system/platform/input_system.hpp"
-#include "runtime/system/time.hpp"
+#include "runtime/resource/resource_manager.hpp"
 #include "runtime/resource/asset_loader/model/model_loader.hpp"
+#include "runtime/render/geometry.hpp"
+#include "runtime/system/time.hpp"
 
 using namespace engine;
 
+struct ControllerComponent : IComponent {
+    ControllerComponent() = default;
+    ControllerComponent(float moveSpeed, float rotateSpeed) :
+        moveSpeed(moveSpeed), rotateSpeed(rotateSpeed) {}
+
+    float moveSpeed;
+    float rotateSpeed;
+};
+
 class ControlSystem : public ISystem {
 public:
-    void Update() {
+    void Update() override {
         for (auto [entity, camera, controller] : GetEntities<CameraComponent, const ControllerComponent>().each()) {
             auto movement = controller.moveSpeed * static_cast<float>(Time::GetDeltaTime());
 
@@ -35,6 +45,21 @@ public:
         // System
         
         AddSystem<ControlSystem>();
+
+        // Environment
+        
+        Entity::GetSingletonComponents<EnvironmentComponent>() =
+            EnvironmentComponent({ math::Vector3f(0.1f, 0.1f, 0.1f),
+                                   Path::GetAbsolutePath("asset/skybox.png") });
+
+        // Camera
+
+        Camera camera;
+        camera.SetPosition(math::Vector3f(2.0f, 1.0f, 0.0f));
+
+        auto cameraEntity = CreateEntity();
+        cameraEntity.AddComponent<CameraComponent>(camera);
+        cameraEntity.AddComponent<ControllerComponent>(2.0f, 2.0f);
         
         // Sampler
 
@@ -59,81 +84,20 @@ public:
             .SetMinLod(0.0f)
             .SetMaxLod(1.0f);
 
-        // Material constants
-
-        MaterialConstants planeMaterialConstants;
-        planeMaterialConstants.diffuseAlbedo = math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-        planeMaterialConstants.fresnelR0 = math::Vector3f(0.3f, 0.3f, 0.3f);
-        planeMaterialConstants.shiniess = 0.5f;
-
-        MaterialConstants modelMaterialConstants;
-        modelMaterialConstants.diffuseAlbedo = math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-        modelMaterialConstants.fresnelR0 = math::Vector3f(0.1f, 0.1f, 0.1f);
-        modelMaterialConstants.shiniess = 0.1f;
-
-        MaterialConstants lightMaterialConstants;
-        lightMaterialConstants.diffuseAlbedo = math::Vector4f(1000.0f, 1.0f, 1.0f, 1.0f);
-        lightMaterialConstants.fresnelR0 = math::Vector3f(0.3f, 0.3f, 0.3f);
-        lightMaterialConstants.shiniess = 0.5f;
-
-        // Object 0
-
-        /*auto planeEntity = GetRegistry().create();
-
-        GetRegistry().emplace<TransformComponent>(planeEntity, math::Vector3f(0.0f, 0.0f, 0.0f),
-                                                               math::Vector3f(1.0f, 1.0f, 1.0f),
-                                                               math::Vector3f(0.0f, 0.0f, 0.0f),
-                                                               math::Vector3f(0.0f, 0.0f, 0.0f));
-
-        std::vector<ObjectVertexData> vertices(4);
-        vertices[0].localPos = math::Vector3f(-10.0f, 0.0f, -10.0f);
-        vertices[0].normal   = math::Vector3f(0.0f, 1.0f, 0.0f);
-        vertices[0].texCoord = math::Vector2f(0.0f, 1.0f);
-        vertices[1].localPos = math::Vector3f(10.0f, 0.0f, -10.0f);
-        vertices[1].normal = math::Vector3f(0.0f, 1.0f, 0.0f);
-        vertices[1].texCoord = math::Vector2f(1.0f, 1.0f);
-        vertices[2].localPos = math::Vector3f(-10.0f, 0.0f, 10.0f);
-        vertices[2].normal = math::Vector3f(0.0f, 1.0f, 0.0f);
-        vertices[2].texCoord = math::Vector2f(0.0f, 0.0f);
-        vertices[3].localPos = math::Vector3f(10.0f, 0.0f, 10.0f);
-        vertices[3].normal = math::Vector3f(0.0f, 1.0f, 0.0f);
-        vertices[3].texCoord = math::Vector2f(1.0f, 0.0f);
-
-        std::vector<uint32_t> indices = {
-            0, 2, 1, 1, 2, 3
-        };
-
-        GetRegistry().emplace<MeshRendererComponent>(planeEntity, vertices, indices);
-        GetRegistry().emplace<MaterialComponent>(planeEntity, planeMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);*/
-        
-        // Object 1
-
-        /*auto sphereEntity = CreateEntity();
-
-        sphereEntity.AddComponent<TransformComponent>(math::Vector3f(8.0f, 6.0f, 0.0f),
-                                                      math::Vector3f(1.0f, 1.0f, 1.0f),
-                                                      math::Vector3f(0.0f, 0.0f, 0.0f),
-                                                      math::Vector3f(0.0f, 0.0f, 0.0f));
-
-        auto geosphereMesh = Geometry::CreateGeosphere(2.0f, 10);
-
-        sphereEntity.AddComponent<MeshRendererComponent>(geosphereMesh.vertices, geosphereMesh.indices);
-        sphereEntity.AddComponent<MaterialComponent>(lightMaterialConstants, Path::GetAbsolutePath("asset/brickTexture.jpg"), repeatSamplerInfo);*/
-
         // Marisa model
 
         auto marisaRawModel = asset::ModelLoader::Load(Path::GetAbsolutePath("asset/model.fbx"));
         
         for (auto& node : marisaRawModel.scene.nodes) {
-            TransformComponent tranformComponent(math::Vector3f(0.0f, 0.0f, 0.0f),
-                                                 math::Vector3f(0.05f, 0.05f, 0.05f),
-                                                 math::Vector3f(-90.0f, 0.0f, 0.0f),
-                                                 math::Vector3f::Zero());
+            TransformData tranformData{ math::Vector3f(0.0f, 0.0f, 0.0f),
+                                        math::Vector3f(0.05f, 0.05f, 0.05f),
+                                        math::Vector3f(-90.0f, 0.0f, 0.0f),
+                                        math::Vector3f::Zero() };
 
             for (auto& mesh : node.meshes) {
                 auto meshEntity = CreateEntity();
 
-                meshEntity.AddComponent<TransformComponent>(tranformComponent);
+                meshEntity.AddComponent<TransformComponent>(tranformData);
 
                 std::vector<ObjectVertexData> meshVertices(mesh.vertices.size());
                 for (size_t i = 0; i < mesh.vertices.size(); i++) {
@@ -142,10 +106,21 @@ public:
                     meshVertices[i].tangent = mesh.vertices[i].tangent;
                     meshVertices[i].texCoord = mesh.vertices[i].texCoord;
                 }
-                meshEntity.AddComponent<MeshRendererComponent>(meshVertices, mesh.indices);
-                meshEntity.AddComponent<MaterialComponent>(modelMaterialConstants,
-                                                           mesh.material.diffuseMap.has_value() ? mesh.material.diffuseMap.value().path : Path::GetAbsolutePath("asset/brickTexture.jpg"),
-                                                           mesh.material.diffuseMap.has_value() ? repeatSamplerInfo : borderSamplerInfo);
+                meshEntity.AddComponent<MeshRendererComponent>(MeshRendererData({ meshVertices, mesh.indices }));
+
+                MaterialData materialData{
+                    mesh.material.name,
+                    math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f),
+                    math::Vector3f(0.1f, 0.1f, 0.1f),
+                    0.9f,
+                    mesh.material.diffuseMap.has_value() ? mesh.material.diffuseMap.value().path
+                                                         : Path::GetAbsolutePath("asset/default/albedo.jpg"),
+                    mesh.material.normalMap.has_value() ? mesh.material.normalMap.value().path
+                                                         : Path::GetAbsolutePath("asset/default/normal.jpg"),
+                    repeatSamplerInfo
+                };
+
+                meshEntity.AddComponent<MaterialComponent>(ResourceManager::CreateMaterial(materialData));
             }
         }
 
@@ -154,15 +129,14 @@ public:
         auto deferredSceneModel = asset::ModelLoader::Load(Path::GetAbsolutePath("asset/Deferred/Deferred.gltf"));
 
         for (auto& node : deferredSceneModel.scene.nodes) {
-            TransformComponent tranformComponent(node.transform.position, 
-                                                 node.transform.scale,
-                                                 node.transform.rotation,
-                                                 math::Vector3f::Zero());
-
+            TransformData tranformData{ node.transform.position,
+                                        node.transform.scale,
+                                        node.transform.rotation,
+                                        math::Vector3f::Zero() };
             for (auto& mesh : node.meshes) {
                 auto meshEntity = CreateEntity();
 
-                meshEntity.AddComponent<TransformComponent>(tranformComponent);
+                meshEntity.AddComponent<TransformComponent>(tranformData);
 
                 std::vector<ObjectVertexData> meshVertices(mesh.vertices.size());
                 for (size_t i = 0; i < mesh.vertices.size(); i++) {
@@ -171,29 +145,37 @@ public:
                     meshVertices[i].tangent = mesh.vertices[i].tangent;
                     meshVertices[i].texCoord = mesh.vertices[i].texCoord;
                 }
-                meshEntity.AddComponent<MeshRendererComponent>(meshVertices, mesh.indices);
+                meshEntity.AddComponent<MeshRendererComponent>(MeshRendererData({ meshVertices, mesh.indices }));
 
-                MaterialConstants materialConstants;
-                materialConstants.diffuseAlbedo << mesh.material.baseColor.x(),
+                MaterialData materialData;
+                materialData.name = mesh.material.name;
+                materialData.diffuseAlbedo << mesh.material.baseColor.x(),
                                                    mesh.material.baseColor.y(),
                                                    mesh.material.baseColor.z(),
                                                    1.0f;
                 if (mesh.material.emission.norm() > 0.0f) {
-                    materialConstants.diffuseAlbedo << mesh.material.emission.x() * 5.0f,
+                    materialData.diffuseAlbedo << mesh.material.emission.x() * 5.0f,
                                                        mesh.material.emission.y() * 5.0f,
                                                        mesh.material.emission.z() * 5.0f,
                                                        1.0f;
 
-                    meshEntity.AddComponent<LightComponent>(mesh.material.emission, 0.3f, 0.7f);
+                    LightData lightData;
+                    lightData.type = LightType::Point;
+                    lightData.color = mesh.material.emission;
+                    lightData.intensity = 0.3f;
+                    lightData.attenuation = 0.7f;
+                    meshEntity.AddComponent<LightComponent>(lightData);
                 }
-                materialConstants.fresnelR0 = mesh.material.specular;
-                materialConstants.shiniess = 1.0f - mesh.material.roughness;
+                materialData.fresnelR0 = mesh.material.specular;
+                materialData.roughness = mesh.material.roughness;
+                materialData.diffuseMap = mesh.material.diffuseMap.has_value() ?
+                                          mesh.material.diffuseMap.value().path :
+                                          Path::GetAbsolutePath("asset/default/albedo.jpg");
+                materialData.normalMap = mesh.material.normalMap.has_value() ?
+                                         mesh.material.normalMap.value().path :
+                                         Path::GetAbsolutePath("asset/default/normal.jpg");
 
-                meshEntity.AddComponent<MaterialComponent>(materialConstants,
-                                                           mesh.material.diffuseMap.has_value() ? 
-                                                              mesh.material.diffuseMap.value().path : 
-                                                              Path::GetAbsolutePath("asset/default/albedo.jpg"),
-                                                           repeatSamplerInfo);
+                meshEntity.AddComponent<MaterialComponent>(ResourceManager::CreateMaterial(materialData));
             }
         }
     }

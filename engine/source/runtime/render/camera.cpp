@@ -24,7 +24,7 @@ namespace engine {
         viewDirty = true;
     }
 
-    void Camera::UpdataViewMatrix() {
+    void Camera::UpdateViewMatrix() {
         if (viewDirty) {
             look.normalize();
             right = look.cross(up).normalized();
@@ -39,9 +39,9 @@ namespace engine {
         }
     }
 
-    void Camera::LookAt(math::Vector3f target, math::Vector3f worldUp) {
+    void Camera::LookAt(math::Vector3f target) {
         look = math::Vector3f(target.x() - position.x(), target.y() - position.y(), target.z() - position.z()).normalized();
-        right = look.cross(worldUp);
+        right = look.cross(math::Vector3f::UnitY());
         up = right.cross(look);
         viewDirty = true;
     }

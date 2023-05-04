@@ -1,5 +1,9 @@
 #include "engine.hpp"
 
+#include "runtime/system/platform/platform_info.hpp"
+#include "runtime/render/render_device.hpp"
+#include "runtime/framework/scene/scene_manager.hpp"
+
 namespace engine {
 
     Engine::Engine(const char* directory) {
@@ -26,8 +30,7 @@ namespace engine {
 
         // Initialize scene manager
 
-        pSceneManager = std::make_unique<SceneManager>();
-        pSceneManager->Entry();
+        SceneManager::Entry();
     }
 
     void Engine::Run() {
@@ -37,12 +40,12 @@ namespace engine {
     }
 
     void Engine::Exit() {
-        pSceneManager.reset();
+        SceneManager::Clear();
         RenderDevice::Clear();
     }
 
     void Engine::Tick() {
-        pSceneManager->Update();
+        SceneManager::Update();
     }
 
     void Engine::CalculateDeltaTime() {

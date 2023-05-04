@@ -6,20 +6,28 @@ namespace engine {
 
     class SceneManager {
     public:
-        void Entry();
+        static void Entry();
+
+        static void Clear() {
+            pCurrentScene.reset();
+        }
+
+        static IScene* GetCurrentScene() {
+            return pCurrentScene.get();
+        }
 
         template<class Type>
-        void LoadScene() {
+        static void LoadScene() {
             pCurrentScene = std::make_unique<Type>();
             pCurrentScene->Start();
         }
 
-        void Update() {
+        static void Update() {
             pCurrentScene->Update();
         }
 
     private:
-        std::unique_ptr<IScene> pCurrentScene;
+        inline static std::unique_ptr<IScene> pCurrentScene;
     };
 
 }

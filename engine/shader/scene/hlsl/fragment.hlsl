@@ -56,7 +56,7 @@ float4 main(FragmentIn input) : SV_Target0 {
     
     float3 reflectionVec = reflect(-toEye, input.normal);
     float3 reflectionColor = skybox.Sample(skyboxSampler, reflectionVec).rgb;
-    reflectionColor *= materialConstants.shiniess * SchlickFresnel(materialConstants.fresnelR0, input.normal, reflectionVec);
+    reflectionColor *= (1.0f - materialConstants.roughness) * SchlickFresnel(materialConstants.fresnelR0, input.normal, reflectionVec);
     
     float3 litColor = diffuse.rgb * (passConstants.ambientLight.rgb + lightingResult)/* * reflectionColor*/;
     return float4(litColor, diffuse.a);

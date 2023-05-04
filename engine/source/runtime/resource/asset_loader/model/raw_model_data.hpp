@@ -20,6 +20,8 @@ namespace engine {
         };
 
         struct RawModelMaterial {
+            std::string name;
+
             math::Vector3f baseColor;
             math::Vector3f specular;
             math::Vector3f emission;
@@ -32,6 +34,7 @@ namespace engine {
 
         struct RawModelMesh {
             std::string name;
+
             std::vector<RawModelVertexData> vertices;
             std::vector<uint32_t> indices;
             RawModelMaterial material;
@@ -44,6 +47,8 @@ namespace engine {
         };
 
         struct RawModelNode {
+            std::string name;
+
             RawModelTransform transform;
             std::vector<RawModelMesh> meshes;
         };

@@ -1,4 +1,5 @@
 #include "runtime/system/engine.hpp"
+#include "runtime/system/platform/input_system.hpp"
 
 using namespace engine;
 

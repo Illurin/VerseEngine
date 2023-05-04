@@ -18,6 +18,8 @@ namespace engine {
         void AssimpModelLoader::ProcessNode(const aiScene* scene, aiNode* node) {
             RawModelNode rawModelNode;
 
+            rawModelNode.name = node->mName.C_Str();
+
             auto transformation = node->mTransformation;
             aiVector3D position, rotation, scaling;
             transformation.Decompose(scaling, rotation, position);
@@ -76,6 +78,8 @@ namespace engine {
             
             if (mesh->mMaterialIndex >= 0) {
                 auto mat = scene->mMaterials[mesh->mMaterialIndex];
+                
+                result.material.name = mat->GetName().C_Str();
 
                 // base color
 

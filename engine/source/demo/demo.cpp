@@ -1,4 +1,5 @@
 #include "runtime/framework/scene/scene_manager.hpp"
+#include "runtime/resource/resource_manager.hpp"
 #include "runtime/render/geometry.hpp"
 #include "runtime/system/platform/input_system.hpp"
 #include "runtime/system/time.hpp"
@@ -6,7 +7,7 @@
 
 using namespace engine;
 
-struct PlayerControlComponent {
+struct PlayerControlComponent : IComponent {
     float velocity{ 10.0f };
 };
 
@@ -16,10 +17,10 @@ public:
         for (auto [entity, transform, playerControl] : GetEntities<TransformComponent, PlayerControlComponent>().each()) {
             auto movement = playerControl.velocity * static_cast<float>(Time::GetDeltaTime());
 
-            if (input::GetKey(input::KeyCode::D)) transform.position.x() += movement;
-            if (input::GetKey(input::KeyCode::A)) transform.position.x() -= movement;
-            if (input::GetKey(input::KeyCode::W)) transform.position.y() += movement;
-            if (input::GetKey(input::KeyCode::S)) transform.position.y() -= movement;
+            if (input::GetKey(input::KeyCode::D)) transform.data.position.x() += movement;
+            if (input::GetKey(input::KeyCode::A)) transform.data.position.x() -= movement;
+            if (input::GetKey(input::KeyCode::W)) transform.data.position.y() += movement;
+            if (input::GetKey(input::KeyCode::S)) transform.data.position.y() -= movement;
 
             transform.dirty = true;
         }
@@ -32,66 +33,59 @@ public:
 
         AddSystem<PlayerControlSystem>();
         
-        // 环境光和天空盒
+        // Ambient light and sky box
 
         Entity::GetSingletonComponents<EnvironmentComponent>() =
-            EnvironmentComponent(math::Vector3f(1.0f, 1.0f, 1.0f),
-                Path::GetAbsolutePath("asset/skybox.png"));
+            EnvironmentComponent({ math::Vector3f(0.1f, 0.1f, 0.1f),
+                                   Path::GetAbsolutePath("asset/skybox.png") });
 
-        // 设置摄像机属性
+        // Set camera properties
 
         Camera camera;
         camera.SetPosition(math::Vector3f(0.0f, 0.0f, 0.0f));
-        camera.LookAt(math::Vector3f(0.0f, 0.0f, -1.0f), math::Vector3f::UnitY());
+        camera.LookAt(math::Vector3f(0.0f, 0.0f, -1.0f));
 
-        // 创建摄像机实体
+        // Create camera Entity
 
         auto cameraEntity = CreateEntity();
         cameraEntity.AddComponent<CameraComponent>(camera);
 
-        // 新建物体
+        // Create new object
 
         auto objectEntity = CreateEntity();
 
-        // 添加 Transform 组件（位移，缩放，旋转）
+        // Add transform component (translation, scaling, rotation)
 
-        objectEntity.AddComponent<TransformComponent>(math::Vector3f(0.0f, 0.0f, -10.0f),
-                                                      math::Vector3f(1.0f, 1.0f, 1.0f),
-                                                      math::Vector3f::Zero(),
-                                                      math::Vector3f::Zero());
+        objectEntity.AddComponent<TransformComponent>(TransformData({ math::Vector3f(0.0f, 0.0f, -10.0f),
+                                                                      math::Vector3f(1.0f, 1.0f, 1.0f),
+                                                                      math::Vector3f::Zero(),
+                                                                      math::Vector3f::Zero() })); 
 
-        // 给物体添加球体渲染网格
+        // Add mesh renderer component
 
         auto geo = Geometry::CreateGeosphere(1.0f, 5);
-        objectEntity.AddComponent<MeshRendererComponent>(geo.vertices, geo.indices);
+        objectEntity.AddComponent<MeshRendererComponent>(MeshRendererData({ geo.vertices, geo.indices }));
 
-        // 给物体添加材质
+        // Add material
 
-        // 采样器属性
+        // Sampler properties
         auto objectSamplerInfo = rhi::SamplerCreateInfo()
             .SetMinFilter(rhi::Filter::Linear)
             .SetMagFilter(rhi::Filter::Linear)
             .SetMipFilter(rhi::Filter::Linear);
 
-        // 材质属性
-        MaterialConstants objectMaterialConstants;
-        objectMaterialConstants.diffuseAlbedo = math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-        objectMaterialConstants.fresnelR0 = math::Vector3f(0.3f, 0.3f, 0.3f);
-        objectMaterialConstants.shiniess = 0.5f;
+        // Material properties
+        MaterialData objectMaterialData;
+        objectMaterialData.diffuseAlbedo = math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
+        objectMaterialData.fresnelR0 = math::Vector3f(0.3f, 0.3f, 0.3f);
+        objectMaterialData.roughness = 0.5f;
+        objectMaterialData.diffuseMap = Path::GetAbsolutePath("asset/brickTexture.jpg");
+        objectMaterialData.normalMap = Path::GetAbsolutePath("asset/default/normal.jpg");
 
-        // 贴图路径
-        auto objectTexturePath = Path::GetAbsolutePath("asset/brickTexture.jpg");
+        // Add material component
+        objectEntity.AddComponent<MaterialComponent>(ResourceManager::CreateMaterial(objectMaterialData));
 
-        // 添加材质组件
-        objectEntity.AddComponent<MaterialComponent>(objectMaterialConstants,
-                                                     objectTexturePath, 
-                                                     objectSamplerInfo);
-
-        // 操控
+        // Player control component
         objectEntity.AddComponent<PlayerControlComponent>();
     }
 };
-
-void SceneManager::Entry() {
-    LoadScene<DemoScene>();
-}

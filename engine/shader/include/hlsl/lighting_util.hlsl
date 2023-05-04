@@ -1,7 +1,7 @@
 struct MaterialConstants {
     float4 diffuseAlbedo;
     float3 fresnelR0;
-    float shiniess;
+    float roughness;
 };
 
 struct Light {
@@ -19,7 +19,7 @@ float3 SchlickFresnel(float3 fresnelR0, float3 normal, float3 lightVec) {
 }
 
 float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, MaterialConstants mat) {
-    float shininess = mat.shiniess * 256.0f;
+    float shininess = (1.0f - mat.roughness) * 256.0f;
     float3 halfVec = normalize(lightVec + toEye);
     float roughness = (shininess + 8.0f) * pow(max(dot(halfVec, normal), 0.0f), shininess) / 8.0f;
     float3 specularAlbedo = roughness * SchlickFresnel(mat.fresnelR0, halfVec, lightVec);
@@ -56,4 +56,19 @@ float3 ComputeSpotLight(Light light, float3 position, float3 normal, float3 toEy
     lightStrength *= pow(max(dot(-lightVec, light.direction), 0.0f), light.spotPower);
 
     return max(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 0.0f);
+}
+
+float3 GetWorldSpaceNormal(float3 sampledNormal, float3 unitNormalW, float3 tangentW) {
+	float3 normalT = 2.0f * sampledNormal - 1.0f;
+    
+	float3 n = unitNormalW;
+	float3 t = normalize(tangentW - dot(tangentW, n) * n);
+	float3 b = cross(n, t);
+
+	float3x3 tbnMatrix = float3x3(t, b, n);
+    
+    float3 normalW = mul(tbnMatrix, normalT);
+    normalW.z = -normalW.z;
+
+    return normalW;
 }

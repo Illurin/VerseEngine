@@ -41,6 +41,7 @@ namespace engine {
 
     private:
         void BuildMeshes();
+        void LoadResources();
         void BuildDescriptors();
         
         void UpdateFrameResource();
@@ -64,12 +65,10 @@ namespace engine {
         rhi::Buffer                          indexBuffer{ nullptr };
         rhi::Buffer                          passUniformBuffer{ nullptr };
         std::vector<rhi::Buffer>             transformUniformBuffers;
-        std::vector<rhi::Buffer>             materialUniformBuffers;
                                              
         rhi::DescriptorPool                  descriptorPool{ nullptr };
         rhi::DescriptorSet                   passDescriptorSet{ nullptr };
         std::vector<rhi::DescriptorSet>      transformDescriptorSets;
-        std::vector<rhi::DescriptorSet>      materialDescriptorSets;
                                         
         // Render pass                    
                                         

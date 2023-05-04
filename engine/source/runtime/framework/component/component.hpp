@@ -2,7 +2,7 @@
 
 #include "runtime/math/math.hpp"
 #include "runtime/render/camera.hpp"
-#include "runtime/render/render_data.hpp"
+#include "runtime/resource/data_type/data.hpp"
 
 namespace engine {
 
@@ -10,42 +10,21 @@ namespace engine {
 
     struct TransformComponent : IComponent {
         TransformComponent() = default;
-        TransformComponent(math::Vector3f position,
-                           math::Vector3f scale,
-                           math::Vector3f localEulerAngle,
-                           math::Vector3f globalEulerAngle) :
-            position(position),
-            scale(scale),
-            localEulerAngle(localEulerAngle),
-            globalEulerAngle(globalEulerAngle) {}
-
-        math::Vector3f position;
-        math::Vector3f scale;
-        math::Vector3f localEulerAngle;
-        math::Vector3f globalEulerAngle;
-
-        uint32_t index{ ~0u };
+        TransformComponent(const TransformData& data) : data(data) {}
+            
+        uint32_t id{ ~0u };
         bool dirty{ true };
+        TransformData data;
     };
 
     struct MeshRendererComponent : IComponent {
         MeshRendererComponent() = default;
-        MeshRendererComponent(const std::vector<ObjectVertexData>& vertices,
-                              const std::vector<uint32_t>& indices) :
-            vertices(vertices), indices(indices) {}
-        MeshRendererComponent(const std::vector<ObjectVertexData>& vertices,
-                              const std::vector<uint32_t>& indices,
-                              RenderingType renderingType) :
-            vertices(vertices), indices(indices), renderingType(renderingType) {}
-
-        std::vector<ObjectVertexData> vertices;
-        std::vector<uint32_t> indices;
+        MeshRendererComponent(const MeshRendererData& data) : data(data) {}
 
         uint32_t vertexOffset{ 0 };
         uint32_t firstIndex{ 0 };
-        RenderingType renderingType{ RenderingType::Forward };
+        MeshRendererData data;
     };
-
 
     struct SkyboxRendererComponent : IComponent {
         SkyboxRendererComponent() = default;
@@ -57,20 +36,9 @@ namespace engine {
 
     struct MaterialComponent : IComponent {
         MaterialComponent() = default;
-        MaterialComponent(MaterialConstants constants,
-                          std::filesystem::path texturePath,
-                          rhi::SamplerCreateInfo samplerInfo) :
-            constants(constants),
-            texturePath(texturePath),
-            samplerInfo(samplerInfo) {}
+        MaterialComponent(uint32_t resource) : resource(resource) {}
 
-        MaterialConstants constants{};
-        std::filesystem::path texturePath;
-        rhi::SamplerCreateInfo samplerInfo{};
-        
-        rhi::Image texture{ nullptr };
-        rhi::Sampler sampler{ nullptr };
-        uint32_t index{ ~0u };
+        uint32_t resource;
     };
 
     struct CameraComponent : IComponent {
@@ -86,57 +54,23 @@ namespace engine {
         bool dirty{ true };
     };
 
-    struct ControllerComponent : IComponent {
-        ControllerComponent() = default;
-        ControllerComponent(float moveSpeed, float rotateSpeed) :
-            moveSpeed(moveSpeed), rotateSpeed(rotateSpeed) {}
-
-        float moveSpeed;
-        float rotateSpeed;
-    };
-
     struct LightComponent : IComponent {
         LightComponent() = default;
-        LightComponent(math::Vector3f color, math::Vector3f direction, float intensity) :
-            type(LightType::Directional), color(color), direction(direction), intensity(intensity) {}
-        LightComponent(math::Vector3f color, float intensity, float attenuation) :
-            type(LightType::Point), color(color), intensity(intensity), attenuation(attenuation) {}
-        LightComponent(math::Vector3f color, math::Vector3f direction, float intensity, float attenuation, float spotPower) :
-            type(LightType::Spot), color(color), direction(direction), intensity(intensity), attenuation(attenuation), spotPower(spotPower) {}
+        LightComponent(const LightData& data) : data(data) {}
 
-        LightType type{ LightType::Directional };
-        math::Vector3f color;
-        math::Vector3f direction;
-        float intensity{ 0.0f };
-        float attenuation{ 0.0f };
-        float spotPower{ 0.0f };
-
-        uint32_t index{ ~0u };
+        uint32_t id{ ~0u };
         bool dirty{ true };
+        LightData data;
     };
 
     struct EnvironmentComponent : IComponent {
         EnvironmentComponent() = default;
-        EnvironmentComponent(math::Vector3f ambientLight, std::filesystem::path skyboxTexturePath) :
-            ambientLight(ambientLight), skyboxTexturePath(skyboxTexturePath) {}
+        EnvironmentComponent(const EnvironmentData& data) : data(data) {}
 
-        math::Vector3f ambientLight;
-        std::filesystem::path skyboxTexturePath;
-
-        rhi::Image skyboxTexture{ nullptr };
-        rhi::Sampler skyboxSampler{ nullptr };
         bool dirty{ true };
+        uint32_t skyboxTextureResource{ ~0u };
+        rhi::Sampler skyboxSampler{ nullptr };
+        EnvironmentData data;
     };
 
-    struct PostProcessingComponent : IComponent {
-        PostProcessingComponent() = default;
-        PostProcessingComponent(float exposure, float gamma) :
-            exposure(exposure), gamma(gamma) {}
-
-        float exposure{ 0.0f };
-        float gamma{ 0.0f };
-
-        rhi::Buffer uniformBuffer{ nullptr };
-        rhi::DescriptorSet descriptorSet{ nullptr };
-    };
 }

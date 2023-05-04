@@ -67,7 +67,7 @@ namespace engine {
     struct MaterialConstants {
         math::Vector4f diffuseAlbedo;
         math::Vector3f fresnelR0;
-        float shiniess;
+        float roughness;
     };
 
 }

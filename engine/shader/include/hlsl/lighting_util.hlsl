@@ -57,18 +57,3 @@ float3 ComputeSpotLight(Light light, float3 position, float3 normal, float3 toEy
 
     return max(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 0.0f);
 }
-
-float3 GetWorldSpaceNormal(float3 sampledNormal, float3 unitNormalW, float3 tangentW) {
-	float3 normalT = 2.0f * sampledNormal - 1.0f;
-    
-	float3 n = unitNormalW;
-	float3 t = normalize(tangentW - dot(tangentW, n) * n);
-	float3 b = cross(n, t);
-
-	float3x3 tbnMatrix = float3x3(t, b, n);
-    
-    float3 normalW = mul(tbnMatrix, normalT);
-    normalW.z = -normalW.z;
-
-    return normalW;
-}

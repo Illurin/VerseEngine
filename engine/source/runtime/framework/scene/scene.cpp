@@ -1,5 +1,6 @@
 #include "scene.hpp"
 
+#include "runtime/framework/component/scene_component.hpp"
 #include "runtime/framework/system/render_system.hpp"
 
 namespace engine {
@@ -9,12 +10,6 @@ namespace engine {
         // Systems
 
         AddSystem<RenderSystem>();
-
-        // Environment
-
-        auto& environmanet = Entity::AddSingletonComponent<EnvironmentComponent>();
-        environmanet.data.ambientLight = math::Vector3f(1.0f, 1.0f, 1.0f);
-        environmanet.data.skyboxTexturePath = Path::GetAbsolutePath("asset/default/cubemap.jpg");
     }
 
     void IScene::Start() {

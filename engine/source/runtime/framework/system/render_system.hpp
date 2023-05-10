@@ -2,7 +2,6 @@
 
 #include "system.hpp"
 #include "runtime/render/render_pass.hpp"
-#include "runtime/render/graph/render_graph.hpp"
 
 namespace engine {
 
@@ -41,7 +40,6 @@ namespace engine {
 
     private:
         void BuildMeshes();
-        void LoadResources();
         void BuildDescriptors();
         
         void UpdateFrameResource();

@@ -1,6 +1,36 @@
+#include "..\..\include\hlsl\common.hlsl"
 
+struct VertexIn {
+    float3 posL     : LocalPos;
+    float3 normal   : Normal;
+    float3 tangent  : Tangent;
+    float2 texCoord : TexCoord;
+};
 
-float4 main( float4 pos : POSITION ) : SV_POSITION
-{
-	return pos;
+struct VertexOut {
+    float3 normal   : Normal;
+    float3 tangent  : Tangent;
+    float2 texCoord : TexCoord;
+    float3 posW     : WorldPos;
+    float4 posH     : SV_Position;
+};
+
+struct ObjectConstants {
+    float4x4 worldMatrix;
+};
+
+ConstantBuffer<ObjectConstants> objectConstants : register(b0, space0);
+ConstantBuffer<PassConstants>   passConstants   : register(b0, space2);
+
+VertexOut main(VertexIn input) {
+    float3 posW = mul(objectConstants.worldMatrix, float4(input.posL, 1.0f)).xyz;
+    float4x4 viewProjMatrix = mul(passConstants.projMatrix, passConstants.viewMatrix);
+    
+    VertexOut output;
+    output.posH = mul(viewProjMatrix, float4(posW, 1.0f));
+    output.normal = mul((float3x3) objectConstants.worldMatrix, input.normal);
+    output.tangent = mul((float3x3) objectConstants.worldMatrix, input.tangent);
+    output.texCoord = input.texCoord;
+    output.posW = posW;
+    return output;
 }

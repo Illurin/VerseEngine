@@ -8,7 +8,6 @@ namespace engine {
             auto scene = importer.ReadFile(path.string().c_str(),
                 aiProcess_Triangulate |
                 aiProcess_FlipUVs |
-                aiProcess_JoinIdenticalVertices |
                 aiProcess_GenNormals |
                 aiProcess_CalcTangentSpace);
             directory = path.parent_path();
@@ -58,7 +57,7 @@ namespace engine {
                 vertex.tangent[0] = mesh->mTangents[i].x;
                 vertex.tangent[1] = mesh->mTangents[i].y;
                 vertex.tangent[2] = mesh->mTangents[i].z;
-
+                
                 if (mesh->mTextureCoords[0]) {
                     vertex.texCoord[0] = mesh->mTextureCoords[0][i].x;
                     vertex.texCoord[1] = mesh->mTextureCoords[0][i].y;

@@ -3,6 +3,11 @@
 #include "runtime/resource/resource_manager.hpp"
 #include "runtime/render/geometry.hpp"
 
+#include "runtime/framework/component/transform_component.hpp"
+#include "runtime/framework/component/material_component.hpp"
+#include "runtime/framework/component/renderer_component.hpp"
+#include "runtime/framework/component/scene_component.hpp"
+
 namespace engine {
 
     RenderSystem::RenderSystem() {
@@ -21,7 +26,6 @@ namespace engine {
     }
 
     RenderSystem::~RenderSystem() {
-        Entity::GetSingletonComponents<EnvironmentComponent>().skyboxSampler->Destroy();
         ResourceManager::Clear();
         commandPool->Destroy();
         fence->Destroy();
@@ -34,7 +38,7 @@ namespace engine {
 
     void RenderSystem::Start() {
         BuildMeshes();
-        LoadResources();
+        ResourceManager::LoadResources();
         BuildDescriptors();
         PrepareRendering();
     }
@@ -52,8 +56,11 @@ namespace engine {
         for (auto [entity, meshRenderer] : GetEntities<MeshRendererComponent>().each()) {
             meshRenderer.vertexOffset = static_cast<uint32_t>(vertices.size());
             meshRenderer.firstIndex = static_cast<uint32_t>(indices.size());
-            vertices.insert(vertices.end(), meshRenderer.data.vertices.begin(), meshRenderer.data.vertices.end());
-            indices.insert(indices.end(), meshRenderer.data.indices.begin(), meshRenderer.data.indices.end());
+            meshRenderer.indexCount = static_cast<uint32_t>(meshRenderer.indices.size());
+            vertices.insert(vertices.end(), meshRenderer.vertices.begin(), meshRenderer.vertices.end());
+            indices.insert(indices.end(), meshRenderer.indices.begin(), meshRenderer.indices.end());
+            decltype(meshRenderer.vertices) temp0; temp0.swap(meshRenderer.vertices);
+            decltype(meshRenderer.indices) temp1; temp1.swap(meshRenderer.indices);
         }
 
         // Skybox meshes
@@ -85,13 +92,6 @@ namespace engine {
         indexBuffer->Unmap();
     }
 
-    void RenderSystem::LoadResources() {
-        auto& environment = Entity::GetSingletonComponents<EnvironmentComponent>();
-        environment.skyboxTextureResource = ResourceManager::ImportCubemap(environment.data.skyboxTexturePath);
-
-        ResourceManager::LoadResources();
-    }
-
     void RenderSystem::BuildDescriptors() {
         auto transformEntities = GetEntities<TransformComponent>();
         auto materialEntities = GetEntities<MaterialComponent>();
@@ -100,8 +100,8 @@ namespace engine {
         std::vector<rhi::DescriptorPoolSize> descriptorPoolSizes = {
             { rhi::DescriptorType::UniformBuffer,
               static_cast<uint32_t>(transformEntities.size()) + static_cast<uint32_t>(materialEntities.size()) + 1 },
-            { rhi::DescriptorType::SampledImage, static_cast<uint32_t>(materialEntities.size()) + 1 },
-            { rhi::DescriptorType::Sampler, static_cast<uint32_t>(materialEntities.size()) + 1 },
+            { rhi::DescriptorType::SampledImage, 2 * static_cast<uint32_t>(materialEntities.size()) + 1 },
+            { rhi::DescriptorType::Sampler, 2 * static_cast<uint32_t>(materialEntities.size()) + 1 },
         };
 
         auto maxSetCount = static_cast<uint32_t>(transformEntities.size()) + static_cast<uint32_t>(materialEntities.size()) + 1;
@@ -135,7 +135,7 @@ namespace engine {
         }
 
         for (auto [entity, material] : materialEntities.each()) {
-
+            
             auto& materialResource = ResourceManager::GetMaterial(material.resource);
 
             // Material constants
@@ -150,10 +150,11 @@ namespace engine {
 
             // Material texture and sampler
 
-            auto diffuseMapImage = ResourceManager::GetTexture(materialResource.diffuseMapResource).image;
+            auto diffuseMapResource = ResourceManager::GetTexture(materialResource.diffuseMap);
+            auto normalMapResource = ResourceManager::GetTexture(materialResource.normalMap);
 
             auto imageViewInfo = rhi::ImageViewInfo()
-                .SetImage(diffuseMapImage)
+                .SetImage(diffuseMapResource.image)
                 .SetFormat(rhi::Format::R8G8B8A8Unorm)
                 .SetViewType(rhi::ImageViewType::Image2D)
                 .SetSubresourceRange(rhi::ImageSubresourceRange()
@@ -161,7 +162,12 @@ namespace engine {
                     .SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(1).SetMipLevelCount(1));
 
             desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
-            desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, materialResource.sampler);
+            desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, diffuseMapResource.sampler);
+
+            imageViewInfo.SetImage(normalMapResource.image);
+
+            desriptorSets[0]->Write(3, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
+            desriptorSets[0]->Write(4, rhi::DescriptorType::Sampler, normalMapResource.sampler);
 
             materialResource.descriptorSet = desriptorSets[0];
         }
@@ -185,22 +191,10 @@ namespace engine {
             // Skybox texture and sampler
 
             auto& environment = Entity::GetSingletonComponents<EnvironmentComponent>();
-
-            auto skyboxSamplerInfo = rhi::SamplerCreateInfo()
-                .SetMinFilter(rhi::Filter::Linear)
-                .SetMagFilter(rhi::Filter::Linear)
-                .SetMipFilter(rhi::Filter::Linear)
-                .SetAddressModeU(rhi::SamplerAddressMode::Repeat)
-                .SetAddressModeV(rhi::SamplerAddressMode::Repeat)
-                .SetAddressModeW(rhi::SamplerAddressMode::Repeat)
-                .SetMinLod(0.0f)
-                .SetMaxLod(1.0f);
-            environment.skyboxSampler = RenderDevice::GetDevice()->CreateSampler(skyboxSamplerInfo);
-
-            auto skyboxTexture = ResourceManager::GetTexture(environment.skyboxTextureResource).image;
+            auto skyboxTextureResource = ResourceManager::GetTexture(environment.skyboxTextureResource);
 
             auto imageViewInfo = rhi::ImageViewInfo()
-                .SetImage(skyboxTexture)
+                .SetImage(skyboxTextureResource.image)
                 .SetFormat(rhi::Format::R8G8B8A8Unorm)
                 .SetViewType(rhi::ImageViewType::ImageCube)
                 .SetSubresourceRange(rhi::ImageSubresourceRange()
@@ -208,7 +202,7 @@ namespace engine {
                     .SetBaseArrayLayer(0).SetBaseMipLevel(0).SetArrayLayerCount(6).SetMipLevelCount(1));
 
             desriptorSets[0]->Write(1, rhi::DescriptorType::SampledImage, rhi::ImageLayout::ShaderReadOnly, imageViewInfo);
-            desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, environment.skyboxSampler);
+            desriptorSets[0]->Write(2, rhi::DescriptorType::Sampler, skyboxTextureResource.sampler);
 
             passDescriptorSet = desriptorSets[0];
 
@@ -222,14 +216,14 @@ namespace engine {
         for (auto [entity, transform] : GetEntities<TransformComponent>().each()) {
             if (!transform.dirty) continue;
 
-            auto s = math::AlignedScaling3f(transform.data.scale);
-            auto lr = math::AngleAxisf(transform.data.localEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
-                    * math::AngleAxisf(transform.data.localEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
-                    * math::AngleAxisf(transform.data.localEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
-            auto t = math::Translation3f(transform.data.position);
-            auto gr = math::AngleAxisf(transform.data.globalEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
-                    * math::AngleAxisf(transform.data.globalEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
-                    * math::AngleAxisf(transform.data.globalEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
+            auto s = math::AlignedScaling3f(transform.scale);
+            auto lr = math::AngleAxisf(transform.localEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
+                    * math::AngleAxisf(transform.localEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
+                    * math::AngleAxisf(transform.localEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
+            auto t = math::Translation3f(transform.position);
+            auto gr = math::AngleAxisf(transform.globalEulerAngle.z() / 180.0f * math::Pi<float>(), math::Vector3f::UnitZ())
+                    * math::AngleAxisf(transform.globalEulerAngle.y() / 180.0f * math::Pi<float>(), math::Vector3f::UnitY())
+                    * math::AngleAxisf(transform.globalEulerAngle.x() / 180.0f * math::Pi<float>(), math::Vector3f::UnitX());
             math::Affine3f affine(gr * t * lr * s);
             
             auto uniformBuffer = transformUniformBuffers[transform.id];
@@ -244,9 +238,9 @@ namespace engine {
 
         auto& environment = Entity::GetSingletonComponents<EnvironmentComponent>();
         if (environment.dirty) {
-            p->ambientLight << environment.data.ambientLight.x(),
-                               environment.data.ambientLight.y(),
-                               environment.data.ambientLight.z(),
+            p->ambientLight << environment.ambientLight.x(),
+                               environment.ambientLight.y(),
+                               environment.ambientLight.z(),
                                0.0f;
         }
 
@@ -265,7 +259,7 @@ namespace engine {
             if (!light.dirty) continue;
             
             if (light.id == ~0u) {
-                uint32_t type = static_cast<uint32_t>(light.data.type);
+                uint32_t type = static_cast<uint32_t>(light.type);
                 auto& index = lightCounts[type];
                 if (index >= typedLightCounts[type])
                     continue;
@@ -273,13 +267,13 @@ namespace engine {
                 index++;
             }
 
-            auto& lightConstant = p->lights[light.id];
-            lightConstant.color = light.data.color;
-            lightConstant.direction = light.data.direction;
-            lightConstant.position = transform.data.position;
-            lightConstant.intensity = light.data.intensity;
-            lightConstant.attenuation = light.data.attenuation;
-            lightConstant.spotPower = light.data.spotPower;
+            auto& lightConstant       = p->lights[light.id];
+            lightConstant.color       = light.color;
+            lightConstant.direction   = light.direction;
+            lightConstant.position    = transform.position;
+            lightConstant.intensity   = light.intensity;
+            lightConstant.attenuation = light.attenuation;
+            lightConstant.spotPower   = light.spotPower;
 
             light.dirty = false;
         }
@@ -310,7 +304,7 @@ namespace engine {
                 commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 0, 1, &transformDescriptorSets[transform.id]);
                 commandBuffer->BindDescriptorSets(rhi::PipelineType::Graphics, pScenePass->GetPipelineLayout(), 1, 1, &ResourceManager::GetMaterial(material.resource).descriptorSet);
 
-                commandBuffer->DrawIndexed(static_cast<uint32_t>(meshRenderer.data.indices.size()), 1, meshRenderer.firstIndex, meshRenderer.vertexOffset, 0);
+                commandBuffer->DrawIndexed(meshRenderer.indexCount, 1, meshRenderer.firstIndex, meshRenderer.vertexOffset, 0);
             }
 
             commandBuffer->BindPipeline(pSkyboxPass->GetPipeline());

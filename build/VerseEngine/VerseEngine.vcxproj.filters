@@ -145,9 +145,6 @@
     <Filter Include="demo">
       <UniqueIdentifier>{0ca4cf11-b7e8-4b4c-acbe-fd98a0207ca9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="source\runtime\resource\data_type">
-      <UniqueIdentifier>{34b1980d-1cf5-40ac-b4e2-a5ef626ed213}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\engine\source\runtime\main.cpp">
@@ -380,23 +377,23 @@
     <ClInclude Include="..\..\engine\source\runtime\resource\resource_manager.hpp">
       <Filter>source\runtime\resource</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\material_data.hpp">
-      <Filter>source\runtime\resource\data_type</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\renderer_data.hpp">
-      <Filter>source\runtime\resource\data_type</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\transform_data.hpp">
-      <Filter>source\runtime\resource\data_type</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\data.hpp">
-      <Filter>source\runtime\resource\data_type</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\framework\system\render_system.hpp">
       <Filter>source\runtime\framework\system</Filter>
     </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\framework\system\system.hpp">
       <Filter>source\runtime\framework\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\transform_component.hpp">
+      <Filter>source\runtime\framework\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\renderer_component.hpp">
+      <Filter>source\runtime\framework\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\material_component.hpp">
+      <Filter>source\runtime\framework\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\scene_component.hpp">
+      <Filter>source\runtime\framework\component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -459,6 +456,18 @@
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\post_processing\hlsl\compute_extract.hlsl">
       <Filter>shader\post_processing\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\fragment.hlsl">
+      <Filter>shader\deferred\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\output.hlsl">
+      <Filter>shader\deferred\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\quad.hlsl">
+      <Filter>shader\deferred\hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\vertex.hlsl">
+      <Filter>shader\deferred\hlsl</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

@@ -27,7 +27,7 @@ namespace engine {
                                .SetDescriptorType(rhi::DescriptorType::UniformBuffer)
                                .SetShaderStage(rhi::ShaderStage::Vertex);
 
-        std::vector<rhi::DescriptorSetLayoutBindingInfo> materialLayoutBindings(3);
+        std::vector<rhi::DescriptorSetLayoutBindingInfo> materialLayoutBindings(5);
         materialLayoutBindings[0].SetBinding(0)
                                  .SetDescriptorType(rhi::DescriptorType::UniformBuffer)
                                  .SetShaderStage(rhi::ShaderStage::Fragment);
@@ -35,6 +35,12 @@ namespace engine {
                                  .SetDescriptorType(rhi::DescriptorType::SampledImage)
                                  .SetShaderStage(rhi::ShaderStage::Fragment);
         materialLayoutBindings[2].SetBinding(2)
+                                 .SetDescriptorType(rhi::DescriptorType::Sampler)
+                                 .SetShaderStage(rhi::ShaderStage::Fragment);
+        materialLayoutBindings[3].SetBinding(3)
+                                 .SetDescriptorType(rhi::DescriptorType::SampledImage)
+                                 .SetShaderStage(rhi::ShaderStage::Fragment);
+        materialLayoutBindings[4].SetBinding(4)
                                  .SetDescriptorType(rhi::DescriptorType::Sampler)
                                  .SetShaderStage(rhi::ShaderStage::Fragment);
 

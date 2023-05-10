@@ -20,4 +20,5 @@ void main(uint3 dispatchThreadId : SV_DispatchThreadID) {
     combinedColor = pow(combinedColor, (float3) (1.0f / properties.gamma));
     
     renderTarget[dispatchThreadId.xy] = float4(combinedColor, 1.0f);
+    //renderTarget[dispatchThreadId.xy] = source0[dispatchThreadId.xy];
 }

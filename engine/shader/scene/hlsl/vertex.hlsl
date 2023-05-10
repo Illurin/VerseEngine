@@ -9,6 +9,7 @@ struct VertexIn {
 
 struct VertexOut {
     float3 normal   : Normal;
+    float3 tangent  : Tangent;
     float2 texCoord : TexCoord;
     float3 posW     : WorldPos;
     float4 posH     : SV_Position;
@@ -27,7 +28,8 @@ VertexOut main(VertexIn input) {
     
     VertexOut output;
     output.posH = mul(viewProjMatrix, float4(posW, 1.0f));
-    output.normal = input.normal;
+    output.normal = mul((float3x3) objectConstants.worldMatrix, input.normal);
+    output.tangent = mul((float3x3) objectConstants.worldMatrix, input.tangent);
     output.texCoord = input.texCoord;
     output.posW = posW;
     return output;

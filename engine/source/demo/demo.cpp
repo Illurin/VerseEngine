@@ -17,10 +17,10 @@ public:
         for (auto [entity, transform, playerControl] : GetEntities<TransformComponent, PlayerControlComponent>().each()) {
             auto movement = playerControl.velocity * static_cast<float>(Time::GetDeltaTime());
 
-            if (input::GetKey(input::KeyCode::D)) transform.data.position.x() += movement;
-            if (input::GetKey(input::KeyCode::A)) transform.data.position.x() -= movement;
-            if (input::GetKey(input::KeyCode::W)) transform.data.position.y() += movement;
-            if (input::GetKey(input::KeyCode::S)) transform.data.position.y() -= movement;
+            if (input::GetKey(input::KeyCode::D)) transform.position.x() += movement;
+            if (input::GetKey(input::KeyCode::A)) transform.position.x() -= movement;
+            if (input::GetKey(input::KeyCode::W)) transform.position.y() += movement;
+            if (input::GetKey(input::KeyCode::S)) transform.position.y() -= movement;
 
             transform.dirty = true;
         }
@@ -35,9 +35,9 @@ public:
         
         // Ambient light and sky box
 
-        Entity::GetSingletonComponents<EnvironmentComponent>() =
-            EnvironmentComponent({ math::Vector3f(0.1f, 0.1f, 0.1f),
-                                   Path::GetAbsolutePath("asset/skybox.png") });
+        auto& environmentComponent = Entity::AddSingletonComponent<EnvironmentComponent>();
+        environmentComponent.ambientLight = math::Vector3f(1.0f, 1.0f, 1.0f);
+        environmentComponent.skyboxTextureResource = ResourceManager::ImportCubemap(Path::GetAbsolutePath("asset/skybox.png"));
 
         // Set camera properties
 
@@ -56,34 +56,31 @@ public:
 
         // Add transform component (translation, scaling, rotation)
 
-        objectEntity.AddComponent<TransformComponent>(TransformData({ math::Vector3f(0.0f, 0.0f, -10.0f),
-                                                                      math::Vector3f(1.0f, 1.0f, 1.0f),
-                                                                      math::Vector3f::Zero(),
-                                                                      math::Vector3f::Zero() })); 
+        objectEntity.AddComponent<TransformComponent>(math::Vector3f(0.0f, 0.0f, -10.0f),
+                                                      math::Vector3f(1.0f, 1.0f, 1.0f),
+                                                      math::Vector3f::Zero(),
+                                                      math::Vector3f::Zero()); 
 
         // Add mesh renderer component
 
         auto geo = Geometry::CreateGeosphere(1.0f, 5);
-        objectEntity.AddComponent<MeshRendererComponent>(MeshRendererData({ geo.vertices, geo.indices }));
+        objectEntity.AddComponent<MeshRendererComponent>(geo.vertices, geo.indices);
 
         // Add material
-
-        // Sampler properties
-        auto objectSamplerInfo = rhi::SamplerCreateInfo()
-            .SetMinFilter(rhi::Filter::Linear)
-            .SetMagFilter(rhi::Filter::Linear)
-            .SetMipFilter(rhi::Filter::Linear);
-
+        
         // Material properties
-        MaterialData objectMaterialData;
-        objectMaterialData.diffuseAlbedo = math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-        objectMaterialData.fresnelR0 = math::Vector3f(0.3f, 0.3f, 0.3f);
-        objectMaterialData.roughness = 0.5f;
-        objectMaterialData.diffuseMap = Path::GetAbsolutePath("asset/brickTexture.jpg");
-        objectMaterialData.normalMap = Path::GetAbsolutePath("asset/default/normal.jpg");
+        MaterialConstants objectMaterialConstants;
+        objectMaterialConstants.diffuseAlbedo = math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
+        objectMaterialConstants.fresnelR0 = math::Vector3f(0.3f, 0.3f, 0.3f);
+        objectMaterialConstants.roughness = 0.5f;
+
+        auto diffuseMap = ResourceManager::ImportTexture(Path::GetAbsolutePath("asset/brickTexture.jpg"));
+        auto normalMap = ResourceManager::ImportTexture(Path::GetAbsolutePath("asset/default/normal.jpg"));
 
         // Add material component
-        objectEntity.AddComponent<MaterialComponent>(ResourceManager::CreateMaterial(objectMaterialData));
+        auto materialResource = ResourceManager::CreateMaterial("objectMaterial", objectMaterialConstants,
+                                                                diffuseMap, normalMap);
+        objectEntity.AddComponent<MaterialComponent>(materialResource);
 
         // Player control component
         objectEntity.AddComponent<PlayerControlComponent>();

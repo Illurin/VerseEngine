@@ -16,6 +16,10 @@ namespace engine {
 
         TextureResource texture;
         texture.path = path;
+        texture.samplerInfo = {
+            rhi::Filter::Linear, rhi::Filter::Linear, rhi::Filter::Linear
+        };
+
         auto id = static_cast<uint32_t>(textureResources.size());
         textureResources.emplace_back(texture);
         return id;
@@ -32,18 +36,31 @@ namespace engine {
         TextureResource texture;
         texture.isCubemap = true;
         texture.path = path;
+        texture.samplerInfo = {
+            rhi::Filter::Linear, rhi::Filter::Linear, rhi::Filter::Linear
+        };
+
         auto id = static_cast<uint32_t>(textureResources.size());
         textureResources.emplace_back(texture);
         return id;
+    }
+
+    void ResourceManager::SetImageSampler(uint32_t texture, const rhi::SamplerCreateInfo& info) {
+        GetTexture(texture).samplerInfo = info;
     }
 
     TextureResource& ResourceManager::GetTexture(uint32_t id) {
         return textureResources[id];
     }
 
-    uint32_t ResourceManager::CreateMaterial(const MaterialData& data) {
+    uint32_t ResourceManager::CreateMaterial(std::string name, MaterialConstants constants,
+                                             uint32_t diffuseMap, uint32_t normalMap) {
         MaterialResource material;
-        material.data = data;
+        material.name = name;
+        material.constants = constants;
+        material.diffuseMap = diffuseMap;
+        material.normalMap = normalMap;
+
         auto id = static_cast<uint32_t>(materialResources.size());
         materialResources.emplace_back(material);
         return id;
@@ -60,7 +77,6 @@ namespace engine {
         for (auto& material : materialResources) {
             if (!material.preLoad) continue;
             if (material.uniformBuffer) material.uniformBuffer->Destroy();
-            if (material.sampler) material.sampler->Destroy();
             material.preLoad = false;
 
             auto uniformBufferInfo = rhi::BufferCreateInfo()
@@ -68,20 +84,9 @@ namespace engine {
                 .SetUsage(rhi::BufferUsage::UniformBuffer);
             material.uniformBuffer = RenderDevice::GetDevice()->CreateBuffer(uniformBufferInfo);
 
-            MaterialConstants materialConstants{
-                material.data.diffuseAlbedo,
-                material.data.fresnelR0,
-                material.data.roughness
-            };
-
             auto p = reinterpret_cast<MaterialConstants*>(material.uniformBuffer->Map());
-            *p = materialConstants;
+            *p = material.constants;
             material.uniformBuffer->Unmap();
-
-            material.sampler = RenderDevice::GetDevice()->CreateSampler(material.data.samplerInfo);
-
-            material.diffuseMapResource = ImportTexture(material.data.diffuseMap);
-            material.normalMapResource = ImportTexture(material.data.normalMap);
         }
 
         // Load pixel data from file
@@ -92,6 +97,7 @@ namespace engine {
             auto& texture = textureResources[i];
             if (!texture.preLoad) continue;
             if (texture.image) texture.image->Destroy();
+            if (texture.sampler) texture.sampler->Destroy();
             texture.preLoad = false;
             
             if (!texture.isCubemap) {
@@ -191,6 +197,8 @@ namespace engine {
 
                 uploaderBuffers.emplace_back(std::make_pair(i, uploaderBuffer));
             }
+
+            texture.sampler = RenderDevice::GetDevice()->CreateSampler(texture.samplerInfo);
         }
 
         // Prepare command buffer
@@ -292,15 +300,15 @@ namespace engine {
                 texture.image->Destroy();
                 texture.image = nullptr;
             }
+            if (texture.sampler) {
+                texture.sampler->Destroy();
+                texture.sampler = nullptr;
+            }
         }
         for (auto& material : materialResources) {
             if (material.uniformBuffer) {
                 material.uniformBuffer->Destroy();
                 material.uniformBuffer = nullptr;
-            }
-            if (material.sampler) {
-                material.sampler->Destroy();
-                material.sampler = nullptr;
             }
         }
     }

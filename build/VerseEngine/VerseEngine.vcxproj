@@ -178,6 +178,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\engine\source\runtime\framework\component\component.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\material_component.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\renderer_component.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\scene_component.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\framework\component\transform_component.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\ecs\ecs.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\ecs\entity.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\framework\scene\scene.hpp" />
@@ -218,10 +222,6 @@
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\assimp_loader.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\model_loader.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\resource\asset_loader\model\raw_model_data.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\data.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\material_data.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\renderer_data.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\resource\data_type\transform_data.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\resource\resource_manager.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\system\engine.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\system\file_system\path.hpp" />
@@ -247,6 +247,22 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\fragment.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\output.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\quad.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\deferred\hlsl\vertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\include\hlsl\common.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

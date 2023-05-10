@@ -1,5 +1,10 @@
 #pragma once
 
+#include "runtime/framework/component/transform_component.hpp"
+#include "runtime/framework/component/material_component.hpp"
+#include "runtime/framework/component/renderer_component.hpp"
+#include "runtime/framework/component/scene_component.hpp"
+
 #include "runtime/framework/system/system.hpp"
 
 namespace engine {

@@ -31,7 +31,7 @@ namespace engine {
 
     private:
         void BuildStorageImage();
-        void BuildDescriptorLayout();
+        void BuildDescriptorSetLayout();
         void BuildDescriptors(rhi::Image shaderReadImage);
         void BuildPipeline();
 

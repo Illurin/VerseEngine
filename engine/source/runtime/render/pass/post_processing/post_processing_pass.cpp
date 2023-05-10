@@ -4,7 +4,7 @@ namespace engine {
 
     PostProcessingPass::PostProcessingPass(rhi::Image shaderReadImage) {
         BuildStorageImage();
-        BuildDescriptorLayout();
+        BuildDescriptorSetLayout();
         BuildDescriptors(shaderReadImage);
         BuildPipeline();
     }
@@ -41,7 +41,7 @@ namespace engine {
         storageImages[1] = RenderDevice::GetDevice()->CreateImage(imageInfo);
     }
 
-    void PostProcessingPass::BuildDescriptorLayout() {
+    void PostProcessingPass::BuildDescriptorSetLayout() {
         std::vector<rhi::DescriptorSetLayoutBindingInfo> layoutBindings(3);
 
         layoutBindings[0].SetBinding(0)

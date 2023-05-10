@@ -13,8 +13,8 @@ struct ControllerComponent : IComponent {
     ControllerComponent(float moveSpeed, float rotateSpeed) :
         moveSpeed(moveSpeed), rotateSpeed(rotateSpeed) {}
 
-    float moveSpeed;
-    float rotateSpeed;
+    float moveSpeed{ 1.0f };
+    float rotateSpeed{ 1.0f };
 };
 
 class ControlSystem : public ISystem {
@@ -48,9 +48,9 @@ public:
 
         // Environment
         
-        Entity::GetSingletonComponents<EnvironmentComponent>() =
-            EnvironmentComponent({ math::Vector3f(0.1f, 0.1f, 0.1f),
-                                   Path::GetAbsolutePath("asset/skybox.png") });
+        auto& environmentComponent = Entity::AddSingletonComponent<EnvironmentComponent>();
+        environmentComponent.ambientLight = math::Vector3f(0.5f, 0.5f, 0.5f);
+        environmentComponent.skyboxTextureResource = ResourceManager::ImportCubemap(Path::GetAbsolutePath("asset/skybox.png"));
 
         // Camera
 
@@ -60,44 +60,86 @@ public:
         auto cameraEntity = CreateEntity();
         cameraEntity.AddComponent<CameraComponent>(camera);
         cameraEntity.AddComponent<ControllerComponent>(2.0f, 2.0f);
-        
-        // Sampler
 
-        auto repeatSamplerInfo = rhi::SamplerCreateInfo()
-            .SetMinFilter(rhi::Filter::Linear)
-            .SetMagFilter(rhi::Filter::Linear)
-            .SetMipFilter(rhi::Filter::Linear)
-            .SetAddressModeU(rhi::SamplerAddressMode::Repeat)
-            .SetAddressModeV(rhi::SamplerAddressMode::Repeat)
-            .SetAddressModeW(rhi::SamplerAddressMode::Repeat)
-            .SetMinLod(0.0f)
-            .SetMaxLod(1.0f);
+        // Default textures
 
-        auto borderSamplerInfo = rhi::SamplerCreateInfo()
-            .SetMinFilter(rhi::Filter::Linear)
-            .SetMagFilter(rhi::Filter::Linear)
-            .SetMipFilter(rhi::Filter::Linear)
-            .SetAddressModeU(rhi::SamplerAddressMode::Border)
-            .SetAddressModeV(rhi::SamplerAddressMode::Border)
-            .SetAddressModeW(rhi::SamplerAddressMode::Border)
-            .SetBorderColor(rhi::BorderColor::OpaqueBlack)
-            .SetMinLod(0.0f)
-            .SetMaxLod(1.0f);
+        auto defaultAlbedoTexture = ResourceManager::ImportTexture(Path::GetAbsolutePath("asset/default/albedo.jpg"));
+        auto defaultNormalTexture = ResourceManager::ImportTexture(Path::GetAbsolutePath("asset/default/normal.jpg"));
+
+        // Light
+
+        /*auto lightEntity = CreateEntity();
+
+        lightEntity.AddComponent<TransformComponent>(math::Vector3f(0.0f, 2.0f, 0.0f),
+                                                     math::Vector3f(1.0f, 1.0f, 1.0f),
+                                                     math::Vector3f::Zero(),
+                                                     math::Vector3f::Zero());
+
+        lightEntity.AddComponent<LightComponent>(math::Vector3f(1.0f, 1.0f, 1.0f),
+                                                 1.0f,
+                                                 0.3f);*/
+
+        // Plane
+
+        /*auto planeEntity = CreateEntity();
+
+        planeEntity.AddComponent<TransformComponent>(math::Vector3f(0.0f, 0.1f, 0.0f),
+                                                     math::Vector3f(1.0f, 1.0f, 1.0f),
+                                                     math::Vector3f::Zero(),
+                                                     math::Vector3f::Zero());
+
+        auto brickDiffuseTexture = ResourceManager::ImportTexture(Path::GetAbsolutePath("asset/brickTexture.jpg"));
+        auto brickNormalTexture = ResourceManager::ImportTexture(Path::GetAbsolutePath("asset/brickTexture_normal.jpg"));
+
+        MaterialConstants brickMaterialConstants{ math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f),
+                                                  math::Vector3f(0.3f, 0.3f, 0.3f),
+                                                  0.5f };
+        auto brickMaterial = ResourceManager::CreateMaterial("brickMaterial", brickMaterialConstants,
+                                                             brickDiffuseTexture, brickNormalTexture);
+        planeEntity.AddComponent<MaterialComponent>(brickMaterial);
+
+        std::vector<ObjectVertexData> planeVertices(4);
+
+        planeVertices[0].localPos << -5.0f, 0.0f, -5.0f;
+        planeVertices[0].normal << 0.0f, 1.0f, 0.0f;
+        planeVertices[0].tangent << 1.0f, 0.0f, 0.0f;
+        planeVertices[0].texCoord << 0.0f, 0.0f;
+
+        planeVertices[1].localPos << 5.0f, 0.0f, -5.0f;
+        planeVertices[1].normal << 0.0f, 1.0f, 0.0f;
+        planeVertices[1].tangent << 1.0f, 0.0f, 0.0f;
+        planeVertices[1].texCoord << 1.0f, 0.0f;
+
+        planeVertices[2].localPos << -5.0f, 0.0f, 5.0f;
+        planeVertices[2].normal << 0.0f, 1.0f, 0.0f;
+        planeVertices[2].tangent << 1.0f, 0.0f, 0.0f;
+        planeVertices[2].texCoord << 0.0f, 1.0f;
+
+        planeVertices[3].localPos << 5.0f, 0.0f, 5.0f;
+        planeVertices[3].normal << 0.0f, 1.0f, 0.0f;
+        planeVertices[3].tangent << 1.0f, 0.0f, 0.0f;
+        planeVertices[3].texCoord << 1.0f, 1.0f;
+
+        std::vector<uint32_t> planeIndices = {
+            0, 1, 2, 1, 2, 3
+        };
+
+        planeEntity.AddComponent<MeshRendererComponent>(planeVertices, planeIndices);*/
 
         // Marisa model
 
         auto marisaRawModel = asset::ModelLoader::Load(Path::GetAbsolutePath("asset/model.fbx"));
         
         for (auto& node : marisaRawModel.scene.nodes) {
-            TransformData tranformData{ math::Vector3f(0.0f, 0.0f, 0.0f),
-                                        math::Vector3f(0.05f, 0.05f, 0.05f),
-                                        math::Vector3f(-90.0f, 0.0f, 0.0f),
-                                        math::Vector3f::Zero() };
+            TransformComponent tranformComponent(math::Vector3f(0.0f, 0.0f, 0.0f),
+                                                 math::Vector3f(0.05f, 0.05f, 0.05f),
+                                                 math::Vector3f(-90.0f, 0.0f, 0.0f),
+                                                 math::Vector3f::Zero());
 
             for (auto& mesh : node.meshes) {
                 auto meshEntity = CreateEntity();
 
-                meshEntity.AddComponent<TransformComponent>(tranformData);
+                meshEntity.AddComponent<TransformComponent>(tranformComponent);
 
                 std::vector<ObjectVertexData> meshVertices(mesh.vertices.size());
                 for (size_t i = 0; i < mesh.vertices.size(); i++) {
@@ -106,21 +148,21 @@ public:
                     meshVertices[i].tangent = mesh.vertices[i].tangent;
                     meshVertices[i].texCoord = mesh.vertices[i].texCoord;
                 }
-                meshEntity.AddComponent<MeshRendererComponent>(MeshRendererData({ meshVertices, mesh.indices }));
+                meshEntity.AddComponent<MeshRendererComponent>(meshVertices, mesh.indices);
 
-                MaterialData materialData{
-                    mesh.material.name,
+                MaterialConstants materialConstants{
                     math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f),
                     math::Vector3f(0.1f, 0.1f, 0.1f),
-                    0.9f,
-                    mesh.material.diffuseMap.has_value() ? mesh.material.diffuseMap.value().path
-                                                         : Path::GetAbsolutePath("asset/default/albedo.jpg"),
-                    mesh.material.normalMap.has_value() ? mesh.material.normalMap.value().path
-                                                         : Path::GetAbsolutePath("asset/default/normal.jpg"),
-                    repeatSamplerInfo
+                    0.9f
                 };
 
-                meshEntity.AddComponent<MaterialComponent>(ResourceManager::CreateMaterial(materialData));
+                auto diffuseMap = mesh.material.diffuseMap.has_value() ? 
+                                  ResourceManager::ImportTexture(mesh.material.diffuseMap.value().path) :
+                                  defaultAlbedoTexture;
+
+                auto materialResource = ResourceManager::CreateMaterial(mesh.material.name, materialConstants,
+                                                                        diffuseMap, defaultNormalTexture);
+                meshEntity.AddComponent<MaterialComponent>(materialResource);
             }
         }
 
@@ -129,14 +171,14 @@ public:
         auto deferredSceneModel = asset::ModelLoader::Load(Path::GetAbsolutePath("asset/Deferred/Deferred.gltf"));
 
         for (auto& node : deferredSceneModel.scene.nodes) {
-            TransformData tranformData{ node.transform.position,
-                                        node.transform.scale,
-                                        node.transform.rotation,
-                                        math::Vector3f::Zero() };
+            TransformComponent tranformComponent(node.transform.position,
+                                                 node.transform.scale,
+                                                 node.transform.rotation,
+                                                 math::Vector3f::Zero());
             for (auto& mesh : node.meshes) {
                 auto meshEntity = CreateEntity();
 
-                meshEntity.AddComponent<TransformComponent>(tranformData);
+                meshEntity.AddComponent<TransformComponent>(tranformComponent);
 
                 std::vector<ObjectVertexData> meshVertices(mesh.vertices.size());
                 for (size_t i = 0; i < mesh.vertices.size(); i++) {
@@ -145,37 +187,37 @@ public:
                     meshVertices[i].tangent = mesh.vertices[i].tangent;
                     meshVertices[i].texCoord = mesh.vertices[i].texCoord;
                 }
-                meshEntity.AddComponent<MeshRendererComponent>(MeshRendererData({ meshVertices, mesh.indices }));
+                meshEntity.AddComponent<MeshRendererComponent>(meshVertices, mesh.indices);
 
-                MaterialData materialData;
-                materialData.name = mesh.material.name;
-                materialData.diffuseAlbedo << mesh.material.baseColor.x(),
+                MaterialConstants materialConstants;
+                materialConstants.diffuseAlbedo << mesh.material.baseColor.x(),
                                                    mesh.material.baseColor.y(),
                                                    mesh.material.baseColor.z(),
                                                    1.0f;
                 if (mesh.material.emission.norm() > 0.0f) {
-                    materialData.diffuseAlbedo << mesh.material.emission.x() * 5.0f,
+                    materialConstants.diffuseAlbedo << mesh.material.emission.x() * 5.0f,
                                                        mesh.material.emission.y() * 5.0f,
                                                        mesh.material.emission.z() * 5.0f,
                                                        1.0f;
 
-                    LightData lightData;
-                    lightData.type = LightType::Point;
-                    lightData.color = mesh.material.emission;
-                    lightData.intensity = 0.3f;
-                    lightData.attenuation = 0.7f;
-                    meshEntity.AddComponent<LightComponent>(lightData);
+                    meshEntity.AddComponent<LightComponent>(mesh.material.emission,
+                                                            0.3f,
+                                                            0.7f);
                 }
-                materialData.fresnelR0 = mesh.material.specular;
-                materialData.roughness = mesh.material.roughness;
-                materialData.diffuseMap = mesh.material.diffuseMap.has_value() ?
-                                          mesh.material.diffuseMap.value().path :
-                                          Path::GetAbsolutePath("asset/default/albedo.jpg");
-                materialData.normalMap = mesh.material.normalMap.has_value() ?
-                                         mesh.material.normalMap.value().path :
-                                         Path::GetAbsolutePath("asset/default/normal.jpg");
+                materialConstants.fresnelR0 = mesh.material.specular;
+                materialConstants.roughness = mesh.material.roughness;
 
-                meshEntity.AddComponent<MaterialComponent>(ResourceManager::CreateMaterial(materialData));
+                auto diffuseMap = mesh.material.diffuseMap.has_value() ? 
+                                  ResourceManager::ImportTexture(mesh.material.diffuseMap.value().path) :
+                                  defaultAlbedoTexture;
+
+                auto normalMap = mesh.material.normalMap.has_value() ? 
+                                  ResourceManager::ImportTexture(mesh.material.normalMap.value().path) :
+                                  defaultNormalTexture;
+
+                auto materialResource = ResourceManager::CreateMaterial(mesh.material.name, materialConstants,
+                                                                        diffuseMap, normalMap);
+                meshEntity.AddComponent<MaterialComponent>(materialResource);
             }
         }
     }

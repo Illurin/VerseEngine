@@ -2,141 +2,18 @@
 
 namespace engine {
 
-    void RayTracingPass::Init(const RayTracingPassInfo& info) {
-        this->info = info;
-        BuildBuffers();
-        BuildAccelerationStructures();
+    RayTracingPass::RayTracingPass() {
         BuildDescriptorLayout();
         BuildDescriptorSets();
         BuildPipeline();
         BuildShaderBindingTable();
     }
 
-    void RayTracingPass::Destroy() {
-        trianglesBuffer->Destroy();
-        indexBuffer->Destroy();
-        instancesBuffer->Destroy();
-        bottomASBuffer->Destroy();
-        topASBuffer->Destroy();
-        scratchBuffer->Destroy();
+    RayTracingPass::~RayTracingPass() {
         sbtBuffer->Destroy();
-        bottomAS->Destroy();
-        topAS->Destroy();
-        descriptorPool->Destroy();
         descriptorSetLayout->Destroy();
         pipeline->Destroy();
         pipelineLayout->Destroy();
-    }
-
-    void RayTracingPass::BuildBuffers() {
-        std::array<math::Vector3f, 3> triangleVertices = {
-            math::Vector3f(0.0f,  0.5f, 0.0f),
-            math::Vector3f(-0.5f, -0.5f, 0.0f),
-            math::Vector3f(0.5f, -0.5f, 0.0f)
-        };
-
-        auto trianglesBufferInfo = rhi::BufferCreateInfo()
-            .SetSize(sizeof(triangleVertices))
-            .SetUsage(rhi::BufferUsage::AccelerationStructureReadOnly);
-        trianglesBuffer = info.device->CreateBuffer(trianglesBufferInfo);
-
-        auto pTriangleVertices = reinterpret_cast<math::Vector3f*>(trianglesBuffer->Map());
-        std::copy(triangleVertices.begin(), triangleVertices.end(), pTriangleVertices);
-        trianglesBuffer->Unmap();
-
-        std::array<uint32_t, 3> indices = {
-            0, 1, 2
-        };
-
-        auto indexBufferInfo = rhi::BufferCreateInfo()
-            .SetSize(sizeof(indices))
-            .SetUsage(rhi::BufferUsage::AccelerationStructureReadOnly);
-        indexBuffer = info.device->CreateBuffer(indexBufferInfo);
-
-        auto pIndices = reinterpret_cast<uint32_t*>(indexBuffer->Map());
-        std::copy(indices.begin(), indices.end(), pIndices);
-        indexBuffer->Unmap();
-    }
-
-    void RayTracingPass::BuildAccelerationStructures() {
-
-        // Bottom level acceleration structure
-
-        auto trianglesGeometry = rhi::AccelerationStructureGeometryTrianglesData()
-            .SetVertexData(trianglesBuffer)
-            .SetVertexFormat(rhi::Format::R32G32B32Sfloat)
-            .SetVertexStride(sizeof(math::Vector3f))
-            .SetMaxVertex(3)
-            .SetIndexData(indexBuffer)
-            .SetIndexType(rhi::IndexType::Uint32);
-
-        bottomGeometries.resize(1);
-        bottomGeometries[0].SetData(trianglesGeometry)
-                     .SetType(rhi::AccelerationStructureGeometryType::Triangles);
-
-        bottomASBuildGeometryInfo = rhi::AccelerationStructureBuildGeometryInfo()
-            .SetType(rhi::AccelerationStructureType::BottomLevel)
-            .SetGeometries(bottomGeometries);
-
-        std::vector<uint32_t> maxPrimitiveCounts = { 1 };
-        auto bottomSizesInfo = info.device->GetAccelerationStructureBuildSizes(bottomASBuildGeometryInfo, maxPrimitiveCounts.data());
-
-        auto bottomASBufferInfo = rhi::BufferCreateInfo()
-            .SetSize(bottomSizesInfo.accelerationStructureSize)
-            .SetUsage(rhi::BufferUsage::AccelerationStructureStorage);
-        bottomASBuffer = info.device->CreateBuffer(bottomASBufferInfo);
-        
-        auto bottomASInfo = rhi::AccelerationStructureCreateInfo()
-            .SetBuffer(bottomASBuffer)
-            .SetSize(bottomSizesInfo.accelerationStructureSize)
-            .SetOffset(0)
-            .SetType(rhi::AccelerationStructureType::BottomLevel);
-        bottomAS = info.device->CreateAccelerationStructure(bottomASInfo);
-
-        // Top level acceleration structure
-
-        std::array<std::array<float, 4>, 3> transformMatrix = {
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0
-        };
-
-        auto instancesBufferInfo = rhi::AccelerationStructureGeometryInstance()
-            .SetAccelerationStructure(bottomAS)
-            .SetTransform({ transformMatrix });
-        instancesBuffer = info.device->CreateBuffer(1, &instancesBufferInfo);
-
-        auto instancesData = rhi::AccelerationStructureGeometryInstancesData()
-            .SetData(instancesBuffer);
-
-        topGeometries.resize(1);
-        topGeometries[0].SetData(instancesData)
-                        .SetType(rhi::AccelerationStructureGeometryType::Instances);
-
-        topASBuildGeometryInfo = rhi::AccelerationStructureBuildGeometryInfo()
-            .SetType(rhi::AccelerationStructureType::TopLevel)
-            .SetGeometries(topGeometries);
-
-        auto topSizesInfo = info.device->GetAccelerationStructureBuildSizes(topASBuildGeometryInfo, maxPrimitiveCounts.data());
-
-        auto topASBufferInfo = rhi::BufferCreateInfo()
-            .SetSize(topSizesInfo.accelerationStructureSize)
-            .SetUsage(rhi::BufferUsage::AccelerationStructureStorage);
-        topASBuffer = info.device->CreateBuffer(topASBufferInfo);
-
-        auto topASInfo = rhi::AccelerationStructureCreateInfo()
-            .SetBuffer(topASBuffer)
-            .SetSize(topSizesInfo.accelerationStructureSize)
-            .SetOffset(0)
-            .SetType(rhi::AccelerationStructureType::TopLevel);
-        topAS = info.device->CreateAccelerationStructure(topASInfo);
-
-        // Create scratch buffer
-
-        auto scratchBufferInfo = rhi::BufferCreateInfo()
-            .SetSize(std::max(bottomSizesInfo.scratchSize, topSizesInfo.scratchSize))
-            .SetUsage(rhi::BufferUsage::AccelerationStructureScratch);
-        scratchBuffer = info.device->CreateBuffer(scratchBufferInfo);
     }
 
     void RayTracingPass::BuildDescriptorLayout() {

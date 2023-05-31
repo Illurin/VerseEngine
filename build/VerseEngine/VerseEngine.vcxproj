@@ -161,7 +161,10 @@
     <ClCompile Include="..\..\engine\source\runtime\render\pass\debug\debug_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\pass\deferred\deferred_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.cpp" />
-    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.cpp" />
+    <ClCompile Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\pass\screen_quad\screen_quad_pass.cpp" />
     <ClCompile Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.cpp" />
@@ -209,7 +212,10 @@
     <ClInclude Include="..\..\engine\source\runtime\render\pass\debug\debug_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\deferred\deferred_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\post_processing\post_processing_pass.hpp" />
-    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.hpp" />
+    <ClInclude Include="..\..\engine\source\runtime\render\pass\raytracing\raytracing_pass.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\..\engine\source\runtime\render\pass\scene\scene_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\screen_quad\screen_quad_pass.hpp" />
     <ClInclude Include="..\..\engine\source\runtime\render\pass\skybox\skybox_pass.hpp" />
@@ -269,6 +275,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="..\..\engine\shader\include\hlsl\lighting_util.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\..\engine\shader\include\hlsl\raycommon.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

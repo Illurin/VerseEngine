@@ -469,5 +469,8 @@
     <FxCompile Include="..\..\engine\shader\deferred\hlsl\vertex.hlsl">
       <Filter>shader\deferred\hlsl</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\engine\shader\include\hlsl\raycommon.hlsl">
+      <Filter>shader\include\hlsl</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

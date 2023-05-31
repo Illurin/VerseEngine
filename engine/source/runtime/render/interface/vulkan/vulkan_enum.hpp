@@ -141,6 +141,8 @@ namespace engine {
             case rhi::BufferUsage::AccelerationStructureStorage: bufferUsage_ = vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR; break;
             case rhi::BufferUsage::AccelerationStructureReadOnly: bufferUsage_ = vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
             case rhi::BufferUsage::AccelerationStructureScratch: bufferUsage_ = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
+            case rhi::BufferUsage::VertexBufferAndAccelerationStructureReadOnly: bufferUsage_ = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
+            case rhi::BufferUsage::IndexBufferAndAccelerationStructureReadOnly: bufferUsage_ = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
             case rhi::BufferUsage::ShaderBindingTable: bufferUsage_ = vk::BufferUsageFlagBits::eShaderBindingTableKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress; break;
             }
         }

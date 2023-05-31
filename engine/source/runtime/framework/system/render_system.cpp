@@ -38,6 +38,7 @@ namespace engine {
 
     void RenderSystem::Start() {
         BuildMeshes();
+        //BuildAccelerationStructures();
         ResourceManager::LoadResources();
         BuildDescriptors();
         PrepareRendering();
@@ -73,14 +74,16 @@ namespace engine {
         indices.insert(indices.end(), skyboxGeosphere.indices.begin(), skyboxGeosphere.indices.end());
         skyboxRenderer.indexCount = static_cast<uint32_t>(skyboxGeosphere.indices.size());
 
+        maxVertexCount = static_cast<uint32_t>(vertices.size());
+
         auto vertexBufferInfo = rhi::BufferCreateInfo()
             .SetSize(sizeof(ObjectVertexData) * vertices.size())
-            .SetUsage(rhi::BufferUsage::VertexBuffer);
+            .SetUsage(rhi::BufferUsage::VertexBufferAndAccelerationStructureReadOnly);
         vertexBuffer = RenderDevice::GetDevice()->CreateBuffer(vertexBufferInfo);
 
         auto indexBufferInfo = rhi::BufferCreateInfo()
             .SetSize(sizeof(uint32_t) * indices.size())
-            .SetUsage(rhi::BufferUsage::IndexBuffer);
+            .SetUsage(rhi::BufferUsage::IndexBufferAndAccelerationStructureReadOnly);
         indexBuffer = RenderDevice::GetDevice()->CreateBuffer(indexBufferInfo);
 
         auto pVertexBuffer = reinterpret_cast<ObjectVertexData*>(vertexBuffer->Map());
@@ -90,6 +93,87 @@ namespace engine {
         auto pIndexBuffer = reinterpret_cast<uint32_t*>(indexBuffer->Map());
         std::copy(indices.begin(), indices.end(), pIndexBuffer);
         indexBuffer->Unmap();
+    }
+
+    void RenderSystem::BuildAccelerationStructures() {
+
+        // Bottom level acceleration structure
+
+        auto trianglesGeometry = rhi::AccelerationStructureGeometryTrianglesData()
+            .SetVertexData(vertexBuffer)
+            .SetVertexFormat(rhi::Format::R32G32B32Sfloat)
+            .SetVertexStride(sizeof(ObjectVertexData))
+            .SetMaxVertex(maxVertexCount)
+            .SetIndexData(indexBuffer)
+            .SetIndexType(rhi::IndexType::Uint32);
+
+        blasGeometries.resize(1);
+        blasGeometries[0].SetData(trianglesGeometry)
+                         .SetType(rhi::AccelerationStructureGeometryType::Triangles);
+
+        blasBuildGeoInfo = rhi::AccelerationStructureBuildGeometryInfo()
+            .SetType(rhi::AccelerationStructureType::BottomLevel)
+            .SetGeometries(blasGeometries);
+
+        std::vector<uint32_t> maxPrimitiveCounts = { maxVertexCount / 3 };
+        auto bottomSizesInfo = RenderDevice::GetDevice()->GetAccelerationStructureBuildSizes(blasBuildGeoInfo, maxPrimitiveCounts.data());
+
+        auto blasBufferInfo = rhi::BufferCreateInfo()
+            .SetSize(bottomSizesInfo.accelerationStructureSize)
+            .SetUsage(rhi::BufferUsage::AccelerationStructureStorage);
+        blasBuffer = RenderDevice::GetDevice()->CreateBuffer(blasBufferInfo);
+
+        auto blasInfo = rhi::AccelerationStructureCreateInfo()
+            .SetBuffer(blasBuffer)
+            .SetSize(bottomSizesInfo.accelerationStructureSize)
+            .SetOffset(0)
+            .SetType(rhi::AccelerationStructureType::BottomLevel);
+        blas = RenderDevice::GetDevice()->CreateAccelerationStructure(blasInfo);
+
+        // Top level acceleration structure
+
+        std::array<std::array<float, 4>, 3> transformMatrix = {
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0
+        };
+
+        auto instanceBufferInfo = rhi::AccelerationStructureGeometryInstance()
+            .SetAccelerationStructure(blas)
+            .SetTransform({ transformMatrix });
+        instanceBuffer = RenderDevice::GetDevice()->CreateBuffer(1, &instanceBufferInfo);
+
+        auto instancesData = rhi::AccelerationStructureGeometryInstancesData()
+            .SetData(instanceBuffer);
+
+        tlasGeometries.resize(1);
+        tlasGeometries[0].SetData(instancesData)
+                         .SetType(rhi::AccelerationStructureGeometryType::Instances);
+
+        tlasBuildGeoInfo = rhi::AccelerationStructureBuildGeometryInfo()
+            .SetType(rhi::AccelerationStructureType::TopLevel)
+            .SetGeometries(tlasGeometries);
+
+        auto topSizesInfo = RenderDevice::GetDevice()->GetAccelerationStructureBuildSizes(tlasBuildGeoInfo, maxPrimitiveCounts.data());
+
+        auto tlasBufferInfo = rhi::BufferCreateInfo()
+            .SetSize(topSizesInfo.accelerationStructureSize)
+            .SetUsage(rhi::BufferUsage::AccelerationStructureStorage);
+        tlasBuffer = RenderDevice::GetDevice()->CreateBuffer(tlasBufferInfo);
+
+        auto tlasInfo = rhi::AccelerationStructureCreateInfo()
+            .SetBuffer(tlasBuffer)
+            .SetSize(topSizesInfo.accelerationStructureSize)
+            .SetOffset(0)
+            .SetType(rhi::AccelerationStructureType::TopLevel);
+        tlas = RenderDevice::GetDevice()->CreateAccelerationStructure(tlasInfo);
+
+        // Create scratch buffer
+
+        auto scratchBufferInfo = rhi::BufferCreateInfo()
+            .SetSize(std::max(bottomSizesInfo.scratchSize, topSizesInfo.scratchSize))
+            .SetUsage(rhi::BufferUsage::AccelerationStructureScratch);
+        scratchBuffer = RenderDevice::GetDevice()->CreateBuffer(scratchBufferInfo);
     }
 
     void RenderSystem::BuildDescriptors() {

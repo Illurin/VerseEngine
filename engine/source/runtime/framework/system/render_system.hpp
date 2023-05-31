@@ -40,6 +40,7 @@ namespace engine {
 
     private:
         void BuildMeshes();
+        void BuildAccelerationStructures();
         void BuildDescriptors();
         
         void UpdateFrameResource();
@@ -60,6 +61,7 @@ namespace engine {
         // Resource                        
                                         
         rhi::Buffer                          vertexBuffer{ nullptr };
+        uint32_t                             maxVertexCount{ 0 };
         rhi::Buffer                          indexBuffer{ nullptr };
         rhi::Buffer                          passUniformBuffer{ nullptr };
         std::vector<rhi::Buffer>             transformUniformBuffers;
@@ -67,6 +69,17 @@ namespace engine {
         rhi::DescriptorPool                  descriptorPool{ nullptr };
         rhi::DescriptorSet                   passDescriptorSet{ nullptr };
         std::vector<rhi::DescriptorSet>      transformDescriptorSets;
+
+        std::vector<rhi::AccelerationStructureGeometry> blasGeometries;
+        std::vector<rhi::AccelerationStructureGeometry> tlasGeometries;
+        rhi::AccelerationStructureBuildGeometryInfo     blasBuildGeoInfo{};
+        rhi::AccelerationStructureBuildGeometryInfo     tlasBuildGeoInfo{};
+        rhi::Buffer                                     instanceBuffer{ nullptr };
+        rhi::Buffer                                     scratchBuffer{ nullptr };
+        rhi::Buffer                                     blasBuffer{ nullptr };
+        rhi::Buffer                                     tlasBuffer{ nullptr };
+        rhi::AccelerationStructure                      blas{ nullptr };
+        rhi::AccelerationStructure                      tlas{ nullptr };
                                         
         // Render pass                    
                                         

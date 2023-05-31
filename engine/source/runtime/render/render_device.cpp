@@ -12,7 +12,7 @@ namespace engine {
             .SetPhysicalDeviceId(1)
             .SetPQueueCreateInfos(&queueInfo)
             .SetQueueCreateInfoCount(1)
-            .SetDeviceExtension(rhi::DeviceExtension().SetRayTracingEnabled(false));
+            .SetDeviceExtension(rhi::DeviceExtension().SetRayTracingEnabled(true));
 
         device = instance->CreateDevice(deviceInfo);
 

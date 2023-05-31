@@ -93,6 +93,8 @@ namespace engine {
             AccelerationStructureStorage,
             AccelerationStructureReadOnly,
             AccelerationStructureScratch,
+            VertexBufferAndAccelerationStructureReadOnly,
+            IndexBufferAndAccelerationStructureReadOnly,
             ShaderBindingTable
         };
 
